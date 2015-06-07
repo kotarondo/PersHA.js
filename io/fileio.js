@@ -35,14 +35,19 @@
 
 var fs = require('fs');
 
-function FileOutputStream(filename) {
+function FileOutputStream(filename, openExists) {
 	var capacity = 8192;
 	var cacheLen = 0;
 	var position = 0;
 	var buffer = new Buffer(capacity);
-	var fd = fs.openSync(filename, 'w');
+	if (openExists) {
+		var fd = fs.openSync(filename, 'r+');
+	}
+	else {
+		var fd = fs.openSync(filename, 'w');
+	}
 
-	function getPosition(pos) {
+	function getPosition() {
 		return position;
 	}
 
@@ -176,6 +181,7 @@ function FileOutputStream(filename) {
 			var length = keys.length;
 			writeInt(length);
 			for (var i = 0; i < length; i++) {
+				writeString(keys[i]);
 				writeAny(x[keys[i]], stack);
 			}
 		}
@@ -196,6 +202,8 @@ function FileOutputStream(filename) {
 	}
 
 	return {
+		getPosition : getPosition,
+		setPosition : setPosition,
 		writeInt : writeInt,
 		writeString : writeString,
 		writeBuffer : writeBuffer,
@@ -215,7 +223,7 @@ function FileInputStream(filename) {
 	var buffer = new Buffer(capacity);
 	var fd = fs.openSync(filename, 'r');
 
-	function getPosition(pos) {
+	function getPosition() {
 		return position - cacheSize + cacheOff;
 	}
 
@@ -345,15 +353,14 @@ function FileInputStream(filename) {
 			var a = {};
 			for (var i = 0; i < length; i++) {
 				var P = readString();
-				a[i] = readAny();
+				a[P] = readAny();
 			}
 			return a;
 		}
-		debugger;
-		throw Error("file broken1");
+		throw Error("file broken");
 	}
 
-	function readFully(fd, buffer, startPos, minLength, capacity, position) {
+	function readFully(fd, buffer, startPos, minLength, capacity) {
 		var transferred = 0;
 		for (var i = 0; i < 10000; i++) {
 			assert(startPos <= capacity, startPos);
@@ -372,6 +379,8 @@ function FileInputStream(filename) {
 	}
 
 	return {
+		getPosition : getPosition,
+		setPosition : setPosition,
 		readInt : readInt,
 		readString : readString,
 		readBuffer : readBuffer,

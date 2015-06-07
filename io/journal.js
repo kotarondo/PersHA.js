@@ -91,6 +91,7 @@ function Journal_start() {
 		console.log("no valid journal checkpoint ");//debug
 		return false;
 	}
+	console.log("newest fileno=" + maxFileNo);
 	Journal_currentFileNo = maxFileNo;
 	Journal_currentGen = maxGen;
 	Journal_readCheckpointHeader();
@@ -124,15 +125,13 @@ function Journal_readCheckpointHeader() {
 	Journal_closeInputStream();
 	try {
 		Journal_inputStream = FileInputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "cp.bin");
-		console.log("debug1");
 		var header = Journal_inputStream.readAny();
-		console.log(header);
+		console.log(header); // debug
 		if (isPrimitiveValue(header) || header.magic !== "checkpoint") {
 			return null;
 		}
 		return header;
 	} catch (e) {
-		console.log("debug2 " + e);
 		return null;
 	}
 }
@@ -142,6 +141,7 @@ function Journal_readLogHeader() {
 	try {
 		Journal_inputStream = FileInputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "log.bin");
 		var header = Journal_inputStream.readAny();
+		console.log(header); // debug
 		if (isPrimitiveValue(header) || header.magic !== "log") {
 			return null;
 		}
@@ -182,7 +182,8 @@ function Journal_clearLogHeader() {
 
 function Journal_openLogAppend(position) {
 	Journal_closeOutputStream();
-	Journal_outputStream = FileOutputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "log.bin");
+	Journal_outputStream = FileOutputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "log.bin", true);
+	console.log("position=" + position);//debug
 	Journal_outputStream.setPosition(position);
 }
 
