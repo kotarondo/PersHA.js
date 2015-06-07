@@ -212,10 +212,13 @@ function IOManager_schedule(obj, event) {
 
 function IOManager_loop() {
 	while (true) {
+		if (IOManager_queue.length === 0) {
+			return;
+		}
 		var obj = IOManager_queue.shift();
 		var event = IOManager_queue.shift();
-		if (obj.txid === undefined) {
-			continue;
+		if (obj.txid !== undefined) {
+			break;
 		}
 	}
 	Journal_write('schedule', event, obj.txid);
