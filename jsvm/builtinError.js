@@ -250,3 +250,14 @@ function VMTypeError(message) {
 function VMURIError(message) {
 	return URIError_Construct([ message ]);
 }
+
+function get_Error_prototype_stack(thisValue, argumentsList) {
+	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "Error") throw VMTypeError();
+	var stackTrace = thisValue.stackTrace;
+	var A = Array_Construct([]);
+	for (var i = 0; i < stackTrace.length; i++) {
+		var info = theParser.locateDebugInfo(stackTrace[i]);
+		A.Put(ToString(i), info, false);
+	}
+	return A;
+}

@@ -84,16 +84,20 @@ function defineFunction(obj, name, length, func) {
 }
 
 function defineAccessor(obj, name, get, set) {
-	var Get = VMObject(CLASSID_BuiltinFunction);
-	Get.Prototype = builtin_Function_prototype;
-	Get.Extensible = true;
-	Get.Call = get;
-	defineFinal(Get, "length", 0);
-	var Set = VMObject(CLASSID_BuiltinFunction);
-	Set.Prototype = builtin_Function_prototype;
-	Set.Extensible = true;
-	Set.Call = set;
-	defineFinal(Set, "length", 1);
+	if (get !== undefined) {
+		var Get = VMObject(CLASSID_BuiltinFunction);
+		Get.Prototype = builtin_Function_prototype;
+		Get.Extensible = true;
+		Get.Call = get;
+		defineFinal(Get, "length", 0);
+	}
+	if (set !== undefined) {
+		var Set = VMObject(CLASSID_BuiltinFunction);
+		Set.Prototype = builtin_Function_prototype;
+		Set.Extensible = true;
+		Set.Call = set;
+		defineFinal(Set, "length", 1);
+	}
 	intrinsic_createAccessor(obj, name, PropertyDescriptor({
 		Get : Get,
 		Set : Set,
@@ -543,6 +547,9 @@ function initializeVM() {
 	define(builtin_Error_prototype, "name", "Error");
 	define(builtin_Error_prototype, "message", "");
 	defineFunction(builtin_Error_prototype, "toString", 0, Error_prototype_toString);
+	if (STRICT_CONFORMANCE === false) {
+		defineAccessor(builtin_Error_prototype, "stack", get_Error_prototype_stack, undefined);
+	}
 
 	defineFinal(builtin_EvalError, "length", 1);
 	defineFinal(builtin_EvalError, "prototype", builtin_EvalError_prototype);

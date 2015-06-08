@@ -221,6 +221,7 @@ var intrinsicFunctions = {
 	RegExp_prototype_test : RegExp_prototype_test,
 	RegExp_prototype_toString : RegExp_prototype_toString,
 	Error_prototype_toString : Error_prototype_toString,
+	get_Error_prototype_stack : get_Error_prototype_stack,
 	JSON_parse : JSON_parse,
 	JSON_stringify : JSON_stringify,
 	ThrowTypeError : ThrowTypeError,
