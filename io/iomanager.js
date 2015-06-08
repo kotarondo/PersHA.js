@@ -33,8 +33,9 @@
 
 'use strict';
 
-var IOManager_queue;
+var HANDLER_DIR;
 var RECOVERY_TARGER = 1000;
+var IOManager_queue;
 
 function IOManager_bind(name, args, port) {
 	if (IOManager_queue === undefined) {
@@ -42,7 +43,7 @@ function IOManager_bind(name, args, port) {
 	}
 	try {
 		console.log("bind " + name); // debug
-		return require('io_handler/' + name).bind(args, function(event) {
+		return require(HANDLER_DIR + name).bind(args, function(event) {
 			IOManager_schedule(port, event);
 		});
 	} catch (e) {
@@ -88,25 +89,30 @@ function IOManager_terminate(handler) {
 }
 
 function IOManager_syncIO(handler, name, args, txid) {
+	IOManager_cpucount.pause();
 	if (IOManager_queue === undefined) {
 		var entry = Journal_read();
 		if (entry !== undefined) {
 			assert(entry.type === 'syncIO' && entry.txid === txid);
-			return entry.event;
+			var event = entry.event;
 		}
-		IOManager_online();
-	}
-	IOManager_cpucount.pause();
-	if (handler === null) {
-		var event = [ 'error', 'syncIO', 'stale' ];
+		else {
+			IOManager_online();
+			var event = [ 'error', 'syncIO', 'restart' ];
+		}
 	}
 	else {
-		try {
-			console.log("syncIO" + name); // debug
-			var event = handler.syncIO(name, args);
-		} catch (e) {
-			console.log("syncIO error " + e); // debug
-			var event = [ 'error', 'syncIO', e ];
+		if (handler === null) {
+			var event = [ 'error', 'syncIO', 'stale' ];
+		}
+		else {
+			try {
+				console.log("syncIO " + name); // debug
+				var event = handler.syncIO(name, args);
+			} catch (e) {
+				console.log("syncIO error " + e); // debug
+				var event = [ 'error', 'syncIO', e ];
+			}
 		}
 	}
 	Journal_write('syncIO', event, txid);
@@ -181,7 +187,7 @@ function IOManager_start() {
 		}
 	}
 	console.log('rollforward done'); //debug
-	Journal_checkpoint();
+	IOManager_checkpoint();
 }
 
 function IOManager_online() {
@@ -225,10 +231,7 @@ function IOManager_loop() {
 	IOManager_cpucount.resume();
 	IOPort_callback(obj, event);
 	IOManager_cpucount.pause();
-	if (IOManager_cpucount.get() >= RECOVERY_TARGER) {
-		IOManager_cpucount.reset();
-		Journal_checkpoint();
-	}
+	IOManager_checkpoint();
 	if (IOManager_queue.length !== 0) {
 		setTimeout(IOManager_loop, 0);
 	}
@@ -239,11 +242,15 @@ function IOManager_evaluate(programText) {
 	IOManager_cpucount.resume();
 	var result = evaluateProgram(programText);
 	IOManager_cpucount.pause();
+	IOManager_checkpoint();
+	return result;
+}
+
+function IOManager_checkpoint() {
 	if (IOManager_cpucount.get() >= RECOVERY_TARGER) {
 		IOManager_cpucount.reset();
 		Journal_checkpoint();
 	}
-	return result;
 }
 
 var IOManager_cpucount = function() {

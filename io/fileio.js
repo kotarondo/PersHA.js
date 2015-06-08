@@ -54,6 +54,7 @@ function FileOutputStream(filename, openExists) {
 	function setPosition(pos) {
 		flush();
 		position = pos;
+		fs.ftruncateSync(fd, position);
 	}
 
 	function close() {

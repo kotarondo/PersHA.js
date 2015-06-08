@@ -237,7 +237,8 @@ function IO_wrap(a, stack) {
 		var keys = Object.keys(a);
 		var length = keys.length;
 		for (var i = 0; i < length; i++) {
-			A.Put(P, IO_wrap(a[keys[i]], stack), false);
+			var P = keys[i];
+			A.Put(P, IO_wrap(a[P], stack), false);
 		}
 	}
 	stack.pop();

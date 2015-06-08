@@ -118,7 +118,6 @@ function Journal_init() {
 	Journal_writeCheckpointHeader();
 	writeSnapshot(Journal_outputStream);
 	Journal_writeLogHeader();
-	Journal_closeOutputStream();
 }
 
 function Journal_readCheckpointHeader() {

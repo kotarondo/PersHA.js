@@ -236,12 +236,16 @@ function exitExecutionContext() {
 function getStackTrace() {
 	var stackTrace = [];
 	if (runningCode !== undefined) {
-		stackTrace.push(runningCode);
-		stackTrace.push(runningSourcePos);
+		stackTrace.push({
+			code : runningCode,
+			pos : runningSourcePos,
+		});
 		var ctx = outerExecutionContext;
 		while (ctx.runningCode !== undefined) {
-			stackTrace.push(ctx.runningCode);
-			stackTrace.push(ctx.runningSourcePos);
+			stackTrace.push({
+				code : ctx.runningCode,
+				pos : ctx.runningSourcePos,
+			});
 			var ctx = ctx.outerExecutionContext;
 		}
 	}

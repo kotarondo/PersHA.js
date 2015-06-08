@@ -534,7 +534,8 @@ function Error_walkObject(mark) {
 	intrinsic_walkObject(this, mark);
 	var length = this.stackTrace.length;
 	for (var i = 0; i < length; i++) {
-		mark(this.stackTrace[i]);
+		var code = this.stackTrace[i].code;
+		mark(code.sourceObject);
 	}
 }
 
@@ -543,7 +544,11 @@ function Error_writeObject(ostream) {
 	var length = this.stackTrace.length;
 	ostream.writeInt(length);
 	for (var i = 0; i < length; i++) {
-		ostream.writeValue(this.stackTrace[i]);
+		var code = this.stackTrace[i].code;
+		var pos = this.stackTrace[i].pos;
+		ostream.writeValue(code.sourceObject);
+		ostream.writeInt(code.index);
+		ostream.writeInt(pos);
 	}
 }
 
@@ -552,14 +557,13 @@ function Error_readObject(istream) {
 	var length = istream.readInt();
 	this.stackTrace = [];
 	for (var i = 0; i < length; i++) {
-		var info = istream.readValue();
-		this.stackTrace[i] = info;
-		if (i % 2) {
-			istream.assert(Type(info) === TYPE_Number);
-		}
-		else {
-			istream.assert(Type(info.filename) === TYPE_String);
-		}
+		var sourceObject = istream.readValue();
+		var index = istream.readInt();
+		var pos = istream.readInt();
+		this.stackTrace[i] = {
+			code : sourceObject.subcodes[index],
+			pos : pos,
+		};
 	}
 }
 

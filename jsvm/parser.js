@@ -103,7 +103,7 @@ var theParser = function() {
 			index : subcodes.length,
 			startPos : undefined,
 			endPos : undefined,
-			name : undefined,
+			funcname : undefined,
 		});
 		subcodes.push(code);
 		return code;
@@ -163,7 +163,7 @@ var theParser = function() {
 		stack = Stack();
 		var body = code;
 		body.isFunctionCode = true;
-		body.name = (name || "anonymous");
+		body.funcname = (name || "anonymous");
 		var sourceElements = readSourceElements();
 		body.strict = strict;
 		body.evaluate = FunctionBody(sourceElements);
@@ -1568,7 +1568,11 @@ var theParser = function() {
 		current = source[currentPos];
 	}
 
-	function locateDebugInfo(source, pos) {
+	function locateDebugInfo(stackTraceEntry) {
+		var code = stackTraceEntry.code;
+		var sourceObject = code.sourceObject;
+		var source = sourceObject.source;
+		var pos = stackTraceEntry.pos;
 		var lineNumber = 1;
 		var lineHeadPos = 0;
 		var i = 0;
@@ -1583,6 +1587,10 @@ var theParser = function() {
 			lineNumber++;
 			lineHeadPos = i;
 		}
-		return lineNumber + ":" + (pos - lineHeadPos + 1);
+		var finfo = sourceObject.filename + ":" + lineNumber + ":" + (pos - lineHeadPos + 1);
+		if (code.isFunctionCode) {
+			return code.funcname + " (" + finfo + ")";
+		}
+		return finfo;
 	}
 }();
