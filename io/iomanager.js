@@ -263,16 +263,21 @@ function IOManager_checkpoint() {
 }
 
 var IOManager_cpucount = function() {
+	var enabled = 0;
 	var count = 0;
 	var startTime = 0;
 	function resume() {
-		assert(startTime === 0);
-		startTime = Date.now();
+		if (enabled++ === 0) {
+			assert(startTime === 0);
+			startTime = Date.now();
+		}
 	}
 	function pause() {
-		assert(startTime !== 0);
-		count += Date.now() - startTime + 10;
-		startTime = 0;
+		if (--enabled === 0) {
+			assert(startTime !== 0);
+			count += Date.now() - startTime + 10;
+			startTime = 0;
+		}
 	}
 	function get() {
 		return count;
