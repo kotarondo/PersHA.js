@@ -64,7 +64,6 @@ function Journal_read() {
 }
 
 function Journal_write(type, event, txid) {
-	console.log("journal write " + type + "," + event + "," + txid); // debug
 	if (Journal_outputStream === undefined) {
 		return;
 	}

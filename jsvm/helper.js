@@ -194,6 +194,7 @@ function isInternalError(x) {
 		return false;
 	}
 	if (x.Class !== undefined) return false;
+	debugger;
 	return true;
 }
 

@@ -43,7 +43,6 @@ function IOManager_bind(name, args, port) {
 		return null;
 	}
 	try {
-		console.log("bind " + name); // debug
 		return require(HANDLER_DIR + name).bind(args, function(event) {
 			IOManager_schedule(port, event);
 		});
@@ -63,7 +62,6 @@ function IOManager_open(handler, args, port) {
 		return null;
 	}
 	try {
-		console.log("open "); // debug
 		return handler.open(args, function(event) {
 			IOManager_schedule(port, event);
 		});
@@ -82,7 +80,6 @@ function IOManager_terminate(handler) {
 		return;
 	}
 	try {
-		console.log("terminate "); // debug
 		handler.terminate();
 	} catch (e) {
 		console.log("terminate error " + e); // debug
@@ -108,7 +105,6 @@ function IOManager_syncIO(handler, name, args, txid) {
 		}
 		else {
 			try {
-				console.log("syncIO " + name); // debug
 				var event = handler.syncIO(name, args);
 			} catch (e) {
 				console.log("syncIO error " + e); // debug
@@ -130,7 +126,6 @@ function IOManager_asyncIO(handler, name, args, req) {
 		return;
 	}
 	try {
-		console.log("asyncIO "); // debug
 		handler.asyncIO(name, args, function(event) {
 			IOManager_schedule(req, event);
 		});

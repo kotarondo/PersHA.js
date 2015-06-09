@@ -151,7 +151,6 @@ function IO_register(obj) {
 	var txid = ++IO_maxID;
 	obj.txid = txid;
 	IO_objects[txid] = obj;
-	console.log("register" + txid);
 }
 
 function IO_find(txid) {
@@ -220,7 +219,6 @@ function IO_wrap(a, stack) {
 	// must be compatible with FileOutputStream.writeAny
 	// i.e. IO_wrap == IO_wrap ○ readAny ○ writeAny
 	if (isPrimitiveValue(a)) {
-		console.log("wrapped " + a);
 		return a;
 	}
 	if (isIncluded(a, stack)) return null;
