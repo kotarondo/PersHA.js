@@ -35,6 +35,7 @@
 
 var HANDLER_DIR;
 var RECOVERY_TARGER = 1000;
+
 var IOManager_queue;
 
 function IOManager_bind(name, args, port) {
@@ -177,11 +178,15 @@ function IOManager_start() {
 		}
 		if (entry.type === 'schedule') {
 			var obj = IO_find(entry.txid);
+			IOManager_cpucount.resume();
 			IOPort_callback(obj, entry.event);
+			IOManager_cpucount.pause();
 		}
 		else if (entry.type === 'evaluate') {
 			var event = entry.event;
+			IOManager_cpucount.resume();
 			evaluateProgram(event.text, event.filename);
+			IOManager_cpucount.pause();
 		}
 		else {
 			assert(false, entry.type);
