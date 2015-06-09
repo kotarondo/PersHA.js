@@ -58,7 +58,7 @@ function Journal_read() {
 	} catch (e) {
 		console.log("journal read error " + e); // debug
 		Journal_closeInputStream();
-		Journal_openLogAppend(position);
+		Journal_openLog(position);
 		return undefined;
 	}
 }
@@ -179,7 +179,7 @@ function Journal_clearLogHeader() {
 	Journal_outputStream.flush();
 }
 
-function Journal_openLogAppend(position) {
+function Journal_openLog(position) {
 	Journal_closeOutputStream();
 	Journal_outputStream = FileOutputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "log.bin", true);
 	console.log("position=" + position);//debug
