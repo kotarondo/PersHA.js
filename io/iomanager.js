@@ -180,7 +180,8 @@ function IOManager_start() {
 			IOPort_callback(obj, entry.event);
 		}
 		else if (entry.type === 'evaluate') {
-			evaluateProgram(entry.event);
+			var event = entry.event;
+			evaluateProgram(event.text, event.filename);
 		}
 		else {
 			assert(false, entry.type);
@@ -237,10 +238,13 @@ function IOManager_loop() {
 	}
 }
 
-function IOManager_evaluate(programText) {
-	Journal_write('evaluate', programText, 0);
+function IOManager_evaluate(text, filename) {
+	Journal_write('evaluate', {
+		text : text,
+		filename : filename,
+	}, 0);
 	IOManager_cpucount.resume();
-	var result = evaluateProgram(programText);
+	var result = evaluateProgram(text, filename);
 	IOManager_cpucount.pause();
 	IOManager_checkpoint();
 	return result;

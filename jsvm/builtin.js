@@ -316,6 +316,7 @@ function initializeVM() {
 	if (STRICT_CONFORMANCE === false) {
 		defineFunction(theGlobalObject, "escape", 1, Global_escape);
 		defineFunction(theGlobalObject, "unescape", 1, Global_unescape);
+		defineFunction(theGlobalObject, "evaluateProgram", 1, Global_evaluateProgram);
 	}
 	define(theGlobalObject, "Object", builtin_Object);
 	define(theGlobalObject, "Function", builtin_Function);

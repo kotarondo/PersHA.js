@@ -75,6 +75,7 @@ var intrinsicFunctions = {
 	Global_encodeURIComponent : Global_encodeURIComponent,
 	Global_escape : Global_escape,
 	Global_unescape : Global_unescape,
+	Global_evaluateProgram : Global_evaluateProgram,
 	Object_getPrototypeOf : Object_getPrototypeOf,
 	Object_getOwnPropertyDescriptor : Object_getOwnPropertyDescriptor,
 	Object_getOwnPropertyNames : Object_getOwnPropertyNames,

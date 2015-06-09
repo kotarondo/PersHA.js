@@ -332,3 +332,12 @@ function Global_unescape(thisValue, argumentsList) {
 		k++;
 	}
 }
+
+function Global_evaluateProgram(thisValue, argumentsList) {
+	var programText = ToString(argumentsList[0]);
+	var filename = ToString(argumentsList[1]);
+	var result = evaluateProgram(programText, filename);
+	if (result.type === "throw") throw result.value;
+	assertEquals(result.type , "normal", result);
+	return result.value;
+}
