@@ -36,6 +36,7 @@
 var HANDLER_DIR;
 var RECOVERY_TARGER = 1000;
 
+var IOManager_rollforward;
 var IOManager_queue;
 
 function IOManager_bind(name, args, port) {
@@ -89,6 +90,10 @@ function IOManager_terminate(handler) {
 function IOManager_syncIO(handler, name, args, txid) {
 	IOManager_cpucount.pause();
 	if (IOManager_queue === undefined) {
+		if (IOManager_rollforward !== true) {
+			debugger;
+			return;
+		}
 		var entry = Journal_read();
 		if (entry !== undefined) {
 			assert(entry.type === 'syncIO' && entry.txid === txid);
@@ -165,6 +170,7 @@ function IOManager_math_random(txid) {
 
 function IOManager_start() {
 	console.log('rollforward ...'); //debug
+	IOManager_rollforward = true;
 	while (IOManager_queue === undefined) {
 		var entry = Journal_read();
 		if (entry === undefined) {
@@ -187,6 +193,7 @@ function IOManager_start() {
 			assert(false, entry.type);
 		}
 	}
+	IOManager_rollforward = false;
 	console.log('rollforward done'); //debug
 	IOManager_checkpoint();
 }
