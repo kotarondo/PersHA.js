@@ -1586,7 +1586,7 @@ var theParser = function() {
 			lineNumber++;
 			lineHeadPos = i;
 		}
-		return sourceObject.filename + ":" + lineNumber + ":" + (pos - lineHeadPos + 1);
+		return lineNumber + ":" + (pos - lineHeadPos + 1);
 	}
 
 	function locateDebugInfo(stackTraceEntry) {
@@ -1594,7 +1594,7 @@ var theParser = function() {
 		var sourceObject = code.sourceObject;
 		var source = sourceObject.source;
 		var pos = stackTraceEntry.pos;
-		var finfo = convertToLineColumn(source, pos);
+		var finfo = sourceObject.filename + ":" + convertToLineColumn(source, pos);
 		if (code.isFunctionCode) {
 			return code.funcname + " (" + finfo + ")";
 		}
@@ -1605,7 +1605,8 @@ var theParser = function() {
 		if (pos === undefined) {
 			pos = currentPos;
 		}
-		throw VMSyntaxError(convertToLineColumn(source, pos));
+		var finfo = sourceObject.filename + ":" + convertToLineColumn(source, pos);
+		throw VMSyntaxError(finfo);
 	}
 
 }();
