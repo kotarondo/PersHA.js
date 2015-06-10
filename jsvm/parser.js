@@ -50,6 +50,7 @@ var theParser = function() {
 	var isEscaped;
 	var isLineSeparatedAhead;
 	var isLineSeparatedBehind;
+	var prevTokenPos;
 	var tokenPos;
 	var tokenEndPos;
 	var currentPos;
@@ -73,11 +74,11 @@ var theParser = function() {
 	var lastIdentifierReference;
 	var lastIdentifier;
 
-	function setup(text, strictMode, subc) {
+	function setup(text, strictMode, subc, filename) {
 		source = text;
 		strict = strictMode;
 		subcodes = subc;
-		sourceObject = NewSourceObject(source, strict);
+		sourceObject = NewSourceObject(source, strict, filename);
 		code = undefined;
 		stack = undefined;
 		lastLeftHandSide = undefined;
@@ -118,12 +119,12 @@ var theParser = function() {
 		});
 	}
 
-	function readProgram(programText, strictMode, subcodes) {
-		setup(programText, strictMode, subcodes);
+	function readProgram(programText, strictMode, subcodes, filename) {
+		setup(programText, strictMode, subcodes, filename);
 		code = Code();
 		stack = Stack();
 		var sourceElements = readSourceElements();
-		if (token !== undefined) throw VMSyntaxError();
+		if (token !== undefined) SyntaxError(tokenPos);
 		code.strict = strict;
 		code.evaluate = Program(sourceElements);
 		return code;
@@ -144,8 +145,8 @@ var theParser = function() {
 		return parameters;
 	}
 
-	function readFunctionCode(programText, parameters, subcodes) {
-		setup(programText, false, subcodes);
+	function readFunctionCode(programText, parameters, subcodes, filename) {
+		setup(programText, false, subcodes, filename);
 		sourceObject.isFunctionBody = true;
 		var body = readFunctionBody();
 		if (body.strict) {
@@ -288,7 +289,7 @@ var theParser = function() {
 		stack.labelStack.push(labelset);
 		while (isIdentifierName && current === ':') {
 			var identifier = expectingIdentifier();
-			if (findLabel(stack.labelStack, identifier) !== undefined) throw VMSyntaxError();
+			if (findLabel(stack.labelStack, identifier) !== undefined) SyntaxError(prevTokenPos);
 			expectingToken(':');
 			labelset.push(identifier);
 		}
@@ -408,7 +409,7 @@ var theParser = function() {
 			var variableDeclarationList = readVariableDeclarationList(true); // NoIn
 			var pos1 = tokenPos;
 			if (testToken("in")) {
-				if (variableDeclarationList.length !== 1) throw VMSyntaxError();
+				if (variableDeclarationList.length !== 1) SyntaxError(prevTokenPos);
 				var expression = readExpression();
 				var pos2 = tokenPos;
 				expectingToken(')');
@@ -433,7 +434,7 @@ var theParser = function() {
 			var pos1 = tokenPos;
 			var expressionNoIn = readExpression(true); // NoIn
 			if (testToken("in")) {
-				if (expressionNoIn !== lastLeftHandSide) throw VMSyntaxError();
+				if (expressionNoIn !== lastLeftHandSide) SyntaxError(prevTokenPos);
 				if (expressionNoIn !== lastReference) throw VMReferenceError();
 				var pos2 = tokenPos;
 				var expression = readExpression();
@@ -462,9 +463,9 @@ var theParser = function() {
 		if (isIdentifierName && !isLineSeparatedAhead) {
 			var identifier = expectingIdentifier();
 			var labelset = findLabel(stack.iterableLabelStack, identifier);
-			if (labelset === undefined) throw VMSyntaxError();
+			if (labelset === undefined) SyntaxError(prevTokenPos);
 		}
-		else if (stack.iterables === 0) throw VMSyntaxError();
+		else if (stack.iterables === 0) SyntaxError(prevTokenPos);
 		expectingAutoSemicolon();
 		return ContinueStatement(identifier);
 	}
@@ -474,16 +475,16 @@ var theParser = function() {
 		if (isIdentifierName && !isLineSeparatedAhead) {
 			var identifier = expectingIdentifier();
 			var labelset = findLabel(stack.labelStack, identifier);
-			if (labelset === undefined) throw VMSyntaxError();
+			if (labelset === undefined) SyntaxError(prevTokenPos);
 		}
-		else if (stack.iterables === 0 && stack.switches === 0) throw VMSyntaxError();
+		else if (stack.iterables === 0 && stack.switches === 0) SyntaxError(prevTokenPos);
 		expectingAutoSemicolon();
 		return BreakStatement(identifier);
 	}
 
 	function readReturnStatement() {
 		proceedToken();
-		if (code.isFunctionCode === false) throw VMSyntaxError();
+		if (code.isFunctionCode === false) SyntaxError(prevTokenPos);
 		if (!(isLineSeparatedAhead || token === ';' || token === '}')) {
 			var pos = tokenPos;
 			var expression = readExpression();
@@ -494,7 +495,7 @@ var theParser = function() {
 
 	function readWithStatement() {
 		proceedToken();
-		if (strict) throw VMSyntaxError();
+		if (strict) SyntaxError(prevTokenPos);
 		expectingToken('(');
 		var pos = tokenPos;
 		var expression = readExpression();
@@ -514,7 +515,7 @@ var theParser = function() {
 		expectingToken('{');
 		while (!testToken('}')) {
 			if (testToken("default")) {
-				if (defaultClause !== undefined) throw VMSyntaxError();
+				if (defaultClause !== undefined) SyntaxError(prevTokenPos);
 				expectingToken(':');
 				var statements = [];
 				while (token !== '}' && token !== "case" && token !== "default") {
@@ -544,7 +545,7 @@ var theParser = function() {
 
 	function readThrowStatement() {
 		proceedToken();
-		if (isLineSeparatedAhead) throw VMSyntaxError();
+		if (isLineSeparatedAhead) SyntaxError(prevTokenPos);
 		var pos = tokenPos;
 		var expression = readExpression();
 		expectingAutoSemicolon();
@@ -581,7 +582,7 @@ var theParser = function() {
 	}
 
 	function readFunctionStatement() {
-		if (strict || STRICT_CONFORMANCE) throw VMSyntaxError();
+		if (strict || STRICT_CONFORMANCE) SyntaxError(tokenPos);
 		code.functions.push(readFunctionDeclaration());
 		return EmptyStatement();
 	}
@@ -621,7 +622,7 @@ var theParser = function() {
 		case '|=':
 		case '^=':
 			proceedToken();
-			if (expression !== lastLeftHandSide) throw VMSyntaxError();
+			if (expression !== lastLeftHandSide) SyntaxError(prevTokenPos);
 			if (expression !== lastReference) throw VMReferenceError();
 			if (strict && expression === lastIdentifierReference) {
 				disallowEvalOrArguments(lastIdentifier);
@@ -768,7 +769,7 @@ var theParser = function() {
 		case "delete":
 			proceedToken();
 			var expression = readUnaryExpression();
-			if (strict && expression === lastIdentifierReference) throw VMSyntaxError();
+			if (strict && expression === lastIdentifierReference) SyntaxError(prevTokenPos);
 			return deleteOperator(expression);
 		case "void":
 			proceedToken();
@@ -947,7 +948,7 @@ var theParser = function() {
 			skipSpaces();
 			proceedToken();
 			var expression = RegExpLiteral(value);
-			if (expression === undefined) throw VMSyntaxError();
+			if (expression === undefined) SyntaxError(prevTokenPos);
 			return expression;
 		}
 		switch (proceedToken()) {
@@ -999,15 +1000,15 @@ var theParser = function() {
 			expectingToken(')');
 			return expression;
 		}
-		throw VMSyntaxError();
+		SyntaxError(prevTokenPos);
 	}
 
 	function readPropertyAssignment(previous) {
 		var name = expectingPropertyName();
 		if (token === ':') {
-			if (strict && isIncluded(name, previous.data)) throw VMSyntaxError();
-			if (isIncluded(name, previous.get)) throw VMSyntaxError();
-			if (isIncluded(name, previous.set)) throw VMSyntaxError();
+			if (strict && isIncluded(name, previous.data)) SyntaxError(prevTokenPos);
+			if (isIncluded(name, previous.get)) SyntaxError(prevTokenPos);
+			if (isIncluded(name, previous.set)) SyntaxError(prevTokenPos);
 			previous.data.push(name);
 			proceedToken();
 			var expression = readAssignmentExpression();
@@ -1015,8 +1016,8 @@ var theParser = function() {
 		}
 		else if (name === "get") {
 			name = expectingPropertyName();
-			if (isIncluded(name, previous.data)) throw VMSyntaxError();
-			if (isIncluded(name, previous.get)) throw VMSyntaxError();
+			if (isIncluded(name, previous.data)) SyntaxError(prevTokenPos);
+			if (isIncluded(name, previous.get)) SyntaxError(prevTokenPos);
 			previous.get.push(name);
 			expectingToken('(');
 			expectingToken(')');
@@ -1027,8 +1028,8 @@ var theParser = function() {
 		}
 		else if (name === "set") {
 			name = expectingPropertyName();
-			if (isIncluded(name, previous.data)) throw VMSyntaxError();
-			if (isIncluded(name, previous.set)) throw VMSyntaxError();
+			if (isIncluded(name, previous.data)) SyntaxError(prevTokenPos);
+			if (isIncluded(name, previous.set)) SyntaxError(prevTokenPos);
 			previous.set.push(name);
 			expectingToken('(');
 			var identifier = expectingIdentifier();
@@ -1047,16 +1048,18 @@ var theParser = function() {
 		return a;
 	}
 
+	//TODO
 	function disallowDuplicated(parameters) {
 		for (var i = 0; i < parameters.length; i++) {
 			for (var j = 0; j < i; j++) {
-				if (parameters[i] === parameters[j]) throw VMSyntaxError();
+				if (parameters[i] === parameters[j]) SyntaxError(prevTokenPos);
 			}
 		}
 	}
 
+	//TODO
 	function disallowEvalOrArguments(identifier) {
-		if (identifier === "eval" || identifier === "arguments") throw VMSyntaxError();
+		if (identifier === "eval" || identifier === "arguments") SyntaxError(prevTokenPos);
 	}
 
 	function testToken(t) {
@@ -1068,11 +1071,10 @@ var theParser = function() {
 	}
 
 	function expectingToken(t) {
-		if (token === t) {
-			proceedToken();
+		if (proceedToken() === t) {
 			return;
 		}
-		throw VMSyntaxError();
+		SyntaxError(prevTokenPos);
 	}
 
 	function expectingAutoSemicolon() {
@@ -1081,17 +1083,17 @@ var theParser = function() {
 			return;
 		}
 		if (isLineSeparatedAhead || token === '}') return;
-		throw VMSyntaxError();
+		SyntaxError(tokenPos);
 	}
 
 	function expectingIdentifier() {
 		if (isIdentifierName && !isReservedWord(token)) return proceedToken();
-		throw VMSyntaxError();
+		SyntaxError(tokenPos);
 	}
 
 	function expectingIdentifierName() {
 		if (isIdentifierName) return proceedToken();
-		throw VMSyntaxError();
+		SyntaxError(tokenPos);
 	}
 
 	function expectingPropertyName() {
@@ -1106,7 +1108,7 @@ var theParser = function() {
 			proceedToken();
 			return name;
 		}
-		throw VMSyntaxError();
+		SyntaxError(tokenPos);
 	}
 
 	function isReservedWord(v) {
@@ -1169,6 +1171,7 @@ var theParser = function() {
 	function proceedToken() {
 		var t = token;
 		isLineSeparatedAhead = isLineSeparatedBehind;
+		prevTokenPos = tokenPos;
 		tokenPos = currentPos;
 		token = readToken();
 		tokenEndPos = currentPos;
@@ -1208,7 +1211,7 @@ var theParser = function() {
 				if (current === '*') {
 					proceed();
 					while (true) {
-						if (current === undefined) throw VMSyntaxError();
+						if (current === undefined) SyntaxError();
 						var c = proceed();
 						if (isLineTerminator(c)) {
 							isLineSeparatedBehind = true;
@@ -1251,7 +1254,7 @@ var theParser = function() {
 				isNumericLiteral = true;
 				setPosition(tokenPos);
 				value = readNumericLiteral();
-				if (current === '\\' || isIdentifierStart(current)) throw VMSyntaxError();
+				if (current === '\\' || isIdentifierStart(current)) SyntaxError();
 				return '';
 			}
 			break;
@@ -1298,14 +1301,14 @@ var theParser = function() {
 			isNumericLiteral = true;
 			setPosition(tokenPos);
 			value = readNumericLiteral();
-			if (current === '\\' || isIdentifierStart(current)) throw VMSyntaxError();
+			if (current === '\\' || isIdentifierStart(current)) SyntaxError();
 			return '';
 		case '"':
 		case "'":
 			isStringLiteral = true;
 			var t = c;
 			while (true) {
-				if (current === undefined || isLineTerminator(current)) throw VMSyntaxError();
+				if (current === undefined || isLineTerminator(current)) SyntaxError();
 				var c = proceed();
 				if (c === t) {
 					value = source.substring(tokenPos + 1, currentPos - 1);
@@ -1326,7 +1329,7 @@ var theParser = function() {
 				setPosition(tokenPos);
 				return readEscapedIdentifierName();
 			}
-			if (!isIdentifierStart(c)) throw VMSyntaxError();
+			if (!isIdentifierStart(c)) SyntaxError();
 			while (true) {
 				if (current === '\\') {
 					isEscaped = true;
@@ -1349,21 +1352,21 @@ var theParser = function() {
 			proceed();
 			if (current === 'X' || current === 'x') {
 				proceed();
-				if (!isHexDigitChar(current)) throw VMSyntaxError();
+				if (!isHexDigitChar(current)) SyntaxError();
 				while (isHexDigitChar(current)) {
 					proceed();
 				}
 				return Number(source.substring(startPos, currentPos));
 			}
 			if (isOctalDigitChar(current)) {
-				if (strict || STRICT_CONFORMANCE) throw VMSyntaxError();
+				if (strict || STRICT_CONFORMANCE) SyntaxError();
 				var x = mvDigitChar(proceed());
 				while (isOctalDigitChar(current)) {
 					x = (x << 3) + mvDigitChar(proceed());
 				}
 				return x;
 			}
-			if (current === '8' || current === '9') throw VMSyntaxError();
+			if (current === '8' || current === '9') SyntaxError();
 		}
 		while (isDecimalDigitChar(current)) {
 			proceed();
@@ -1379,7 +1382,7 @@ var theParser = function() {
 			if (current === '+' || current === '-') {
 				proceed();
 			}
-			if (!isDecimalDigitChar(current)) throw VMSyntaxError();
+			if (!isDecimalDigitChar(current)) SyntaxError();
 			while (isDecimalDigitChar(current)) {
 				proceed();
 			}
@@ -1391,18 +1394,18 @@ var theParser = function() {
 		var pos = currentPos;
 		proceed();
 		while (true) {
-			if (current === undefined || isLineTerminator(current)) throw VMSyntaxError();
+			if (current === undefined || isLineTerminator(current)) SyntaxError();
 			var c = proceed();
 			if (c === '/') {
 				break;
 			}
 			if (c === '\\') {
-				if (current === undefined || isLineTerminator(current)) throw VMSyntaxError();
+				if (current === undefined || isLineTerminator(current)) SyntaxError();
 				proceed();
 			}
 			if (c === '[') {
 				while (true) {
-					if (current === undefined || isLineTerminator(current)) throw VMSyntaxError();
+					if (current === undefined || isLineTerminator(current)) SyntaxError();
 					var c = proceed();
 					if (c === ']') {
 						break;
@@ -1429,7 +1432,7 @@ var theParser = function() {
 		var buffer = [];
 		var t = proceed();
 		while (true) {
-			if (current === undefined || isLineTerminator(current)) throw VMSyntaxError();
+			if (current === undefined || isLineTerminator(current)) SyntaxError();
 			var c = proceed();
 			if (c === t) {
 				break;
@@ -1465,7 +1468,7 @@ var theParser = function() {
 				case 'x':
 					var x = 0;
 					for (var i = 0; i < 2; i++) {
-						if (!isHexDigitChar(current)) throw VMSyntaxError();
+						if (!isHexDigitChar(current)) SyntaxError();
 						x = (x << 4) + mvDigitChar(proceed());
 					}
 					c = fromCharCode(x);
@@ -1473,7 +1476,7 @@ var theParser = function() {
 				case 'u':
 					var x = 0;
 					for (var i = 0; i < 4; i++) {
-						if (!isHexDigitChar(current)) throw VMSyntaxError();
+						if (!isHexDigitChar(current)) SyntaxError();
 						x = (x << 4) + mvDigitChar(proceed());
 					}
 					c = fromCharCode(x);
@@ -1487,13 +1490,13 @@ var theParser = function() {
 							c = '\0';
 							break;
 						}
-						throw VMSyntaxError();
+						SyntaxError();
 					}
 					var x = mvDigitChar(c);
-					if (current === '8' || current === '9') throw VMSyntaxError();
+					if (current === '8' || current === '9') SyntaxError();
 					if (isOctalDigitChar(current)) {
 						x = (x << 4) + mvDigitChar(proceed());
-						if (current === '8' || current === '9') throw VMSyntaxError();
+						if (current === '8' || current === '9') SyntaxError();
 						if (isOctalDigitChar(current)) {
 							x = (x << 4) + mvDigitChar(proceed());
 						}
@@ -1504,9 +1507,9 @@ var theParser = function() {
 				case '5':
 				case '6':
 				case '7':
-					if (strict || STRICT_CONFORMANCE) throw VMSyntaxError();
+					if (strict || STRICT_CONFORMANCE) SyntaxError();
 					var x = mvDigitChar(c);
-					if (current === '8' || current === '9') throw VMSyntaxError();
+					if (current === '8' || current === '9') SyntaxError();
 					if (isOctalDigitChar(current)) {
 						x = (x << 4) + mvDigitChar(proceed());
 					}
@@ -1514,7 +1517,7 @@ var theParser = function() {
 					break;
 				case '8':
 				case '9':
-					throw VMSyntaxError();
+					SyntaxError();
 				}
 			}
 			buffer.push(c);
@@ -1525,7 +1528,7 @@ var theParser = function() {
 	function readEscapedIdentifierName() {
 		var buffer = [];
 		var c = readIdentifierPart();
-		if (!isIdentifierStart(c)) throw VMSyntaxError();
+		if (!isIdentifierStart(c)) SyntaxError();
 		buffer.push(c);
 		while (true) {
 			c = readIdentifierPart();
@@ -1540,15 +1543,15 @@ var theParser = function() {
 	function readIdentifierPart() {
 		if (current === '\\') {
 			proceed();
-			if (current !== 'u') throw VMSyntaxError();
+			if (current !== 'u') SyntaxError();
 			proceed();
 			var x = 0;
 			for (var i = 0; i < 4; i++) {
-				if (!isHexDigitChar(current)) throw VMSyntaxError();
+				if (!isHexDigitChar(current)) SyntaxError();
 				x = (x << 4) + mvDigitChar(proceed());
 			}
 			var c = fromCharCode(x);
-			if (!isIdentifierPart(c)) throw VMSyntaxError();
+			if (!isIdentifierPart(c)) SyntaxError();
 			return c;
 		}
 		if (!isIdentifierPart(current)) return undefined;
@@ -1568,11 +1571,7 @@ var theParser = function() {
 		current = source[currentPos];
 	}
 
-	function locateDebugInfo(stackTraceEntry) {
-		var code = stackTraceEntry.code;
-		var sourceObject = code.sourceObject;
-		var source = sourceObject.source;
-		var pos = stackTraceEntry.pos;
+	function convertToLineColumn(source, pos) {
 		var lineNumber = 1;
 		var lineHeadPos = 0;
 		var i = 0;
@@ -1587,10 +1586,26 @@ var theParser = function() {
 			lineNumber++;
 			lineHeadPos = i;
 		}
-		var finfo = sourceObject.filename + ":" + lineNumber + ":" + (pos - lineHeadPos + 1);
+		return sourceObject.filename + ":" + lineNumber + ":" + (pos - lineHeadPos + 1);
+	}
+
+	function locateDebugInfo(stackTraceEntry) {
+		var code = stackTraceEntry.code;
+		var sourceObject = code.sourceObject;
+		var source = sourceObject.source;
+		var pos = stackTraceEntry.pos;
+		var finfo = convertToLineColumn(source, pos);
 		if (code.isFunctionCode) {
 			return code.funcname + " (" + finfo + ")";
 		}
 		return finfo;
 	}
+
+	function SyntaxError(pos) {
+		if (pos === undefined) {
+			pos = currentPos;
+		}
+		throw VMSyntaxError(convertToLineColumn(source, pos));
+	}
+
 }();

@@ -61,7 +61,7 @@ function Function_Construct(argumentsList) {
 	}
 	var body = ToString(body);
 	var parameters = theParser.readFunctionParameters(P);
-	var body = theParser.readFunctionCode(body, parameters, []);
+	var body = theParser.readFunctionCode(body, parameters, [], "<anonymous>");
 	return FunctionObject(parameters, body, theGlobalEnvironment, body.strict);
 }
 
@@ -72,7 +72,7 @@ function Function_prototype_toString(thisValue, argumentsList) {
 		func = func.TargetFunction;
 	}
 	if (func.ClassID === CLASSID_BuiltinFunction) {
-		return "function " + getIntrinsicFunctionName(func.Call) + "{ [native code] }";
+		return "function " + getIntrinsicFunctionName(func.Call) + "{ native }";
 	}
 	assert(func.ClassID === CLASSID_FunctionObject);
 	var param = func.FormalParameters;

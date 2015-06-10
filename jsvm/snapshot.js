@@ -660,26 +660,25 @@ function SourceObject_walkObject(mark) {
 }
 
 function SourceObject_writeObject(ostream) {
-	ostream.writeString(this.filename);
 	ostream.writeString(this.source);
 	ostream.writeValue(this.strict);
+	ostream.writeString(this.filename);
 	ostream.writeValue(this.isFunctionBody);
 }
 
 function SourceObject_readObject(istream) {
-	var filename = istream.readString();
 	var source = istream.readString();
 	var strict = istream.readValue();
+	var filename = istream.readString();
 	var isFunctionBody = istream.readValue();
 	var subcodes = [];
 	if (isFunctionBody) {
-		var code = theParser.readFunctionCode(source, [], subcodes);
+		var code = theParser.readFunctionCode(source, [], subcodes, filename);
 	}
 	else {
-		var code = theParser.readProgram(source, strict, subcodes);
+		var code = theParser.readProgram(source, strict, subcodes, filename);
 	}
 	var sourceObject = code.sourceObject;
-	sourceObject.filename = filename;
 	sourceObject.subcodes = subcodes;
 	return sourceObject;
 }

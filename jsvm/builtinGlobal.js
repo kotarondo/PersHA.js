@@ -38,14 +38,14 @@
 function Global_eval(thisValue, argumentsList, direct, strict) {
 	var x = argumentsList[0];
 	if (Type(x) !== TYPE_String) return x;
-	var prog = theParser.readProgram(x, strict, []);
+	var prog = theParser.readProgram(x, strict, [], "<anonymous>");
 	prog.isEvalCode = true;
 	enterExecutionContextForEvalCode(prog, direct);
 	var result = prog.evaluate();
 	exitExecutionContext();
 	if (result.type === "normal" && result.value === empty) return undefined;
 	if (result.type === "normal") return result.value;
-	assertEquals(result.type , "throw", result);
+	assertEquals(result.type, "throw", result);
 	throw result.value;
 }
 
@@ -338,6 +338,6 @@ function Global_evaluateProgram(thisValue, argumentsList) {
 	var filename = ToString(argumentsList[1]);
 	var result = evaluateProgram(programText, filename);
 	if (result.type === "throw") throw result.value;
-	assertEquals(result.type , "normal", result);
+	assertEquals(result.type, "normal", result);
 	return result.value;
 }

@@ -81,7 +81,10 @@ function SourceElements(statements) {
 	};
 }
 
-function NewSourceObject(source, strict) {
+function NewSourceObject(source, strict, filename) {
+	if (filename === undefined) {
+		filename = "<unknown>";
+	}
 	if (SourceObjectClass === undefined) {
 		SourceObjectClass = freeze({
 			walkObject : SourceObject_walkObject,
@@ -91,9 +94,9 @@ function NewSourceObject(source, strict) {
 		});
 	}
 	var obj = Object.create(SourceObjectClass);
-	obj.filename = "unknown";
 	obj.source = source;
 	obj.strict = strict;
+	obj.filename = ToString(filename);
 	obj.subcodes = undefined;
 	obj.isFunctionBody = undefined;
 	obj.ID = 0;
@@ -102,13 +105,10 @@ function NewSourceObject(source, strict) {
 
 function evaluateProgram(programText, filename) {
 	try {
-		var prog = theParser.readProgram(programText, false, []);
+		var prog = theParser.readProgram(programText, false, [], filename);
 	} catch (V) {
 		if (isInternalError(V)) throw V;
 		return CompletionValue("throw", V, empty);
-	}
-	if (filename !== undefined) {
-		prog.sourceObject.filename = filename;
 	}
 	enterExecutionContextForGlobalCode(prog);
 	var result = prog.evaluate();
