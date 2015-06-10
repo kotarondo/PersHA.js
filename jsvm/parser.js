@@ -947,9 +947,7 @@ var theParser = function() {
 			value = readRegExpLiteral();
 			skipSpaces();
 			proceedToken();
-			var expression = RegExpLiteral(value);
-			if (expression === undefined) SyntaxError(prevTokenPos);
-			return expression;
+			return RegExpLiteral(value);
 		}
 		switch (proceedToken()) {
 		case "this":
@@ -1425,7 +1423,11 @@ var theParser = function() {
 			}
 		}
 		var flags = source.substring(pos, currentPos);
-		return RegExp_Construct([ pattern, flags ]);
+		try {
+			return RegExp_Construct([ pattern, flags ]);
+		} catch (e) {
+			SyntaxError(tokenPos);
+		}
 	}
 
 	function readEscapedStringLiteral() {
