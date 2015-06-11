@@ -509,8 +509,8 @@ function JSON_stringify(thisValue, argumentsList) {
 					var member = member + ' ';
 				}
 				var member = member + strP;
+				partial.push(member);
 			}
-			partial.push(member);
 		}
 		if (partial === empty) {
 			var final = "{}";
