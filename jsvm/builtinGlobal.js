@@ -49,6 +49,20 @@ function Global_eval(thisValue, argumentsList, direct, strict) {
 	throw result.value;
 }
 
+function Global_evaluateProgram(thisValue, argumentsList) {
+	var x = argumentsList[0];
+	var filename = ToString(argumentsList[1]);
+	if (Type(x) !== TYPE_String) return x;
+	var prog = theParser.readProgram(programText, false, [], filename);
+	enterExecutionContextForGlobalCode(prog);
+	var result = prog.evaluate();
+	exitExecutionContext();
+	if (result.type === "normal" && result.value === empty) return undefined;
+	if (result.type === "normal") return result.value;
+	assertEquals(result.type, "throw", result);
+	throw result.value;
+}
+
 function Global_parseInt(thisValue, argumentsList) {
 	var string = argumentsList[0];
 	var radix = argumentsList[1];
@@ -331,13 +345,4 @@ function Global_unescape(thisValue, argumentsList) {
 		R.push(c);
 		k++;
 	}
-}
-
-function Global_evaluateProgram(thisValue, argumentsList) {
-	var programText = ToString(argumentsList[0]);
-	var filename = ToString(argumentsList[1]);
-	var result = evaluateProgram(programText, filename);
-	if (result.type === "throw") throw result.value;
-	assertEquals(result.type, "normal", result);
-	return result.value;
 }

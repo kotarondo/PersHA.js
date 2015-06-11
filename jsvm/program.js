@@ -102,16 +102,3 @@ function NewSourceObject(source, strict, filename) {
 	obj.ID = 0;
 	return preventExtensions(obj);
 }
-
-function evaluateProgram(programText, filename) {
-	try {
-		var prog = theParser.readProgram(programText, false, [], filename);
-	} catch (V) {
-		if (isInternalError(V)) throw V;
-		return CompletionValue("throw", V, empty);
-	}
-	enterExecutionContextForGlobalCode(prog);
-	var result = prog.evaluate();
-	exitExecutionContext();
-	return result;
-}
