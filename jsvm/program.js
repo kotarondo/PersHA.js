@@ -125,6 +125,11 @@ function evaluateProgram(text, filename) {
 			stack : stack,
 		};
 	}
+	if (isPrimitiveValue(result)) {
+		return {
+			value : result,
+		};
+	}
 	try {
 		var value = JSON_stringify(undefined, [ result ]);
 	} catch (e) {
