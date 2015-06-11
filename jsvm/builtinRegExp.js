@@ -566,9 +566,9 @@ function RegExpFactory() {
 			};
 		}
 		if (STRICT_CONFORMANCE) {
-			if (isIncluded(current, "^$\\.*+?()[]{}|")) return undefined;
+			if (current === ']') return undefined;
 		}
-		if (isIncluded(current, "|*+?")) return undefined;
+		if (isIncluded(current, "*+?){}|")) return undefined;
 		var A = oneElementCharSet(proceed());
 		return CharacterSetMatcher(A, false);
 	}

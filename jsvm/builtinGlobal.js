@@ -53,7 +53,7 @@ function Global_evaluateProgram(thisValue, argumentsList) {
 	var x = argumentsList[0];
 	var filename = ToString(argumentsList[1]);
 	if (Type(x) !== TYPE_String) return x;
-	var prog = theParser.readProgram(programText, false, [], filename);
+	var prog = theParser.readProgram(x, false, [], filename);
 	enterExecutionContextForGlobalCode(prog);
 	var result = prog.evaluate();
 	exitExecutionContext();

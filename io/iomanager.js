@@ -186,7 +186,7 @@ function IOManager_start() {
 		else if (entry.type === 'evaluate') {
 			var event = entry.event;
 			IOManager_cpucount.resume();
-			Global_evaluateProgram(undefined, [ event.text, event.filename ]);
+			evaluateProgram(event.text, event.filename);
 			IOManager_cpucount.pause();
 		}
 		else {
@@ -251,7 +251,7 @@ function IOManager_evaluate(text, filename) {
 		filename : filename,
 	}, 0);
 	IOManager_cpucount.resume();
-	Global_evaluateProgram(undefined, [ text, filename ]);
+	var result = evaluateProgram(text, filename);
 	IOManager_cpucount.pause();
 	IOManager_checkpoint();
 	return result;

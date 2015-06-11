@@ -57,27 +57,22 @@ function SourceElements(statements) {
 	return function() {
 		try {
 			var headResult = statements[0]();
+			for (var i = 1; i < statements.length; i++) {
+				if (headResult.type !== "normal") return headResult;
+				var tailResult = statements[i]();
+				if (tailResult.value === empty) {
+					var V = headResult.value;
+				}
+				else {
+					var V = tailResult.value;
+				}
+				headResult = CompletionValue(tailResult.type, V, tailResult.target);
+			}
+			return headResult;
 		} catch (V) {
 			if (isInternalError(V)) throw V;
-			var headResult = CompletionValue("throw", V, empty);
+			return CompletionValue("throw", V, empty);
 		}
-		for (var i = 1; i < statements.length; i++) {
-			if (headResult.type !== "normal") return headResult;
-			try {
-				var tailResult = statements[i]();
-			} catch (V) {
-				if (isInternalError(V)) throw V;
-				var tailResult = CompletionValue("throw", V, empty);
-			}
-			if (tailResult.value === empty) {
-				var V = headResult.value;
-			}
-			else {
-				var V = tailResult.value;
-			}
-			headResult = CompletionValue(tailResult.type, V, tailResult.target);
-		}
-		return headResult;
 	};
 }
 
@@ -101,4 +96,46 @@ function NewSourceObject(source, strict, filename) {
 	obj.isFunctionBody = undefined;
 	obj.ID = 0;
 	return preventExtensions(obj);
+}
+
+function evaluateProgram(text, filename) {
+	try {
+		var result = Global_evaluateProgram(undefined, [ text, filename ]);
+	} catch (e) {
+		if (isInternalError(e)) throw e;
+		if (Type(e) !== TYPE_Object) {
+			return {
+				error : true,
+				value : e,
+			};
+		}
+		try {
+			var value = ToString(e);
+		} catch (e) {
+			var value = undefined;
+		}
+		try {
+			var stack = ToString(Array_prototype_join(e.Get("stack"), [ '\n' ]));
+		} catch (e) {
+			var stack = undefined;
+		}
+		return {
+			error : true,
+			value : value,
+			stack : stack,
+		};
+	}
+	try {
+		var value = JSON_stringify(undefined, [ result ]);
+	} catch (e) {
+	}
+	if (value === undefined) {
+		try {
+			var value = ToString(result);
+		} catch (e) {
+		}
+	}
+	return {
+		value : value,
+	};
 }

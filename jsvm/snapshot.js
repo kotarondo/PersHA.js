@@ -527,7 +527,12 @@ function RegExp_writeObject(ostream) {
 
 function RegExp_readObject(istream) {
 	intrinsic_readObject(this, istream);
-	theRegExpFactory.compile(this);
+	try {
+		theRegExpFactory.compile(this);
+	} catch (e) {
+		console.log(e);
+		console.log("debug :" + this.Get("source"))
+	}
 }
 
 function Error_walkObject(mark) {

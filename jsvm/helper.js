@@ -33,8 +33,8 @@
 
 'use strict';
 
-var CHECK_EXTENSION = true;
-var CHECK_READONLY = true;
+var CHECK_EXTENSION = false;
+var CHECK_READONLY = false;
 
 function assert(condition, info) {
 	if (!condition) {
