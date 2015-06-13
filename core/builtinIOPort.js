@@ -39,142 +39,55 @@ function IOPort_Call(thisValue, argumentsList) {
 
 function IOPort_Construct(argumentsList) {
 	var name = ToString(argumentsList[0]);
-	var args = IO_unwrapArgs(argumentsList, 1, 0);
 	var port = VMObject(CLASSID_IOPort);
 	port.Prototype = builtin_IOPort_prototype;
 	port.Extensible = true;
-	port.name = name;
-	port.args = args;
-	IO_register(port);
-	port.handler = IOManager_bind(name, args, port);
+	defineFinal(port, "name", name);
+	IOManager_bindPort(port, name);
 	return port;
-}
-
-function IOPort_list(thisValue, argumentsList) {
-	var A = Array_Construct([]);
-	var keys = Object.keys(IO_objects);
-	keys.sort(compareNumber);
-	var j = 0;
-	for (var i = 0; i < keys.length; i++) {
-		var obj = IO_objects[keys[i]];
-		if (obj.Class === "IOPort") {
-			A.Put(ToString(j++), obj, false);
-		}
-	}
-	return A;
-}
-
-function IOPort_prototype_rebind(thisValue, argumentsList) {
-	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort" || thisValue.txid === 0) throw VMTypeError();
-	var port = thisValue;
-	var name = port.name;
-	var args = port.args;
-	if (name !== undefined) {
-		port.handler = IOManager_bind(name, args, port);
-	}
 }
 
 function IOPort_prototype_open(thisValue, argumentsList) {
 	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort" || thisValue.txid === 0) throw VMTypeError();
-	var args = IO_unwrapArgs(argumentsList, 0, 0);
+	var args = IOPort_unwrapArgs(argumentsList, 0, 0);
+	var root = thisValue;
 	var port = VMObject(CLASSID_IOPort);
 	port.Prototype = builtin_IOPort_prototype;
 	port.Extensible = true;
-	IO_register(port);
-	port.handler = IOManager_open(thisValue.handler, args, port);
+	IOManager_openPort(port, root, args);
 	return port;
-}
-
-function IOPort_prototype_terminate(thisValue, argumentsList) {
-	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort" || thisValue.txid === 0) throw VMTypeError();
-	var port = thisValue;
-	IOManager_terminate(port.handler);
-	IO_remove(port);
-	port.name = undefined;
-	port.args = undefined;
-	port.handler = undefined;
 }
 
 function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort" || thisValue.txid === 0) throw VMTypeError();
+	var port = thisValue;
 	var name = ToString(argumentsList[0]);
-	var args = IO_unwrapArgs(argumentsList, 1, 0);
-	var event = IOManager_syncIO(thisValue.handler, name, args, ++IO_maxID);
-	return IO_wrap(event, []);
+	var args = IOPort_unwrapArgs(argumentsList, 1, 0);
+	var event = IOManager_syncIO(port, name, args);
+	return IOPort_wrap(event, []);
 }
 
 function IOPort_prototype_asyncIO(thisValue, argumentsList) {
 	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort" || thisValue.txid === 0) throw VMTypeError();
 	var name = ToString(argumentsList[0]);
-	var args = IO_unwrapArgs(argumentsList, 1, 1);
+	var args = IOPort_unwrapArgs(argumentsList, 1, 1);
 	var callback = argumentsList[argumentsList.length - 1];
 	if (IsCallable(callback) === false) throw VMTypeError();
-	var req = preventExtensions({
-		txid : 0,
-		callback : callback,
-	});
-	IO_register(req);
-	IOManager_asyncIO(thisValue.handler, name, args, req);
+	var port = thisValue;
+	return IOManager_asyncIO(port, name, args, callback);
 }
 
-function IOPort_callback(obj, event) {
-	assert(obj.txid !== undefined);
-	assertEquals(obj, IO_find(obj.txid), obj);
-	try {
-		if (obj.Class === "IOPort") {
-			var callback = obj.Get("callback");
-			if (IsCallable(callback) === false) return;
-		}
-		else {
-			var callback = obj.callback;
-			assert(IsCallable(callback));
-			IO_remove(obj);
-		}
-		var argumentsList = IO_wrapArgs(event);
-		callback.Call(undefined, argumentsList);
-	} catch (e) {
-		if (isInternalError(e)) throw e;
-		try {
-			var callback = builtin_IOPort.Get("uncaughtErrorCallback");
-			if (IsCallable(callback) === false) return;
-			callback.Call(undefined, [ e ]);
-		} catch (e) {
-			if (isInternalError(e)) throw e;
-		}
-	}
-}
-
-var IO_maxID;
-var IO_objects;
-
-function IO_register(obj) {
-	var txid = ++IO_maxID;
-	obj.txid = txid;
-	IO_objects[txid] = obj;
-}
-
-function IO_find(txid) {
-	return IO_objects[txid];
-}
-
-function IO_remove(obj) {
-	var txid = obj.txid;
-	obj.txid = 0;
-	delete (IO_objects[txid]);
-}
-
-function IO_unwrapArgs(A, start, end) {
+function IOPort_unwrapArgs(A, start, end) {
 	assert(A instanceof Array);
-	var stack = [];
 	var length = A.length;
 	var a = [];
 	for (var i = start; i < length - end; i++) {
-		a[i - start] = IO_unwrap(A[i], stack);
+		a[i - start] = IOPort_unwrap(A[i], []);
 	}
 	return a;
 }
 
-function IO_unwrap(A, stack) {
+function IOPort_unwrap(A, stack) {
 	if (isPrimitiveValue(A)) {
 		return A;
 	}
@@ -184,7 +97,7 @@ function IO_unwrap(A, stack) {
 		var a = [];
 		var length = A.Get("length");
 		for (var i = 0; i < length; i++) {
-			a[i] = IO_unwrap(A.Get(ToString(i)), stack);
+			a[i] = IOPort_unwrap(A.Get(ToString(i)), stack);
 		}
 	}
 	else if (A.Class === "Object") {
@@ -192,7 +105,7 @@ function IO_unwrap(A, stack) {
 		var next = A.enumerator(false, true);
 		var P;
 		while ((P = next()) !== undefined) {
-			a[P] = IO_unwrap(A.Get(P), stack);
+			a[P] = IOPort_unwrap(A.Get(P), stack);
 		}
 	}
 	else {
@@ -202,7 +115,7 @@ function IO_unwrap(A, stack) {
 	return a;
 }
 
-function IO_wrapArgs(a) {
+function IOPort_wrapArgs(a) {
 	if (a instanceof Array === false) {
 		a = [ a ];
 	}
@@ -210,14 +123,14 @@ function IO_wrapArgs(a) {
 	var length = a.length;
 	var A = [];
 	for (var i = 0; i < length; i++) {
-		A[i] = IO_wrap(a[i], stack);
+		A[i] = IOPort_wrap(a[i], stack);
 	}
 	return A;
 }
 
-function IO_wrap(a, stack) {
+function IOPort_wrap(a, stack) {
 	// must be compatible with FileOutputStream.writeAny
-	// i.e. IO_wrap == IO_wrap ○ readAny ○ writeAny
+	// i.e. IOPort_wrap == IOPort_wrap ○ readAny ○ writeAny
 	if (isPrimitiveValue(a)) {
 		return a;
 	}
@@ -227,7 +140,7 @@ function IO_wrap(a, stack) {
 		var length = a.length;
 		var A = Array_Construct([ length ]);
 		for (var i = 0; i < length; i++) {
-			A.Put(ToString(i), IO_wrap(a[i], stack), false);
+			A.Put(ToString(i), IOPort_wrap(a[i], stack), false);
 		}
 	}
 	else {
@@ -236,7 +149,7 @@ function IO_wrap(a, stack) {
 		var length = keys.length;
 		for (var i = 0; i < length; i++) {
 			var P = keys[i];
-			A.Put(P, IO_wrap(a[P], stack), false);
+			A.Put(P, IOPort_wrap(a[P], stack), false);
 		}
 	}
 	stack.pop();

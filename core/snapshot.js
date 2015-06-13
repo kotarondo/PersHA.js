@@ -153,7 +153,7 @@ function writeSnapshot(l_ostream) {
 	mark(theGlobalEnvironment);
 	mark(theEvalFunction);
 	mark(theThrowTypeError);
-	// extensions
+	// mark extensions
 	if (builtin_Buffer !== undefined) {
 		mark(builtin_Buffer);
 		mark(builtin_Buffer_prototype);
@@ -161,15 +161,10 @@ function writeSnapshot(l_ostream) {
 	if (builtin_IOPort !== undefined) {
 		mark(builtin_IOPort);
 		mark(builtin_IOPort_prototype);
-		for ( var txid in IO_objects) {
-			var obj = IO_objects[txid];
-			if (obj.Class === "IOPort") {
-				mark(obj);
-			}
-			else {
-				mark(obj.callback);
-			}
-		}
+	}
+	for ( var txid in IOManager_asyncCallbacks) {
+		var callback = IOManager_asyncCallbacks[txid];
+		mark(callback);
 	}
 
 	for (var i = 10; i < allObjs.length; i++) {
@@ -189,7 +184,13 @@ function writeSnapshot(l_ostream) {
 			obj.writeObject(ostream);
 		}
 	}
+
 	// extensions
+	{
+		ostream.writeString("Timezone");
+		ostream.writeInt(LocalTZA);
+		ostream.writeString(LocalTZAString);
+	}
 	if (builtin_Buffer !== undefined) {
 		ostream.writeString("Buffer");
 		ostream.writeInt(builtin_Buffer.ID);
@@ -197,20 +198,22 @@ function writeSnapshot(l_ostream) {
 	}
 	if (builtin_IOPort !== undefined) {
 		ostream.writeString("IOPort");
-		ostream.writeInt(IO_maxID);
-		for ( var txid in IO_objects) {
-			var obj = IO_objects[txid];
-			if (obj.Class !== "IOPort") {
-				assertEquals(Number(txid), obj.txid, obj);
-				ostream.writeInt(obj.txid);
-				ostream.writeInt(obj.callback.ID);
-			}
-		}
-		ostream.writeInt(0);
 		ostream.writeInt(builtin_IOPort.ID);
 		ostream.writeInt(builtin_IOPort_prototype.ID);
 	}
+	{
+		ostream.writeString("IOManager");
+		ostream.writeInt(IOManager_uniqueID);
+		for ( var txid in IOManager_asyncCallbacks) {
+			var callback = IOManager_asyncCallbacks[txid];
+			ostream.writeInt(txid);
+			ostream.writeInt(callback.ID);
+		}
+		ostream.writeInt(0);
+	}
 	ostream.writeString("end");
+
+	//cleanup
 	l_ostream.flush();
 	for (var i = 10; i < allObjs.length; i++) {
 		var obj = allObjs[i];
@@ -226,7 +229,6 @@ function readSnapshot(l_istream) {
 	if (version > 1) {
 		throw Error("version not supported: " + version);
 	}
-	IO_objects = Object.create(null);
 	while (true) {
 		var ClassID = istream.readInt();
 		if (ClassID === 0) {
@@ -257,54 +259,6 @@ function readSnapshot(l_istream) {
 		istream.assert(ID === i);
 		obj.readObject(istream);
 	}
-	// extensions
-	builtin_Buffer = undefined;
-	builtin_Buffer_prototype = undefined;
-	builtin_IOPort = undefined;
-	builtin_IOPort_prototype = undefined;
-	while (true) {
-		var ext = istream.readString();
-		if (ext === "end") {
-			break;
-		}
-		switch (ext) {
-		case "Buffer":
-			builtin_Buffer = allObjs[istream.readInt()];
-			builtin_Buffer_prototype = allObjs[istream.readInt()];
-			istream.assert(builtin_Buffer.ClassID === CLASSID_BuiltinFunction);
-			istream.assert(builtin_Buffer_prototype.ClassID === CLASSID_Buffer);
-			break;
-		case "IOPort":
-			IO_maxID = istream.readInt();
-			while (true) {
-				var txid = istream.readInt();
-				if (txid === 0) {
-					break;
-				}
-				var callback = allObjs[istream.readInt()];
-				IO_objects[txid] = preventExtensions({
-					txid : txid,
-					callback : callback,
-				});
-				istream.assert(txid <= IO_maxID);
-				istream.assert(IsCallable(callback));
-			}
-			builtin_IOPort = allObjs[istream.readInt()];
-			builtin_IOPort_prototype = allObjs[istream.readInt()];
-			istream.assert(builtin_IOPort.ClassID === CLASSID_BuiltinFunction);
-			istream.assert(builtin_IOPort_prototype.ClassID === CLASSID_IOPort);
-			break;
-		default:
-			throw Error("unknown extension: " + ext);
-		}
-	}
-	for (var i = 10; i < allObjs.length; i++) {
-		var obj = allObjs[i];
-		if (obj.ClassID === CLASSID_SourceObject) {
-			obj.subcodes = undefined;
-		}
-	}
-
 	var i = 10;
 	builtin_Object_prototype = allObjs[i++];
 	builtin_Function_prototype = allObjs[i++];
@@ -325,7 +279,6 @@ function readSnapshot(l_istream) {
 	theGlobalEnvironment = allObjs[i++];
 	theEvalFunction = allObjs[i++];
 	theThrowTypeError = allObjs[i++];
-
 	istream.assert(builtin_Object_prototype.ClassID === CLASSID_Object);
 	istream.assert(builtin_Function_prototype.ClassID === CLASSID_BuiltinFunction);
 	istream.assert(builtin_Array_prototype.ClassID === CLASSID_Array);
@@ -345,6 +298,65 @@ function readSnapshot(l_istream) {
 	istream.assert(theGlobalEnvironment.ClassID === CLASSID_ObjectEnvironment);
 	istream.assert(theEvalFunction.ClassID === CLASSID_BuiltinFunction);
 	istream.assert(theThrowTypeError.ClassID === CLASSID_BuiltinFunction);
+	initExecutionContext();
+
+	// extensions
+	LocalTZA = 9 * 3600000;
+	LocalTZAString = "JST";
+	builtin_Buffer = undefined;
+	builtin_Buffer_prototype = undefined;
+	builtin_IOPort = undefined;
+	builtin_IOPort_prototype = undefined;
+	assert(IOManager_state === 'offline');
+	IOManager_uniqueID = 0
+	IOManager_asyncCallbacks = {};
+	while (true) {
+		var ext = istream.readString();
+		if (ext === "end") {
+			break;
+		}
+		switch (ext) {
+		case "Timezone":
+			LocalTZA = istream.readInt();
+			LocalTZAString = istream.readString();
+			break;
+		case "Buffer":
+			builtin_Buffer = allObjs[istream.readInt()];
+			builtin_Buffer_prototype = allObjs[istream.readInt()];
+			istream.assert(builtin_Buffer.ClassID === CLASSID_BuiltinFunction);
+			istream.assert(builtin_Buffer_prototype.ClassID === CLASSID_Buffer);
+			break;
+		case "IOPort":
+			builtin_IOPort = allObjs[istream.readInt()];
+			builtin_IOPort_prototype = allObjs[istream.readInt()];
+			istream.assert(builtin_IOPort.ClassID === CLASSID_BuiltinFunction);
+			istream.assert(builtin_IOPort_prototype.ClassID === CLASSID_IOPort);
+			break;
+		case "IOManager":
+			IOManager_uniqueID = istream.readInt();
+			while (true) {
+				var txid = istream.readInt();
+				if (txid === 0) {
+					break;
+				}
+				var callback = allObjs[istream.readInt()];
+				istream.assert(txid <= IOManager_uniqueID);
+				istream.assert(IsCallable(callback));
+				IOManager_asyncCallbacks[txid] = callback;
+			}
+			break;
+		default:
+			throw Error("unknown extension: " + ext);
+		}
+	}
+
+	//cleanup
+	for (var i = 10; i < allObjs.length; i++) {
+		var obj = allObjs[i];
+		if (obj.ClassID === CLASSID_SourceObject) {
+			obj.subcodes = undefined;
+		}
+	}
 }
 
 function intrinsic_walkObject(O, mark) {
@@ -696,30 +708,4 @@ function BufferObject_writeObject(ostream) {
 function BufferObject_readObject(istream) {
 	intrinsic_readObject(this, istream);
 	this.wrappedBuffer = istream.readBuffer();
-}
-
-function IOPortObject_writeObject(ostream) {
-	intrinsic_writeObject(this, ostream);
-	ostream.writeInt(this.txid);
-	if (this.name === undefined) {
-		ostream.writeInt(0);
-		return;
-	}
-	ostream.writeInt(1);
-	ostream.writeString(this.name);
-	ostream.writeAny(this.args);
-}
-
-function IOPortObject_readObject(istream) {
-	intrinsic_readObject(this, istream);
-	this.txid = istream.readInt();
-	this.handler = null;
-	if (this.txid !== 0) {
-		IO_objects[this.txid] = this;
-	}
-	if (istream.readInt() === 0) {
-		return;
-	}
-	this.name = istream.readString();
-	this.args = istream.readAny();
 }

@@ -125,7 +125,6 @@ var builtin_URIError_prototype;
 var theGlobalObject;
 var theGlobalEnvironment;
 var theEvalFunction;
-var theThrowTypeError;
 
 function ReturnUndefined() {
 	return undefined;
@@ -200,6 +199,7 @@ function initializeVM() {
 	theGlobalObject = VMObject(CLASSID_Global);
 	theGlobalObject.Prototype = builtin_Object_prototype;
 	theGlobalObject.Extensible = true;
+	theGlobalEnvironment = NewObjectEnvironment(theGlobalObject, null);
 
 	var builtin_Object = VMObject(CLASSID_BuiltinFunction);
 	builtin_Object.Call = Object_Call;
@@ -299,7 +299,6 @@ function initializeVM() {
 	builtin_JSON.Prototype = builtin_Object_prototype;
 	builtin_JSON.Extensible = true;
 
-	theGlobalEnvironment = NewObjectEnvironment(theGlobalObject, null);
 	defineFinal(theGlobalObject, "NaN", NaN);
 	defineFinal(theGlobalObject, "Infinity", Infinity);
 	defineFinal(theGlobalObject, "undefined", undefined);
@@ -592,9 +591,9 @@ function initializeVM() {
 	defineFunction(builtin_JSON, "stringify", 3, JSON_stringify);
 
 	initializeThrowTypeErrorObject();
-
 	initializeBuffer();
 	initializeIOPort();
+	initExecutionContext();
 }
 
 var builtin_Buffer;
@@ -674,9 +673,6 @@ var builtin_IOPort;
 var builtin_IOPort_prototype;
 
 function initializeIOPort() {
-	IO_maxID = 0;
-	IO_objects = Object.create(null);
-
 	builtin_IOPort_prototype = VMObject(CLASSID_IOPort);
 	builtin_IOPort_prototype.Prototype = builtin_Object_prototype;
 	builtin_IOPort_prototype.Extensible = true;
@@ -692,11 +688,8 @@ function initializeIOPort() {
 
 	defineFinal(builtin_IOPort, "length", 1);
 	defineFinal(builtin_IOPort, "prototype", builtin_IOPort_prototype);
-	defineFunction(builtin_IOPort, "list", 0, IOPort_list);
 	define(builtin_IOPort_prototype, "constructor", builtin_IOPort);
-	defineFunction(builtin_IOPort_prototype, "rebind", 0, IOPort_prototype_rebind);
 	defineFunction(builtin_IOPort_prototype, "open", 0, IOPort_prototype_open);
-	defineFunction(builtin_IOPort_prototype, "terminate", 0, IOPort_prototype_terminate);
 	defineFunction(builtin_IOPort_prototype, "syncIO", 1, IOPort_prototype_syncIO);
 	defineFunction(builtin_IOPort_prototype, "asyncIO", 2, IOPort_prototype_asyncIO);
 }

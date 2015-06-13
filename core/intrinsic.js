@@ -282,10 +282,7 @@ var intrinsicFunctions = {
 	Buffer_prototype_inspect : Buffer_prototype_inspect,
 	IOPort_Call : IOPort_Call,
 	IOPort_Construct : IOPort_Construct,
-	IOPort_list : IOPort_list,
-	IOPort_prototype_rebind : IOPort_prototype_rebind,
 	IOPort_prototype_open : IOPort_prototype_open,
-	IOPort_prototype_terminate : IOPort_prototype_terminate,
 	IOPort_prototype_syncIO : IOPort_prototype_syncIO,
 	IOPort_prototype_asyncIO : IOPort_prototype_asyncIO,
 };

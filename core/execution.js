@@ -212,6 +212,15 @@ var runningCode;
 var runningSourcePos;
 var outerExecutionContext;
 
+function initExecutionContext() {
+	LexicalEnvironment = theGlobalEnvironment;
+	VariableEnvironment = theGlobalEnvironment;
+	ThisBinding = theGlobalObject;
+	runningCode = undefined;
+	runningSourcePos = undefined;
+	outerExecutionContext = undefined;
+}
+
 function saveExecutionContext() {
 	outerExecutionContext = preventExtensions({
 		LexicalEnvironment : LexicalEnvironment,

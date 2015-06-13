@@ -126,7 +126,7 @@ function FunctionObject_Call(thisValue, argumentsList) {
 	exitExecutionContext();
 	if (result.type === "throw") throw result.value;
 	if (result.type === "return") return result.value;
-	assertEquals(result.type , "normal", result);
+	assertEquals(result.type, "normal", result);
 	return undefined;
 }
 
@@ -149,6 +149,8 @@ function FunctionObject_Construct(argumentsList) {
 function ThrowTypeError() {
 	throw VMTypeError();
 }
+
+var theThrowTypeError;
 
 function initializeThrowTypeErrorObject() {
 	var F = VMObject(CLASSID_BuiltinFunction);

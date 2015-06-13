@@ -319,14 +319,10 @@ function VMObject(ClassID) {
 	case CLASSID_IOPort:
 		if (VMIOPortClass === undefined) {
 			var obj = setAlltheInternalMethod("IOPort", ClassID);
-			obj.writeObject = IOPortObject_writeObject;
-			obj.readObject = IOPortObject_readObject;
 			VMIOPortClass = freeze(obj);
 		}
 		var obj = Object.create(VMIOPortClass);
-		obj.txid = 0;
-		obj.name = undefined;
-		obj.args = undefined;
+		obj.portId = undefined;
 		obj.handler = undefined;
 		break;
 	default:

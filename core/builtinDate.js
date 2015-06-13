@@ -468,7 +468,7 @@ function Date_UTC(thisValue, argumentsList) {
 }
 
 function Date_now(thisValue, argumentsList) {
-	return IOManager_date_now(++IO_maxID); // for deterministic behavior
+	return IOManager_date_now(); // for deterministic behavior
 }
 
 function Date_prototype_toString(thisValue, argumentsList) {
