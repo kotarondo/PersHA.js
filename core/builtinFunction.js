@@ -200,3 +200,10 @@ function FunctionObject_HasInstance(V) {
 		if (O === V) return true;
 	}
 }
+
+function Function_prototype_scheduleAsMicrotask(thisValue, argumentsList) {
+	var callback = thisValue;
+	var thisArg = argumentsList[0];
+	if (IsCallable(callback) === false) throw VMTypeError();
+	scheduleMicrotask(callback, argumentsList);
+}

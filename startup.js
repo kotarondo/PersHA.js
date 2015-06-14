@@ -31,33 +31,10 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-'use strict';
+'use strict'
 
-var microtaskQueue = [];
+JOURNAL_FILEBASE = ".persha/db";
+HANDLER_DIR = "/Users/endo/workspace/persha/handler/";
 
-function scheduleMicrotask(callback, args) {
-	var task = {
-		callback : callback,
-		args : args
-	};
-	microtaskQueue.push(task);
-}
-
-function runMicrotasks() {
-	while (microtaskQueue.length > 0) {
-		for (var i = 0; i < microtaskQueue.length && i < 100; i++) {
-			var task = microtaskQueue[i];
-			var callback = task.callback;
-			var args = task.args;
-			assert(IsCallable(callback), callback);
-			assert(args instanceof Array, args);
-			try {
-				callback.Call(undefined, args);
-			} catch (e) {
-				if (isInternalError(e)) throw e;
-				//TODO handle uncaught exception
-			}
-		}
-		microtaskQueue.shift(i);
-	}
-}
+Journal_start();
+IOManager_start();

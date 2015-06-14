@@ -110,19 +110,19 @@ function evaluateProgram(text, filename) {
 			};
 		}
 		try {
-			var value = ToString(e);
+			var value = ToString(e.Get("stack"));
 		} catch (e) {
-			var value = undefined;
-		}
-		try {
-			var stack = ToString(Array_prototype_join(e.Get("stack"), [ '\n' ]));
-		} catch (e) {
-			var stack = undefined;
+			if (isInternalError(e)) throw e;
+			try {
+				var value = ToString(e);
+			} catch (e) {
+				if (isInternalError(e)) throw e;
+				var value = undefined;
+			}
 		}
 		return {
 			error : true,
 			value : value,
-			stack : stack,
 		};
 	}
 	if (isPrimitiveValue(result)) {
@@ -133,11 +133,13 @@ function evaluateProgram(text, filename) {
 	try {
 		var value = JSON_stringify(undefined, [ result ]);
 	} catch (e) {
+		if (isInternalError(e)) throw e;
 	}
 	if (value === undefined) {
 		try {
 			var value = ToString(result);
 		} catch (e) {
+			if (isInternalError(e)) throw e;
 		}
 	}
 	return {

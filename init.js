@@ -31,33 +31,52 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-'use strict';
+'use strict'
 
-var microtaskQueue = [];
+var JOURNAL_FILEBASE = ".persha/db";
+var HANDLER_DIR = "/Users/endo/workspace/persha/handler/";
+var INITSCRIPT_DIR = "/Users/endo/workspace/persha/node-init/";
 
-function scheduleMicrotask(callback, args) {
-	var task = {
-		callback : callback,
-		args : args
-	};
-	microtaskQueue.push(task);
+var fs = require('fs');
+
+initializeVM();
+
+var prog = fs.readFileSync(INITSCRIPT_DIR + 'bridge.js').toString();
+Global_evaluateProgram(undefined, [ prog, 'bridge.js' ]);
+
+/* hacking
+Global_eval(undefined, [ "process.debug" ]).Call = function(thisValue, argumentsList) {
+	console.log(argumentsList);
+};
+*/
+
+var natives = Global_eval(undefined, [ "process.binding('natives')" ]);
+var list = [ 'events', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs', 'path', 'net', 'repl',
+		'readline', 'domain', 'string_decoder', '_stream_readable', '_stream_writable', '_stream_duplex', '_stream_transform',
+		'_stream_passthrough', ];
+for (var i = 0; i < list.length; i++) {
+	var n = list[i];
+	var s = fs.readFileSync(INITSCRIPT_DIR + n + '.js').toString();
+	natives.Put(n, s, false);
 }
 
-function runMicrotasks() {
-	while (microtaskQueue.length > 0) {
-		for (var i = 0; i < microtaskQueue.length && i < 100; i++) {
-			var task = microtaskQueue[i];
-			var callback = task.callback;
-			var args = task.args;
-			assert(IsCallable(callback), callback);
-			assert(args instanceof Array, args);
-			try {
-				callback.Call(undefined, args);
-			} catch (e) {
-				if (isInternalError(e)) throw e;
-				//TODO handle uncaught exception
-			}
-		}
-		microtaskQueue.shift(i);
+var smalloc = Global_eval(undefined, [ "process.binding('smalloc')" ]);
+smalloc.Put('kMaxLength', require('smalloc').kMaxLength, false);
+
+var prog = fs.readFileSync(INITSCRIPT_DIR + 'node.js').toString();
+var process = Global_eval(undefined, [ "process" ]);
+try {
+	var result = Global_evaluateProgram(undefined, [ prog, "node.js" ]).Call(theGlobalObject, [ process ]);
+} catch (e) {
+	if (isInternalError(e)) {
+		console.log(e);
 	}
+	else {
+		console.log(e.Get("stack"));
+	}
+	return;
 }
+
+runMicrotasks();
+
+Journal_init();

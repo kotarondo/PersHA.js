@@ -1426,6 +1426,7 @@ var theParser = function() {
 		try {
 			return RegExp_Construct([ pattern, flags ]);
 		} catch (e) {
+			if (isInternalError(e)) throw e;
 			SyntaxError(tokenPos);
 		}
 	}

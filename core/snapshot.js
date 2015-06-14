@@ -206,7 +206,7 @@ function writeSnapshot(l_ostream) {
 		ostream.writeInt(IOManager_uniqueID);
 		for ( var txid in IOManager_asyncCallbacks) {
 			var callback = IOManager_asyncCallbacks[txid];
-			ostream.writeInt(txid);
+			ostream.writeInt(ToNumber(txid));
 			ostream.writeInt(callback.ID);
 		}
 		ostream.writeInt(0);
@@ -542,6 +542,7 @@ function RegExp_readObject(istream) {
 	try {
 		theRegExpFactory.compile(this);
 	} catch (e) {
+		if (isInternalError(e)) throw e;
 		console.log(e);
 		console.log("debug :" + this.Get("source"))
 	}

@@ -254,10 +254,10 @@ function VMURIError(message) {
 function get_Error_prototype_stack(thisValue, argumentsList) {
 	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "Error") throw VMTypeError();
 	var stackTrace = thisValue.stackTrace;
-	var A = Array_Construct([]);
+	var A = [];
+	A[0] = Error_prototype_toString(thisValue, []);
 	for (var i = 0; i < stackTrace.length; i++) {
-		var info = theParser.locateDebugInfo(stackTrace[i]);
-		A.Put(ToString(i), info, false);
+		A[i + 1] = theParser.locateDebugInfo(stackTrace[i]);
 	}
-	return A;
+	return A.join("\n    at ");
 }

@@ -64,7 +64,7 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	var name = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList, 1, 0);
 	var event = IOManager_syncIO(port, name, args);
-	return IOPort_wrap(event, []);
+	return IOPort_wrap(event);
 }
 
 function IOPort_prototype_asyncIO(thisValue, argumentsList) {
@@ -108,24 +108,14 @@ function IOPort_unwrap(A, stack) {
 			a[P] = IOPort_unwrap(A.Get(P), stack);
 		}
 	}
+	else if (A.Class === "Buffer") {
+		var a = A.wrappedBuffer;
+	}
 	else {
 		throw VMTypeError();
 	}
 	stack.pop();
 	return a;
-}
-
-function IOPort_wrapArgs(a) {
-	if (a instanceof Array === false) {
-		a = [ a ];
-	}
-	var stack = [];
-	var length = a.length;
-	var A = [];
-	for (var i = 0; i < length; i++) {
-		A[i] = IOPort_wrap(a[i], stack);
-	}
-	return A;
 }
 
 function IOPort_wrap(a, stack) {
@@ -134,9 +124,18 @@ function IOPort_wrap(a, stack) {
 	if (isPrimitiveValue(a)) {
 		return a;
 	}
+	if (stack === undefined) stack = [];
 	if (isIncluded(a, stack)) return null;
 	stack.push(a);
-	if (a instanceof Array) {
+	if (a instanceof Buffer) {
+		var A = VMObject(CLASSID_Buffer);
+		A.Prototype = builtin_Buffer_prototype;
+		A.Extensible = true;
+		A.wrappedBuffer = a;
+		defineFinal(A, "length", a.length);
+		defineFinal(A, "parent", A);
+	}
+	else if (a instanceof Array) {
 		var length = a.length;
 		var A = Array_Construct([ length ]);
 		for (var i = 0; i < length; i++) {

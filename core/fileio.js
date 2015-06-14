@@ -160,9 +160,12 @@ function FileOutputStream(filename, openExists) {
 			writeInt(6);
 			return;
 		}
-		if (stack === undefined) {
-			stack = [];
+		if (x instanceof Buffer) {
+			writeInt(7);
+			writeBuffer(x);
+			return;
 		}
+		if (stack === undefined) stack = [];
 		if (isIncluded(x, stack)) {
 			writeInt(6);
 			return;
@@ -182,8 +185,9 @@ function FileOutputStream(filename, openExists) {
 			var length = keys.length;
 			writeInt(length);
 			for (var i = 0; i < length; i++) {
-				writeString(keys[i]);
-				writeAny(x[keys[i]], stack);
+				var P = keys[i];
+				writeString(P);
+				writeAny(x[P], stack);
 			}
 		}
 		stack.pop();
@@ -243,6 +247,9 @@ function FileInputStream(filename) {
 	}
 
 	function fill(length) {
+		if (cacheOff + length <= cacheSize) {
+			return;
+		}
 		assert(cacheOff <= cacheSize);
 		if (0 < cacheOff && cacheOff < cacheSize) {
 			buffer.copy(buffer, 0, cacheOff, cacheSize);
@@ -251,13 +258,11 @@ function FileInputStream(filename) {
 		cacheOff = 0;
 		var l = readFully(fd, buffer, cacheSize, length, capacity);
 		cacheSize += l;
-		assert(length <= l && cacheSize <= capacity, l);
+		assert(length <= cacheSize && cacheSize <= capacity, cacheSize);
 	}
 
 	function getByte(x) {
-		if (cacheOff + 1 > cacheSize) {
-			fill(1);
-		}
+		fill(1);
 		return buffer[cacheOff++];
 	}
 
@@ -282,15 +287,13 @@ function FileInputStream(filename) {
 				buffer.copy(b, 0, cacheOff, cacheSize);
 			}
 			var cached = cacheSize - cacheOff;
-			var l = readFully(fd, b, cached, length - cached, length);
+			var l = readFully(fd, b, cached, length, length);
 			assert(cached + l === length, l);
 			cacheOff = 0;
 			cacheSize = 0;
 			return b.toString();
 		}
-		if (cacheOff + length > cacheSize) {
-			fill(length);
-		}
+		fill(length);
 		var s = buffer.toString(null, cacheOff, cacheOff + length);
 		cacheOff += length;
 		return s;
@@ -304,24 +307,20 @@ function FileInputStream(filename) {
 				buffer.copy(b, 0, cacheOff, cacheSize);
 			}
 			var cached = cacheSize - cacheOff;
-			var l = readFully(fd, b, cached, length - cached, length);
+			var l = readFully(fd, b, cached, length, length);
 			assert(cached + l === length, l);
 			cacheOff = 0;
 			cacheSize = 0;
 			return b;
 		}
-		if (cacheOff + length > cacheSize) {
-			fill(length);
-		}
+		fill(length);
 		buffer.copy(b, 0, cacheOff, cacheOff + length);
 		cacheOff += length;
 		return b;
 	}
 
 	function readNumber() {
-		if (cacheOff + 8 > cacheSize) {
-			fill(8);
-		}
+		fill(8);
 		var x = buffer.readDoubleLE(cacheOff);
 		cacheOff += 8;
 		return x;
@@ -342,6 +341,8 @@ function FileInputStream(filename) {
 			return readString();
 		case 6:
 			return null;
+		case 7:
+			return readBuffer();
 		case 10:
 			var length = readInt();
 			var a = [];
@@ -361,11 +362,11 @@ function FileInputStream(filename) {
 		throw Error("file broken");
 	}
 
-	function readFully(fd, buffer, startPos, minLength, capacity) {
+	function readFully(fd, buffer, startPos, minPos, capacity) {
 		var transferred = 0;
 		for (var i = 0; i < 10000; i++) {
 			assert(startPos <= capacity, startPos);
-			if (minLength <= transferred) {
+			if (minPos <= startPos) {
 				return transferred;
 			}
 			var l = fs.readSync(fd, buffer, startPos, capacity - startPos, position);
