@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2015, Kotaro Endo.
+Copyright (c) 2015, Kotaro Endo.
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,23 @@
 
 'use strict'
 
-JOURNAL_FILEBASE = ".persha/db";
-HANDLER_DIR = "/Users/endo/workspace/persha/handler/";
+module.exports = {
+	open : open,
+	syncIO : syncIO,
+	asyncIO : asyncIO,
+};
 
-Journal_start();
-IOManager_start();
+function open(args) {
+}
+
+function syncIO(name, args) {
+	if (name === 'debug') {
+		//console.log("debug: " + args);
+		return;
+	}
+	console.log("unhandled: " + name);
+}
+
+function asyncIO(name, args, callback) {
+	console.log("unhandled: " + name);
+}

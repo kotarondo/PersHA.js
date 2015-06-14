@@ -33,9 +33,9 @@
 
 'use strict';
 
-Object.prototype.__defineGetter__ = function(n, f) {
+Object.prototype.__defineGetter__ = function(n, getter) {
 	Object.defineProperty(this, n, {
-		get : f
+		get : getter
 	});
 };
 
@@ -83,6 +83,7 @@ process.binding = (function() {
 	var contextify = {
 		ContextifyScript : function(code, options) {
 			this.runInThisContext = function() {
+				//process.debug("runInThisContext " + options.filename + " " + new Error().stack);
 				process.debug("runInThisContext " + options.filename);
 				return evaluateProgram(code, options.filename);
 			};
@@ -91,6 +92,19 @@ process.binding = (function() {
 
 	var natives = {};
 	natives.config = "\n{}";
+
+	var smalloc = {};
+
+	var constants = {};
+
+	var tty_wrap = {
+		guessHandleType : function(fd) {
+			return 'FILE';
+		},
+		isTTY : function(fd) {
+			return false;
+		},
+	};
 
 	var fsPort = new IOPort('fs');
 
@@ -146,6 +160,7 @@ process.binding = (function() {
 		},
 
 		read : function(fd, buffer, offset, length, position, req) {
+			//process.debug("binding[fs] read " + new Error().stack);
 			process.debug("binding[fs] read ");
 			if (req === undefined) {
 				while (true) {
@@ -153,7 +168,9 @@ process.binding = (function() {
 					if (result.error) {
 						if (fd === 0) {
 							if (result.error === 'restart') {
-								continue;
+								//continue;
+								buffer[0] = 0x0a;
+								return 1;
 							}
 						}
 						throw new Error(result.error);
@@ -169,7 +186,9 @@ process.binding = (function() {
 							if (fd === 0) {
 								if (result.error === 'restart') {
 									process.debug("binding[fs] read error restart retry");
-									retry();
+									//retry();
+									buffer[0] = 0x0a;
+									req.oncomplete(undefined, 1);
 									return;
 								}
 							}
@@ -178,10 +197,15 @@ process.binding = (function() {
 							return;
 						}
 						if (result.transferred === 0) {
-							retry();
+							process.debug("binding[fs] read retry transferred=0");
+							//retry();
+							buffer[0] = 0x0a;
+							req.oncomplete(undefined, 1);
 							return;
 						}
+						process.debug("binding[fs] read trans=" + result.transferred);
 						result.buffer.copy(buffer, offset, 0, result.transferred);
+						process.debug("binding[fs] read buffer0=" + buffer[0]);
 						req.oncomplete(undefined, result.transferred);
 					});
 				})();
@@ -190,16 +214,6 @@ process.binding = (function() {
 
 		writeString : function(fd, buffer, offset, length, position, req) {
 			process.debug("binding[fs] writeString TODO ");
-		},
-	};
-
-	var smalloc = {};
-
-	var constants = {};
-
-	var tty_wrap = {
-		guessHandleType : function(fd) {
-			return 'FILE';
 		},
 	};
 

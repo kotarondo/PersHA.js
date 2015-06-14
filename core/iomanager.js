@@ -217,7 +217,6 @@ function IOManager_asyncIO_completion(event, txid) {
 
 function IOManager_online() {
 	assert(IOManager_state === 'roll-forward');
-	console.log('online ...'); //debug
 	for ( var txid in IOManager_asyncCallbacks) {
 		txid = Number(txid);
 		setImmediate(IOManager_asyncIO_completion, IOManager_error('restart'), txid);
@@ -228,7 +227,7 @@ function IOManager_online() {
 function IOManager_start() {
 	assert(IOManager_state === 'offline');
 	IOManager_state = 'roll-forward';
-	console.log('rollforward ...'); //debug
+	console.log('RECOVERING ...');
 	IOManager_context.resetTime();
 	IOManager_context.start();
 	while (IOManager_state === 'roll-forward') {
@@ -254,7 +253,7 @@ function IOManager_start() {
 		runMicrotasks();
 	}
 	IOManager_context.stop();
-	console.log('rollforward done'); //debug
+	console.log('READY');
 	IOManager_checkpoint();
 }
 

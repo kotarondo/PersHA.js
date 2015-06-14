@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2015, Kotaro Endo.
+Copyright (c) 2015, Kotaro Endo.
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without
@@ -33,50 +33,63 @@
 
 'use strict'
 
-var JOURNAL_FILEBASE = ".persha/db";
-var HANDLER_DIR = "/Users/endo/workspace/persha/handler/";
-var INITSCRIPT_DIR = "/Users/endo/workspace/persha/node-init/";
+module.exports = {
+	open : open,
+	syncIO : syncIO,
+	asyncIO : asyncIO,
+};
 
 var fs = require('fs');
 
-initializeVM();
-
-var prog = fs.readFileSync(INITSCRIPT_DIR + 'bridge.js').toString();
-Global_evaluateProgram(undefined, [ prog, 'bridge.js' ]);
-
-/* hacking
-Global_eval(undefined, [ "process.debug" ]).Call = function(thisValue, argumentsList) {
-	console.log(argumentsList);
-};
-*/
-
-var natives = Global_eval(undefined, [ "process.binding('natives')" ]);
-var list = [ 'events', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs', 'path', 'net', 'repl',
-		'readline', 'domain', 'string_decoder', '_stream_readable', '_stream_writable', '_stream_duplex', '_stream_transform',
-		'_stream_passthrough', ];
-for (var i = 0; i < list.length; i++) {
-	var n = list[i];
-	var s = fs.readFileSync(INITSCRIPT_DIR + n + '.js').toString();
-	natives.Put(n, s, false);
+function open(args) {
+	console.log("fs open:");
+	console.log(args);
 }
 
-var smalloc = Global_eval(undefined, [ "process.binding('smalloc')" ]);
-smalloc.Put('kMaxLength', require('smalloc').kMaxLength, false);
-
-var prog = fs.readFileSync(INITSCRIPT_DIR + 'node.js').toString();
-var process = Global_eval(undefined, [ "process" ]);
-try {
-	var result = Global_evaluateProgram(undefined, [ prog, "node.js" ]).Call(theGlobalObject, [ process ]);
-} catch (e) {
-	if (isInternalError(e)) {
-		console.log(e);
+function syncIO(name, args) {
+	if (name === 'writeBuffer') {
+		var transferred = fs.write.apply(fs, args);
+		return {
+			transferred : transferred
+		};
 	}
-	else {
-		console.log(e.Get("stack"));
+	if (name === 'readBuffer') {
+		var fd = args[0];
+		var length = args[1];
+		var position = args[2];
+		var buffer = new Buffer(length);
+		var transferred = fs.read(fd, buffer, 0, length, position);
+		return {
+			transferred : transferred,
+			buffer : buffer
+		};
 	}
-	return;
+	console.log("fs syncIO:" + name);
+	console.log(args);
 }
 
-runMicrotasks();
-
-Journal_init();
+function asyncIO(name, args, callback) {
+	if (name === 'readBuffer') {
+		var fd = args[0];
+		var length = args[1];
+		var position = args[2];
+		var buffer = new Buffer(length);
+		fs.read(fd, buffer, 0, length, position, function(err, transferred, buffer) {
+			if (err) {
+				console.log("fs read callback: err=" + err);
+				callback({
+					error : err
+				});
+				return;
+			}
+			callback({
+				transferred : transferred,
+				buffer : buffer
+			});
+		});
+		return;
+	}
+	console.log("fs asyncIO:" + name);
+	console.log(args);
+	callback([ 'success' ]);
+}

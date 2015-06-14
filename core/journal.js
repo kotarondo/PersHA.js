@@ -86,7 +86,6 @@ function Journal_start() {
 		maxGen = hlog.gen;
 	}
 	if (maxFileNo === undefined) {
-		console.log("no valid journal checkpoint ");//debug
 		return false;
 	}
 	Journal_currentFileNo = maxFileNo;
