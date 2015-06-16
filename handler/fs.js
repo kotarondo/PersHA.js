@@ -47,28 +47,29 @@ function open(args) {
 }
 
 function syncIO(name, args) {
+	if (name === 'stat') {
+		return fs.statSync.apply(fs, args);
+	}
 	if (name === 'writeBuffer') {
-		var transferred = fs.write.apply(fs, args);
-		return {
-			transferred : transferred
-		};
+		return fs.writeSync.apply(fs, args);
 	}
 	if (name === 'readBuffer') {
 		var fd = args[0];
 		var length = args[1];
 		var position = args[2];
 		var buffer = new Buffer(length);
-		var transferred = fs.read(fd, buffer, 0, length, position);
-		return {
-			transferred : transferred,
-			buffer : buffer
-		};
+		var transferred = fs.readSync(fd, buffer, 0, length, position);
+		return buffer.slice(0, transferred);
 	}
 	console.log("fs syncIO:" + name);
 	console.log(args);
 }
 
 function asyncIO(name, args, callback) {
+	if (name === 'writeBuffer') {
+		args.push(callback);
+		return fs.write.apply(fs, args);
+	}
 	if (name === 'readBuffer') {
 		var fd = args[0];
 		var length = args[1];
@@ -76,16 +77,11 @@ function asyncIO(name, args, callback) {
 		var buffer = new Buffer(length);
 		fs.read(fd, buffer, 0, length, position, function(err, transferred, buffer) {
 			if (err) {
-				console.log("fs read callback: err=" + err);
-				callback({
-					error : err
-				});
+				callback(err);
 				return;
 			}
-			callback({
-				transferred : transferred,
-				buffer : buffer
-			});
+			buffer = buffer.slice(0, transferred);
+			callback(undefined, buffer);
 		});
 		return;
 	}

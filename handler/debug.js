@@ -44,7 +44,7 @@ function open(args) {
 
 function syncIO(name, args) {
 	if (name === 'debug') {
-		//console.log("debug: " + args);
+		console.log("debug: " + args);
 		return;
 	}
 	console.log("unhandled: " + name);

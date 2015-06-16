@@ -64,7 +64,13 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	var name = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList, 1, 0);
 	var event = IOManager_syncIO(port, name, args);
-	return IOPort_wrap(event);
+	if (event.error !== true) {
+		return IOPort_wrap(event.value);
+	}
+	if (event.failure) {
+		throw builtin_IOPort.Get(event.failure);
+	}
+	throw IOPort_wrap(event.value);
 }
 
 function IOPort_prototype_asyncIO(thisValue, argumentsList) {
@@ -75,6 +81,15 @@ function IOPort_prototype_asyncIO(thisValue, argumentsList) {
 	if (IsCallable(callback) === false) throw VMTypeError();
 	var port = thisValue;
 	return IOManager_asyncIO(port, name, args, callback);
+}
+
+function IOPort_asyncIO_completion(event, callback) {
+	if (event.failure) {
+		scheduleMicrotask(callback, [ builtin_IOPort.Get(event.failure) ]);
+	}
+	else {
+		scheduleMicrotask(callback, [ IOPort_wrap(event.error), IOPort_wrap(event.value) ]);
+	}
 }
 
 function IOPort_unwrapArgs(A, start, end) {

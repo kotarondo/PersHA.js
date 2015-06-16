@@ -47,8 +47,8 @@ var HANDLER_DIR;
 		console.log("Usage:");
 		console.log("    persha -initdb [directory]");
 		console.log("    persha -startup [directory]");
-		console.log("  where omitted directory can be specified by PERSHA_DB environment variable");
-		console.log("  and PERSHA_DB defaults to $HOME/.persha");
+		console.log("  where omitted directory can be specified by the environment ");
+		console.log("  variable PERSHA_DB which defaults to $HOME/.persha");
 	}
 
 	var cmd = process.argv[2];
