@@ -286,6 +286,8 @@ var intrinsicFunctions = {
 	IOPort_prototype_open : IOPort_prototype_open,
 	IOPort_prototype_syncIO : IOPort_prototype_syncIO,
 	IOPort_prototype_asyncIO : IOPort_prototype_asyncIO,
+	IOPortError_Call : IOPortError_Call,
+	IOPortError_Construct : IOPortError_Construct,
 };
 
 (function initializeIntrinsicFunctions() {

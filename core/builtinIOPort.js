@@ -48,7 +48,7 @@ function IOPort_Construct(argumentsList) {
 }
 
 function IOPort_prototype_open(thisValue, argumentsList) {
-	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort" || thisValue.txid === 0) throw VMTypeError();
+	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort") throw VMTypeError();
 	var args = IOPort_unwrapArgs(argumentsList, 0, 0);
 	var root = thisValue;
 	var port = VMObject(CLASSID_IOPort);
@@ -59,7 +59,7 @@ function IOPort_prototype_open(thisValue, argumentsList) {
 }
 
 function IOPort_prototype_syncIO(thisValue, argumentsList) {
-	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort" || thisValue.txid === 0) throw VMTypeError();
+	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort") throw VMTypeError();
 	var port = thisValue;
 	var name = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList, 1, 0);
@@ -68,13 +68,13 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 		return IOPort_wrap(event.value);
 	}
 	if (event.failure) {
-		throw builtin_IOPort.Get(event.failure);
+		throw IOPortError_Construct([ event.failure ]);
 	}
 	throw IOPort_wrap(event.value);
 }
 
 function IOPort_prototype_asyncIO(thisValue, argumentsList) {
-	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort" || thisValue.txid === 0) throw VMTypeError();
+	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort") throw VMTypeError();
 	var name = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList, 1, 1);
 	var callback = argumentsList[argumentsList.length - 1];
@@ -85,7 +85,7 @@ function IOPort_prototype_asyncIO(thisValue, argumentsList) {
 
 function IOPort_asyncIO_completion(event, callback) {
 	if (event.failure) {
-		scheduleMicrotask(callback, [ builtin_IOPort.Get(event.failure) ]);
+		scheduleMicrotask(callback, [ IOPortError_Construct([ event.failure ]) ]);
 	}
 	else {
 		scheduleMicrotask(callback, [ IOPort_wrap(event.error), IOPort_wrap(event.value) ]);
@@ -106,6 +106,15 @@ function IOPort_unwrap(A, stack) {
 	if (isPrimitiveValue(A)) {
 		return A;
 	}
+	if (A.Class === "Buffer") {
+		return A.wrappedBuffer;
+	}
+	if (A.Class === "Date") {
+		return new Date(A.PrimitiveValue);
+	}
+	if (A.Class === "Error") {
+		return new Error(A.Get("message"));
+	}
 	if (isIncluded(A, stack)) throw VMTypeError();
 	stack.push(A);
 	if (A.Class === "Array") {
@@ -123,9 +132,6 @@ function IOPort_unwrap(A, stack) {
 			a[P] = IOPort_unwrap(A.Get(P), stack);
 		}
 	}
-	else if (A.Class === "Buffer") {
-		var a = A.wrappedBuffer;
-	}
 	else {
 		throw VMTypeError();
 	}
@@ -139,9 +145,6 @@ function IOPort_wrap(a, stack) {
 	if (isPrimitiveValue(a)) {
 		return a;
 	}
-	if (stack === undefined) stack = [];
-	if (isIncluded(a, stack)) return null;
-	stack.push(a);
 	if (a instanceof Buffer) {
 		var A = VMObject(CLASSID_Buffer);
 		A.Prototype = builtin_Buffer_prototype;
@@ -149,8 +152,18 @@ function IOPort_wrap(a, stack) {
 		A.wrappedBuffer = a;
 		defineFinal(A, "length", a.length);
 		defineFinal(A, "parent", A);
+		return A;
 	}
-	else if (a instanceof Array) {
+	if (a instanceof Date) {
+		return Date_Construct([ a.getTime() ]);
+	}
+	if (a instanceof Date) {
+		return Error_Construct([ a.message ]);
+	}
+	if (stack === undefined) stack = [];
+	if (isIncluded(a, stack)) return null;
+	stack.push(a);
+	if (a instanceof Array) {
 		var length = a.length;
 		var A = Array_Construct([ length ]);
 		for (var i = 0; i < length; i++) {
@@ -168,4 +181,28 @@ function IOPort_wrap(a, stack) {
 	}
 	stack.pop();
 	return A;
+}
+
+function IOPortError_Call(thisValue, argumentsList) {
+	var message = argumentsList[0];
+	var obj = VMObject(CLASSID_Error);
+	obj.Prototype = builtin_IOPortError_prototype;
+	obj.Extensible = true;
+	obj.stackTrace = getStackTrace();
+	if (message !== undefined) {
+		define(obj, "message", ToString(message));
+	}
+	return obj;
+}
+
+function IOPortError_Construct(argumentsList) {
+	var message = argumentsList[0];
+	var obj = VMObject(CLASSID_Error);
+	obj.Prototype = builtin_IOPortError_prototype;
+	obj.Extensible = true;
+	obj.stackTrace = getStackTrace();
+	if (message !== undefined) {
+		define(obj, "message", ToString(message));
+	}
+	return obj;
 }

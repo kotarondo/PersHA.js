@@ -161,6 +161,7 @@ function writeSnapshot(l_ostream) {
 	if (builtin_IOPort !== undefined) {
 		mark(builtin_IOPort);
 		mark(builtin_IOPort_prototype);
+		mark(builtin_IOPortError_prototype);
 	}
 	for ( var txid in IOManager_asyncCallbacks) {
 		var callback = IOManager_asyncCallbacks[txid];
@@ -200,6 +201,7 @@ function writeSnapshot(l_ostream) {
 		ostream.writeString("IOPort");
 		ostream.writeInt(builtin_IOPort.ID);
 		ostream.writeInt(builtin_IOPort_prototype.ID);
+		ostream.writeInt(builtin_IOPortError_prototype.ID);
 	}
 	{
 		ostream.writeString("IOManager");
@@ -307,6 +309,7 @@ function readSnapshot(l_istream) {
 	builtin_Buffer_prototype = undefined;
 	builtin_IOPort = undefined;
 	builtin_IOPort_prototype = undefined;
+	builtin_IOPortError_prototype = undefined;
 	assert(IOManager_state === 'offline');
 	IOManager_uniqueID = 0
 	IOManager_asyncCallbacks = {};
@@ -329,8 +332,10 @@ function readSnapshot(l_istream) {
 		case "IOPort":
 			builtin_IOPort = allObjs[istream.readInt()];
 			builtin_IOPort_prototype = allObjs[istream.readInt()];
+			builtin_IOPortError_prototype = allObjs[istream.readInt()];
 			istream.assert(builtin_IOPort.ClassID === CLASSID_BuiltinFunction);
 			istream.assert(builtin_IOPort_prototype.ClassID === CLASSID_IOPort);
+			istream.assert(builtin_IOPortError_prototype.ClassID === CLASSID_Error);
 			break;
 		case "IOManager":
 			IOManager_uniqueID = istream.readInt();

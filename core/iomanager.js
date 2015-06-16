@@ -142,7 +142,7 @@ function IOManager_syncIO(port, name, args) {
 		if (IOManager_state !== 'roll-forward') {
 			return {
 				error : true,
-				failure : 'offlineError'
+				failure : 'offline'
 			};
 		}
 		var entry = Journal_read();
@@ -153,7 +153,7 @@ function IOManager_syncIO(port, name, args) {
 		IOManager_online();
 		var event = {
 			error : true,
-			failure : 'restartError'
+			failure : 'restart'
 		};
 	}
 	else {
@@ -163,7 +163,7 @@ function IOManager_syncIO(port, name, args) {
 		if (port.handler === null) {
 			var event = {
 				error : true,
-				failure : 'staleError'
+				failure : 'stale'
 			};
 		}
 		else {
@@ -200,7 +200,7 @@ function IOManager_asyncIO(port, name, args, callback) {
 		IOManager_rebindPort(port);
 	}
 	if (port.handler === null) {
-		setImmediate(IOManager_asyncIO_completion, failure, 'staleError', txid);
+		setImmediate(IOManager_asyncIO_completion, failure, 'stale', txid);
 		return txid;
 	}
 	IOManager_context.pauseTime();
@@ -255,7 +255,7 @@ function IOManager_online() {
 	assert(IOManager_state === 'roll-forward');
 	for ( var txid in IOManager_asyncCallbacks) {
 		txid = Number(txid);
-		setImmediate(IOManager_asyncIO_completion, failure, 'restartError', txid);
+		setImmediate(IOManager_asyncIO_completion, failure, 'restart', txid);
 	}
 	IOManager_state = 'online';
 }
@@ -351,6 +351,12 @@ function IOManager_copyAny(x, stack) {
 	}
 	if (x instanceof Buffer) {
 		return new Buffer(x);
+	}
+	if (x instanceof Date) {
+		return new Date(x.getTime());
+	}
+	if (x instanceof Error) {
+		return new Error(x.message);
 	}
 	if (stack === undefined) stack = [];
 	if (isIncluded(x, stack)) return null;

@@ -674,12 +674,12 @@ function initializeBuffer() {
 
 var builtin_IOPort;
 var builtin_IOPort_prototype;
+var builtin_IOPortError_prototype;
 
 function initializeIOPort() {
 	builtin_IOPort_prototype = VMObject(CLASSID_IOPort);
 	builtin_IOPort_prototype.Prototype = builtin_Object_prototype;
 	builtin_IOPort_prototype.Extensible = true;
-	builtin_IOPort_prototype.txid = 0;
 	builtin_IOPort_prototype.handler = null;
 
 	builtin_IOPort = VMObject(CLASSID_BuiltinFunction);
@@ -691,11 +691,25 @@ function initializeIOPort() {
 
 	defineFinal(builtin_IOPort, "length", 1);
 	defineFinal(builtin_IOPort, "prototype", builtin_IOPort_prototype);
-	defineFinal(builtin_IOPort, "restartError", Error_Construct(["restart"]));
-	defineFinal(builtin_IOPort, "offlineError", Error_Construct(["offline"]));
-	defineFinal(builtin_IOPort, "staleError", Error_Construct(["stale"]));
 	define(builtin_IOPort_prototype, "constructor", builtin_IOPort);
 	defineFunction(builtin_IOPort_prototype, "open", 0, IOPort_prototype_open);
 	defineFunction(builtin_IOPort_prototype, "syncIO", 1, IOPort_prototype_syncIO);
 	defineFunction(builtin_IOPort_prototype, "asyncIO", 2, IOPort_prototype_asyncIO);
+
+	builtin_IOPortError_prototype = VMObject(CLASSID_Error);
+	builtin_IOPortError_prototype.Prototype = builtin_Error_prototype;
+	builtin_IOPortError_prototype.Extensible = true;
+
+	var builtin_IOPortError = VMObject(CLASSID_BuiltinFunction);
+	builtin_IOPortError.Call = IOPortError_Call;
+	builtin_IOPortError.Construct = IOPortError_Construct;
+	builtin_IOPortError.Prototype = builtin_Function_prototype;
+	builtin_IOPortError.Extensible = true;
+	define(theGlobalObject, "IOPortError", builtin_IOPortError);
+
+	defineFinal(builtin_IOPortError, "length", 1);
+	defineFinal(builtin_IOPortError, "prototype", builtin_IOPortError_prototype);
+	define(builtin_IOPortError_prototype, "constructor", builtin_IOPortError);
+	define(builtin_IOPortError_prototype, "name", "IOPortError");
+	define(builtin_IOPortError_prototype, "message", "");
 }

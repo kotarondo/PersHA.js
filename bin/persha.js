@@ -675,12 +675,12 @@ function initializeBuffer() {
 
 var builtin_IOPort;
 var builtin_IOPort_prototype;
+var builtin_IOPortError_prototype;
 
 function initializeIOPort() {
 	builtin_IOPort_prototype = VMObject(CLASSID_IOPort);
 	builtin_IOPort_prototype.Prototype = builtin_Object_prototype;
 	builtin_IOPort_prototype.Extensible = true;
-	builtin_IOPort_prototype.txid = 0;
 	builtin_IOPort_prototype.handler = null;
 
 	builtin_IOPort = VMObject(CLASSID_BuiltinFunction);
@@ -692,15 +692,28 @@ function initializeIOPort() {
 
 	defineFinal(builtin_IOPort, "length", 1);
 	defineFinal(builtin_IOPort, "prototype", builtin_IOPort_prototype);
-	defineFinal(builtin_IOPort, "restartError", Error_Construct(["restart"]));
-	defineFinal(builtin_IOPort, "offlineError", Error_Construct(["offline"]));
-	defineFinal(builtin_IOPort, "staleError", Error_Construct(["stale"]));
 	define(builtin_IOPort_prototype, "constructor", builtin_IOPort);
 	defineFunction(builtin_IOPort_prototype, "open", 0, IOPort_prototype_open);
 	defineFunction(builtin_IOPort_prototype, "syncIO", 1, IOPort_prototype_syncIO);
 	defineFunction(builtin_IOPort_prototype, "asyncIO", 2, IOPort_prototype_asyncIO);
-}
-/*
+
+	builtin_IOPortError_prototype = VMObject(CLASSID_Error);
+	builtin_IOPortError_prototype.Prototype = builtin_Error_prototype;
+	builtin_IOPortError_prototype.Extensible = true;
+
+	var builtin_IOPortError = VMObject(CLASSID_BuiltinFunction);
+	builtin_IOPortError.Call = IOPortError_Call;
+	builtin_IOPortError.Construct = IOPortError_Construct;
+	builtin_IOPortError.Prototype = builtin_Function_prototype;
+	builtin_IOPortError.Extensible = true;
+	define(theGlobalObject, "IOPortError", builtin_IOPortError);
+
+	defineFinal(builtin_IOPortError, "length", 1);
+	defineFinal(builtin_IOPortError, "prototype", builtin_IOPortError_prototype);
+	define(builtin_IOPortError_prototype, "constructor", builtin_IOPortError);
+	define(builtin_IOPortError_prototype, "name", "IOPortError");
+	define(builtin_IOPortError_prototype, "message", "");
+}/*
  Copyright (c) 2015, Kotaro Endo.
  All rights reserved.
  
@@ -4334,7 +4347,7 @@ function IOPort_Construct(argumentsList) {
 }
 
 function IOPort_prototype_open(thisValue, argumentsList) {
-	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort" || thisValue.txid === 0) throw VMTypeError();
+	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort") throw VMTypeError();
 	var args = IOPort_unwrapArgs(argumentsList, 0, 0);
 	var root = thisValue;
 	var port = VMObject(CLASSID_IOPort);
@@ -4345,7 +4358,7 @@ function IOPort_prototype_open(thisValue, argumentsList) {
 }
 
 function IOPort_prototype_syncIO(thisValue, argumentsList) {
-	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort" || thisValue.txid === 0) throw VMTypeError();
+	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort") throw VMTypeError();
 	var port = thisValue;
 	var name = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList, 1, 0);
@@ -4354,13 +4367,13 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 		return IOPort_wrap(event.value);
 	}
 	if (event.failure) {
-		throw builtin_IOPort.Get(event.failure);
+		throw IOPortError_Construct([ event.failure ]);
 	}
 	throw IOPort_wrap(event.value);
 }
 
 function IOPort_prototype_asyncIO(thisValue, argumentsList) {
-	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort" || thisValue.txid === 0) throw VMTypeError();
+	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort") throw VMTypeError();
 	var name = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList, 1, 1);
 	var callback = argumentsList[argumentsList.length - 1];
@@ -4371,7 +4384,7 @@ function IOPort_prototype_asyncIO(thisValue, argumentsList) {
 
 function IOPort_asyncIO_completion(event, callback) {
 	if (event.failure) {
-		scheduleMicrotask(callback, [ builtin_IOPort.Get(event.failure) ]);
+		scheduleMicrotask(callback, [ IOPortError_Construct([ event.failure ]) ]);
 	}
 	else {
 		scheduleMicrotask(callback, [ IOPort_wrap(event.error), IOPort_wrap(event.value) ]);
@@ -4392,6 +4405,15 @@ function IOPort_unwrap(A, stack) {
 	if (isPrimitiveValue(A)) {
 		return A;
 	}
+	if (A.Class === "Buffer") {
+		return A.wrappedBuffer;
+	}
+	if (A.Class === "Date") {
+		return new Date(A.PrimitiveValue);
+	}
+	if (A.Class === "Error") {
+		return new Error(A.Get("message"));
+	}
 	if (isIncluded(A, stack)) throw VMTypeError();
 	stack.push(A);
 	if (A.Class === "Array") {
@@ -4409,9 +4431,6 @@ function IOPort_unwrap(A, stack) {
 			a[P] = IOPort_unwrap(A.Get(P), stack);
 		}
 	}
-	else if (A.Class === "Buffer") {
-		var a = A.wrappedBuffer;
-	}
 	else {
 		throw VMTypeError();
 	}
@@ -4425,9 +4444,6 @@ function IOPort_wrap(a, stack) {
 	if (isPrimitiveValue(a)) {
 		return a;
 	}
-	if (stack === undefined) stack = [];
-	if (isIncluded(a, stack)) return null;
-	stack.push(a);
 	if (a instanceof Buffer) {
 		var A = VMObject(CLASSID_Buffer);
 		A.Prototype = builtin_Buffer_prototype;
@@ -4435,8 +4451,18 @@ function IOPort_wrap(a, stack) {
 		A.wrappedBuffer = a;
 		defineFinal(A, "length", a.length);
 		defineFinal(A, "parent", A);
+		return A;
 	}
-	else if (a instanceof Array) {
+	if (a instanceof Date) {
+		return Date_Construct([ a.getTime() ]);
+	}
+	if (a instanceof Date) {
+		return Error_Construct([ a.message ]);
+	}
+	if (stack === undefined) stack = [];
+	if (isIncluded(a, stack)) return null;
+	stack.push(a);
+	if (a instanceof Array) {
 		var length = a.length;
 		var A = Array_Construct([ length ]);
 		for (var i = 0; i < length; i++) {
@@ -4454,6 +4480,30 @@ function IOPort_wrap(a, stack) {
 	}
 	stack.pop();
 	return A;
+}
+
+function IOPortError_Call(thisValue, argumentsList) {
+	var message = argumentsList[0];
+	var obj = VMObject(CLASSID_Error);
+	obj.Prototype = builtin_IOPortError_prototype;
+	obj.Extensible = true;
+	obj.stackTrace = getStackTrace();
+	if (message !== undefined) {
+		define(obj, "message", ToString(message));
+	}
+	return obj;
+}
+
+function IOPortError_Construct(argumentsList) {
+	var message = argumentsList[0];
+	var obj = VMObject(CLASSID_Error);
+	obj.Prototype = builtin_IOPortError_prototype;
+	obj.Extensible = true;
+	obj.stackTrace = getStackTrace();
+	if (message !== undefined) {
+		define(obj, "message", ToString(message));
+	}
+	return obj;
 }
 /*
  Copyright (c) 2015, Kotaro Endo.
@@ -8775,6 +8825,16 @@ function FileOutputStream(filename, openExists) {
 			writeBuffer(x);
 			return;
 		}
+		if (x instanceof Date) {
+			writeInt(8);
+			writeNumber(x.getTime());
+			return;
+		}
+		if (x instanceof Error) {
+			writeInt(9);
+			writeString(x.message);
+			return;
+		}
 		if (stack === undefined) stack = [];
 		if (isIncluded(x, stack)) {
 			writeInt(6);
@@ -8953,6 +9013,10 @@ function FileInputStream(filename) {
 			return null;
 		case 7:
 			return readBuffer();
+		case 8:
+			return new Date(readNumber());
+		case 9:
+			return new Error(readString());
 		case 10:
 			var length = readInt();
 			var a = [];
@@ -9678,6 +9742,8 @@ var intrinsicFunctions = {
 	IOPort_prototype_open : IOPort_prototype_open,
 	IOPort_prototype_syncIO : IOPort_prototype_syncIO,
 	IOPort_prototype_asyncIO : IOPort_prototype_asyncIO,
+	IOPortError_Call : IOPortError_Call,
+	IOPortError_Construct : IOPortError_Construct,
 };
 
 (function initializeIntrinsicFunctions() {
@@ -9850,7 +9916,7 @@ function IOManager_syncIO(port, name, args) {
 		if (IOManager_state !== 'roll-forward') {
 			return {
 				error : true,
-				failure : 'offlineError'
+				failure : 'offline'
 			};
 		}
 		var entry = Journal_read();
@@ -9861,7 +9927,7 @@ function IOManager_syncIO(port, name, args) {
 		IOManager_online();
 		var event = {
 			error : true,
-			failure : 'restartError'
+			failure : 'restart'
 		};
 	}
 	else {
@@ -9871,7 +9937,7 @@ function IOManager_syncIO(port, name, args) {
 		if (port.handler === null) {
 			var event = {
 				error : true,
-				failure : 'staleError'
+				failure : 'stale'
 			};
 		}
 		else {
@@ -9908,7 +9974,7 @@ function IOManager_asyncIO(port, name, args, callback) {
 		IOManager_rebindPort(port);
 	}
 	if (port.handler === null) {
-		setImmediate(IOManager_asyncIO_completion, failure, 'staleError', txid);
+		setImmediate(IOManager_asyncIO_completion, failure, 'stale', txid);
 		return txid;
 	}
 	IOManager_context.pauseTime();
@@ -9963,7 +10029,7 @@ function IOManager_online() {
 	assert(IOManager_state === 'roll-forward');
 	for ( var txid in IOManager_asyncCallbacks) {
 		txid = Number(txid);
-		setImmediate(IOManager_asyncIO_completion, failure, 'restartError', txid);
+		setImmediate(IOManager_asyncIO_completion, failure, 'restart', txid);
 	}
 	IOManager_state = 'online';
 }
@@ -10059,6 +10125,12 @@ function IOManager_copyAny(x, stack) {
 	}
 	if (x instanceof Buffer) {
 		return new Buffer(x);
+	}
+	if (x instanceof Date) {
+		return new Date(x.getTime());
+	}
+	if (x instanceof Error) {
+		return new Error(x.message);
 	}
 	if (stack === undefined) stack = [];
 	if (isIncluded(x, stack)) return null;
@@ -12204,6 +12276,7 @@ function writeSnapshot(l_ostream) {
 	if (builtin_IOPort !== undefined) {
 		mark(builtin_IOPort);
 		mark(builtin_IOPort_prototype);
+		mark(builtin_IOPortError_prototype);
 	}
 	for ( var txid in IOManager_asyncCallbacks) {
 		var callback = IOManager_asyncCallbacks[txid];
@@ -12243,6 +12316,7 @@ function writeSnapshot(l_ostream) {
 		ostream.writeString("IOPort");
 		ostream.writeInt(builtin_IOPort.ID);
 		ostream.writeInt(builtin_IOPort_prototype.ID);
+		ostream.writeInt(builtin_IOPortError_prototype.ID);
 	}
 	{
 		ostream.writeString("IOManager");
@@ -12350,6 +12424,7 @@ function readSnapshot(l_istream) {
 	builtin_Buffer_prototype = undefined;
 	builtin_IOPort = undefined;
 	builtin_IOPort_prototype = undefined;
+	builtin_IOPortError_prototype = undefined;
 	assert(IOManager_state === 'offline');
 	IOManager_uniqueID = 0
 	IOManager_asyncCallbacks = {};
@@ -12372,8 +12447,10 @@ function readSnapshot(l_istream) {
 		case "IOPort":
 			builtin_IOPort = allObjs[istream.readInt()];
 			builtin_IOPort_prototype = allObjs[istream.readInt()];
+			builtin_IOPortError_prototype = allObjs[istream.readInt()];
 			istream.assert(builtin_IOPort.ClassID === CLASSID_BuiltinFunction);
 			istream.assert(builtin_IOPort_prototype.ClassID === CLASSID_IOPort);
+			istream.assert(builtin_IOPortError_prototype.ClassID === CLASSID_Error);
 			break;
 		case "IOManager":
 			IOManager_uniqueID = istream.readInt();
@@ -13661,7 +13738,6 @@ function VMObject(ClassID) {
 			VMIOPortClass = freeze(obj);
 		}
 		var obj = Object.create(VMIOPortClass);
-		obj.portId = undefined;
 		obj.handler = undefined;
 		break;
 	default:

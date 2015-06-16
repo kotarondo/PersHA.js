@@ -322,7 +322,6 @@ function VMObject(ClassID) {
 			VMIOPortClass = freeze(obj);
 		}
 		var obj = Object.create(VMIOPortClass);
-		obj.portId = undefined;
 		obj.handler = undefined;
 		break;
 	default:

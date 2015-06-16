@@ -165,6 +165,16 @@ function FileOutputStream(filename, openExists) {
 			writeBuffer(x);
 			return;
 		}
+		if (x instanceof Date) {
+			writeInt(8);
+			writeNumber(x.getTime());
+			return;
+		}
+		if (x instanceof Error) {
+			writeInt(9);
+			writeString(x.message);
+			return;
+		}
 		if (stack === undefined) stack = [];
 		if (isIncluded(x, stack)) {
 			writeInt(6);
@@ -343,6 +353,10 @@ function FileInputStream(filename) {
 			return null;
 		case 7:
 			return readBuffer();
+		case 8:
+			return new Date(readNumber());
+		case 9:
+			return new Error(readString());
 		case 10:
 			var length = readInt();
 			var a = [];
