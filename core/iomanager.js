@@ -356,6 +356,15 @@ function IOManager_copyAny(x, stack) {
 		return new Date(x.getTime());
 	}
 	if (x instanceof Error) {
+		if (x instanceof TypeError) {
+			return new TypeError(x.message);
+		}
+		if (x instanceof ReferenceError) {
+			return new ReferenceError(x.message);
+		}
+		if (x instanceof RangeError) {
+			return new RangeError(x.message);
+		}
 		return new Error(x.message);
 	}
 	if (stack === undefined) stack = [];

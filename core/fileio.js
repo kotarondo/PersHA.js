@@ -171,7 +171,18 @@ function FileOutputStream(filename, openExists) {
 			return;
 		}
 		if (x instanceof Error) {
-			writeInt(9);
+            if (x instanceof TypeError) {
+                writeInt(91);
+            }
+            else if (x instanceof ReferenceError) {
+                writeInt(92);
+            }
+            else if (x instanceof RangeError) {
+                writeInt(93);
+            }
+            else{
+                writeInt(9);
+            }
 			writeString(x.message);
 			return;
 		}
@@ -355,6 +366,12 @@ function FileInputStream(filename) {
 			return readBuffer();
 		case 8:
 			return new Date(readNumber());
+		case 91:
+			return new TypeError(readString());
+		case 92:
+			return new ReferenceError(readString());
+		case 93:
+			return new RangeError(readString());
 		case 9:
 			return new Error(readString());
 		case 10:

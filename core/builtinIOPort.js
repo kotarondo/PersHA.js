@@ -112,9 +112,6 @@ function IOPort_unwrap(A, stack) {
 	if (A.Class === "Date") {
 		return new Date(A.PrimitiveValue);
 	}
-	if (A.Class === "Error") {
-		return new Error(A.Get("message"));
-	}
 	if (isIncluded(A, stack)) throw VMTypeError();
 	stack.push(A);
 	if (A.Class === "Array") {
@@ -140,7 +137,7 @@ function IOPort_unwrap(A, stack) {
 }
 
 function IOPort_wrap(a, stack) {
-	// must be compatible with FileOutputStream.writeAny
+	// must be compatible with FileOutputStream.readAny/writeAny
 	// i.e. IOPort_wrap == IOPort_wrap ○ readAny ○ writeAny
 	if (isPrimitiveValue(a)) {
 		return a;
@@ -157,7 +154,16 @@ function IOPort_wrap(a, stack) {
 	if (a instanceof Date) {
 		return Date_Construct([ a.getTime() ]);
 	}
-	if (a instanceof Date) {
+	if (a instanceof Error) {
+		if (a instanceof TypeError) {
+			return TypeError_Construct([ a.message ]);
+		}
+		if (a instanceof ReferenceError) {
+			return ReferenceError_Construct([ a.message ]);
+		}
+		if (a instanceof RangeError) {
+			return RangeError_Construct([ a.message ]);
+		}
 		return Error_Construct([ a.message ]);
 	}
 	if (stack === undefined) stack = [];

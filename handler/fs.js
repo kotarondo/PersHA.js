@@ -47,9 +47,6 @@ function open(args) {
 }
 
 function syncIO(name, args) {
-	if (name === 'stat') {
-		return fs.statSync.apply(fs, args);
-	}
 	if (name === 'writeBuffer') {
 		return fs.writeSync.apply(fs, args);
 	}
@@ -61,6 +58,13 @@ function syncIO(name, args) {
 		var transferred = fs.readSync(fd, buffer, 0, length, position);
 		return buffer.slice(0, transferred);
 	}
+	if (name === 'stat') {
+		return fs.statSync.apply(fs, args);
+	}
+	if (name === 'open') {
+		return fs.openSync.apply(fs, args);
+	}
+
 	console.log("fs syncIO:" + name);
 	console.log(args);
 }
@@ -85,6 +89,15 @@ function asyncIO(name, args, callback) {
 		});
 		return;
 	}
+	if (name === 'stat') {
+		args.push(callback);
+		return fs.stat.apply(fs, args);
+	}
+	if (name === 'open') {
+		args.push(callback);
+		return fs.stat.apply(fs, args);
+	}
+
 	console.log("fs asyncIO:" + name);
 	console.log(args);
 	callback([ 'success' ]);

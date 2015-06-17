@@ -56,9 +56,10 @@ var process = {
 process.debug = (function() {
 	var debug = new IOPort('debug');
 	return function(a) {
-		try{
-		debug.syncIO('debug', a);
-		}catch(e){}
+		try {
+			debug.syncIO('debug', a);
+		} catch (e) {
+		}
 	};
 })();
 
@@ -165,9 +166,37 @@ process.binding = (function() {
 		mkdir : function() {
 			process.debug("binding[fs] mkdir ");
 		},
-		open : function() {
-			process.debug("binding[fs] open ");
+
+		open : function(path, flags, mode, req) {
+			process.debug("binding[fs] open "+path);
+			if (req === undefined) {
+				while (true) {
+					try {
+						var fd = fsPort.syncIO('open', path, flags, mode);
+						//TODO rename fd
+						return fd;
+					} catch (err) {
+						if (err instanceof IOPortError && err.message === 'restart') {
+							continue;
+						}
+						throw err;
+					}
+				}
+			}
+			else {
+				(function retry() {
+					fsPort.asyncIO("open", path, flags, mode, function(err, fd) {
+						if (err instanceof IOPortError && err.message === 'restart') {
+							retry();
+							return;
+						}
+						//TODO rename fd
+						req.oncomplete(err, fd);
+					});
+				})();
+			}
 		},
+
 		readdir : function() {
 			process.debug("binding[fs] readdir ");
 		},
@@ -180,6 +209,7 @@ process.binding = (function() {
 		rmdir : function() {
 			process.debug("binding[fs] rmdir ");
 		},
+
 		stat : function(path, req) {
 			process.debug("binding[fs] stat " + path);
 			if (req === undefined) {
@@ -187,7 +217,7 @@ process.binding = (function() {
 					try {
 						return fsPort.syncIO('stat', path);
 					} catch (err) {
-						if (err instanceof IOPortError && err.message==='restart') {
+						if (err instanceof IOPortError && err.message === 'restart') {
 							continue;
 						}
 						throw err;
@@ -197,7 +227,7 @@ process.binding = (function() {
 			else {
 				(function retry() {
 					fsPort.asyncIO("stat", path, function(err, stats) {
-						if (err instanceof IOPortError && err.message==='restart') {
+						if (err instanceof IOPortError && err.message === 'restart') {
 							retry();
 							return;
 						}
@@ -224,12 +254,12 @@ process.binding = (function() {
 					try {
 						return fsPort.syncIO('writeBuffer', fd, buffer, offset, length, position);
 					} catch (err) {
-						if (err instanceof IOPortError && err.message==='restart') {
+						if (err instanceof IOPortError && err.message === 'restart') {
 							if (fd === 1 || fd === 2) {
 								continue;
 							}
 						}
-						if (err instanceof IOPortError && err.message==='offline') {
+						if (err instanceof IOPortError && err.message === 'offline') {
 							return 0;
 						}
 						throw err;
@@ -239,7 +269,7 @@ process.binding = (function() {
 			else {
 				(function retry() {
 					fsPort.asyncIO("writeBuffer", fd, buffer, offset, length, position, function(err, transferred) {
-						if (err instanceof IOPortError && err.message==='restart') {
+						if (err instanceof IOPortError && err.message === 'restart') {
 							if (fd === 1 || fd === 2) {
 								retry();
 								return;
@@ -261,7 +291,7 @@ process.binding = (function() {
 						b.copy(buffer, offset, 0, b.length);
 						return b.length;
 					} catch (err) {
-						if (err instanceof IOPortError && err.message==='restart') {
+						if (err instanceof IOPortError && err.message === 'restart') {
 							if (fd === 0) {
 								buffer[0] = 0x0a;
 								return 1;
@@ -274,7 +304,7 @@ process.binding = (function() {
 			else {
 				(function retry() {
 					fsPort.asyncIO("readBuffer", fd, length, position, function(err, b) {
-						if (err instanceof IOPortError && err.message==='restart') {
+						if (err instanceof IOPortError && err.message === 'restart') {
 							if (fd === 0) {
 								process.debug("binding[fs] read error restart retry");
 								buffer[0] = 0x0a;
