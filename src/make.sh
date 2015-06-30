@@ -1,16 +1,20 @@
 #!/bin/sh
 
-TARGET=../bin/persha.js
+pushd `dirname $0` > /dev/null
+SRCPATH=`pwd -P`
+popd > /dev/null
 
-echo "// This is an generated file." >${TARGET}
+TARGET=${SRCPATH}/../bin/persha.js
 
-for file in ../core/*.js
+echo "// This is a generated file." >${TARGET}
+
+for file in ${SRCPATH}/../core/*.js
 do
 	cat ${file} >>${TARGET}
 done
 
 echo "function persha_initdb(){" >>${TARGET}
-cat initdb.js >>${TARGET}
+cat ${SRCPATH}/initdb.js >>${TARGET}
 echo "}" >>${TARGET}
 
-cat main.js >>${TARGET}
+cat ${SRCPATH}/main.js >>${TARGET}

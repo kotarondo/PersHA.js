@@ -45,19 +45,17 @@ function scheduleMicrotask(callback, args) {
 
 function runMicrotasks() {
 	while (microtaskQueue.length > 0) {
-		for (var i = 0; i < microtaskQueue.length && i < 100; i++) {
-			var task = microtaskQueue[i];
-			var callback = task.callback;
-			var args = task.args;
-			assert(IsCallable(callback), callback);
-			assert(args instanceof Array, args);
-			try {
-				callback.Call(undefined, args);
-			} catch (e) {
-				if (isInternalError(e)) throw e;
-				//TODO handle uncaught exception
-			}
+		var task = microtaskQueue[0];
+		var callback = task.callback;
+		var args = task.args;
+		assert(IsCallable(callback), callback);
+		assert(args instanceof Array, args);
+		try {
+			callback.Call(undefined, args);
+		} catch (e) {
+			if (isInternalError(e)) throw e;
+			console.log(e.Get('stack')); //TODO handle uncaught exception
 		}
-		microtaskQueue.shift(i);
+		microtaskQueue.shift();
 	}
 }

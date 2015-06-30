@@ -167,6 +167,10 @@ function writeSnapshot(l_ostream) {
 		var callback = IOManager_asyncCallbacks[txid];
 		mark(callback);
 	}
+	for ( var txid in IOManager_openPorts) {
+		var port = IOManager_openPorts[txid];
+		mark(port);
+	}
 
 	for (var i = 10; i < allObjs.length; i++) {
 		var obj = allObjs[i];
@@ -210,6 +214,13 @@ function writeSnapshot(l_ostream) {
 			var callback = IOManager_asyncCallbacks[txid];
 			ostream.writeInt(ToNumber(txid));
 			ostream.writeInt(callback.ID);
+		}
+		ostream.writeInt(0);
+		for ( var txid in IOManager_openPorts) {
+			var port = IOManager_openPorts[txid];
+			ostream.writeInt(ToNumber(txid));
+			ostream.writeInt(port.ID);
+			assert(ToNumber(txid) === port.txid);
 		}
 		ostream.writeInt(0);
 	}
@@ -313,6 +324,7 @@ function readSnapshot(l_istream) {
 	assert(IOManager_state === 'offline');
 	IOManager_uniqueID = 0
 	IOManager_asyncCallbacks = {};
+	IOManager_openPorts = {};
 	while (true) {
 		var ext = istream.readString();
 		if (ext === "end") {
@@ -348,6 +360,16 @@ function readSnapshot(l_istream) {
 				istream.assert(txid <= IOManager_uniqueID);
 				istream.assert(IsCallable(callback));
 				IOManager_asyncCallbacks[txid] = callback;
+			}
+			while (true) {
+				var txid = istream.readInt();
+				if (txid === 0) {
+					break;
+				}
+				var port = allObjs[istream.readInt()];
+				istream.assert(txid <= IOManager_uniqueID);
+				IOManager_openPorts[txid] = port;
+				port.txid = txid;
 			}
 			break;
 		default:

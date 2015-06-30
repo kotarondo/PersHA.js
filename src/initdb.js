@@ -35,41 +35,41 @@
 
 var fs = require('fs');
 
-initializeVM();
-
-var prog = fs.readFileSync(INITSCRIPT_DIR + 'bridge.js').toString();
-Global_evaluateProgram(undefined, [ prog, 'bridge.js' ]);
-
-/* hacking
-*/
-Global_eval(undefined, [ "process.debug" ]).Call = function(thisValue, argumentsList) {
-	console.log(argumentsList);
-};
-
-var natives_binding = Global_eval(undefined, [ "process.binding('natives')" ]);
-var list = [ 'events', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs', 'path', 'net', 'repl',
-		'readline', 'domain', 'string_decoder', '_stream_readable', '_stream_writable', '_stream_duplex', '_stream_transform',
-		'_stream_passthrough', ];
-for (var i = 0; i < list.length; i++) {
-	var n = list[i];
-	var s = fs.readFileSync(INITSCRIPT_DIR + n + '.js').toString();
-	natives_binding.Put(n, s, false);
-}
-
-var smalloc_binding = Global_eval(undefined, [ "process.binding('smalloc')" ]);
-smalloc_binding.Put('kMaxLength', require('smalloc').kMaxLength, false);
-
-var constants_binding = Global_eval(undefined, [ "process.binding('constants')" ]);
-var constants = require('constants');
-for ( var P in constants) {
-	assert(isPrimitiveValue(constants[P]));
-	constants_binding.Put(P, constants[P]);
-}
-
-var prog = fs.readFileSync(INITSCRIPT_DIR + 'node.js').toString();
-var process = Global_eval(undefined, [ "process" ]);
 try {
-	var result = Global_evaluateProgram(undefined, [ prog, "node.js" ]).Call(theGlobalObject, [ process ]);
+	initializeVM();
+
+	var prog = fs.readFileSync(INITSCRIPT_DIR + 'bridge.js').toString();
+	Global_evaluateProgram(undefined, [ prog, 'bridge.js' ]);
+
+	/* hacking
+	*/
+	Global_eval(undefined, [ "process.debug" ]).Call = function(thisValue, argumentsList) {
+		console.log(argumentsList);
+	};
+
+	var natives_binding = Global_eval(undefined, [ "process.binding('natives')" ]);
+	var list = [ 'events', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs', 'path', 'net',
+			'repl', 'readline', 'domain', 'string_decoder', '_stream_readable', '_stream_writable', '_stream_duplex', '_stream_transform',
+			'_stream_passthrough', ];
+	for (var i = 0; i < list.length; i++) {
+		var n = list[i];
+		var s = fs.readFileSync(INITSCRIPT_DIR + n + '.js').toString();
+		natives_binding.Put(n, s, false);
+	}
+
+	var smalloc_binding = Global_eval(undefined, [ "process.binding('smalloc')" ]);
+	smalloc_binding.Put('kMaxLength', require('smalloc').kMaxLength, false);
+
+	var constants_binding = Global_eval(undefined, [ "process.binding('constants')" ]);
+	var constants = require('constants');
+	for ( var P in constants) {
+		assert(isPrimitiveValue(constants[P]));
+		constants_binding.Put(P, constants[P]);
+	}
+
+	var prog = fs.readFileSync(INITSCRIPT_DIR + 'node.js').toString();
+	Global_evaluateProgram(undefined, [ prog, "node.js" ]).Call(theGlobalObject, [ Global_eval(undefined, [ "process" ]) ]);
+
 } catch (e) {
 	if (isInternalError(e)) {
 		console.log(e);

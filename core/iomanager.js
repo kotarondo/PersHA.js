@@ -39,6 +39,7 @@ var RECOVERY_TARGET = 3000;
 var IOManager_state = 'offline'; // -> 'roll-forward' -> 'online'
 var IOManager_uniqueID = 0;
 var IOManager_asyncCallbacks = {};
+var IOManager_openPorts = {};
 
 function IOManager_bindPort(port, name) {
 	if (IOManager_state !== 'online') {
@@ -48,7 +49,7 @@ function IOManager_bindPort(port, name) {
 	try {
 		port.handler = require(HANDLER_DIR + name);
 	} catch (e) {
-		console.log("bind error " + e); // debug
+		console.log("IOManager: bind error " + e); // debug
 	}
 	if (port.handler === undefined) {
 		port.handler = null;
@@ -65,106 +66,71 @@ function IOManager_rebindPort(port) {
 	}
 }
 
-function IOManager_openPort(port, root, args) {
-	if (IOManager_state !== 'online') {
-		return;
-	}
-	if (root.handler === undefined) {
-		IOManager_rebindPort(root);
-	}
-	if (root.handler === null) {
-		return;
-	}
-	port.handler = undefined;
-	try {
-		args = IOManager_copyAny(args); // safeguard
-		port.handler = root.handler.open(args);
-	} catch (e) {
-		console.log("open error " + e); // debug
-	}
-	if (port.handler === undefined) {
-		port.handler = null;
-	}
-}
-
 function IOManager_date_now() {
-	var txid = ++IOManager_uniqueID;
 	if (IOManager_state !== 'online') {
 		if (IOManager_state !== 'roll-forward') {
 			return Date.now();
 		}
 		var entry = Journal_read();
 		if (entry !== undefined) {
-			assert(entry.type === 'now' && entry.txid === txid);
-			return entry.event;
+			assert(entry.now !== undefined);
+			return entry.now;
 		}
 		IOManager_online();
 	}
-	var event = Date.now();
-	Journal_write('now', event, txid);
-	return event;
+	var now = Date.now();
+	Journal_write({
+		now : now
+	});
+	return now;
 }
 
 function IOManager_math_random() {
-	var txid = ++IOManager_uniqueID;
 	if (IOManager_state !== 'online') {
 		if (IOManager_state !== 'roll-forward') {
 			return Math.random();
 		}
 		var entry = Journal_read();
 		if (entry !== undefined) {
-			assert(entry.type === 'random' && entry.txid === txid);
-			return entry.event;
+			assert(entry.random !== undefined);
+			return entry.random;
 		}
 		IOManager_online();
 	}
-	var event = Math.random();
-	Journal_write('now', event, txid);
-	return event;
-}
-
-function IOManager_evaluate(text, filename) {
-	Journal_write('evaluate', {
-		text : text,
-		filename : filename,
-	}, 0);
-	IOManager_context.start();
-	var result = evaluateProgram(text, filename);
-	runMicrotasks();
-	IOManager_context.stop();
-	IOManager_checkpoint();
-	return result;
+	var random = Math.random();
+	Journal_write({
+		random : random
+	});
+	return random;
 }
 
 function IOManager_syncIO(port, name, args) {
-	var txid = ++IOManager_uniqueID;
 	if (IOManager_state !== 'online') {
 		if (IOManager_state !== 'roll-forward') {
 			return {
-				error : true,
-				failure : 'offline'
+				error : 'offline'
 			};
 		}
 		var entry = Journal_read();
 		if (entry !== undefined) {
-			assert(entry.type === 'syncIO' && entry.txid === txid);
-			return entry.event;
+			assert(entry.type === 'syncIO' && entry.name === name);
+			return entry;
 		}
+	}
+	var entry = {
+		type : 'syncIO',
+		name : name
+	};
+	if (IOManager_state !== 'online') {
 		IOManager_online();
-		var event = {
-			error : true,
-			failure : 'restart'
-		};
+		entry.error = 'restart';
 	}
 	else {
 		if (port.handler === undefined) {
 			IOManager_rebindPort(port);
 		}
 		if (port.handler === null) {
-			var event = {
-				error : true,
-				failure : 'stale'
-			};
+			entry.error = 'stale';
 		}
 		else {
 			IOManager_context.pauseTime();
@@ -172,22 +138,16 @@ function IOManager_syncIO(port, name, args) {
 				args = IOManager_copyAny(args); // safeguard
 				var value = port.handler.syncIO(name, args);
 				value = IOManager_copyAny(value); // safeguard
-				var event = {
-					value : value
-				};
-			} catch (err) {
-				console.log("syncIO error " + err); // debug
-				err = IOManager_copyAny(err); // safeguard
-				var event = {
-					error : true,
-					value : err
-				};
+				entry.value = value;
+			} catch (exception) {
+				exception = IOManager_copyAny(exception); // safeguard
+				entry.exception = exception;
 			}
 			IOManager_context.resumeTime();
 		}
 	}
-	Journal_write('syncIO', event, txid);
-	return event;
+	Journal_write(entry);
+	return entry;
 }
 
 function IOManager_asyncIO(port, name, args, callback) {
@@ -200,62 +160,165 @@ function IOManager_asyncIO(port, name, args, callback) {
 		IOManager_rebindPort(port);
 	}
 	if (port.handler === null) {
-		setImmediate(IOManager_asyncIO_completion, failure, 'stale', txid);
+		var entry = {
+			type : 'asyncIO',
+			txid : txid,
+			error : 'stale'
+		};
+		setImmediate(IOManager_asyncIO_completion, entry);
 		return txid;
 	}
 	IOManager_context.pauseTime();
 	try {
 		args = IOManager_copyAny(args); // safeguard
-		port.handler.asyncIO(name, args, function(err, value) {
-			err = IOManager_copyAny(err); // safeguard
+		port.handler.asyncIO(name, args, function() {
+			var value = Array.prototype.slice.call(arguments);
 			value = IOManager_copyAny(value); // safeguard
+			var entry = {
+				type : 'asyncIO',
+				txid : txid,
+				value : value
+			};
 			if (IOManager_context.isIdle()) {
-				IOManager_asyncIO_completion(err, value, txid);
+				IOManager_asyncIO_completion(entry);
 			}
 			else {
-				setImmediate(IOManager_asyncIO_completion, err, value, txid);
+				setImmediate(IOManager_asyncIO_completion, entry);
 			}
 		});
-	} catch (err) {
-		console.log("asyncIO error " + err); // debug
-		err = IOManager_copyAny(err); // safeguard
-		setImmediate(IOManager_asyncIO_completion, err, undefined, txid);
+	} catch (e) {
+		var entry = {
+			type : 'asyncIO',
+			txid : txid,
+			error : 'fatal'
+		};
+		setImmediate(IOManager_asyncIO_completion, entry);
 	}
 	IOManager_context.resumeTime();
 	return txid;
 }
 
-function IOManager_asyncIO_completion(error, value, txid) {
+function IOManager_asyncIO_completion(entry) {
 	assert(IOManager_state === 'online');
+	var txid = entry.txid;
 	var callback = IOManager_asyncCallbacks[txid];
 	if (callback === undefined) {
 		return;
 	}
 	delete (IOManager_asyncCallbacks[txid]);
-	if (error === failure) {
-		var event = {
-			failure : value
-		};
-	}
-	else {
-		var event = {
-			error : error,
-			value : value
-		};
-	}
-	Journal_write('asyncIO', event, txid);
+	Journal_write(entry);
 	IOManager_context.start();
-	IOPort_asyncIO_completion(event, callback);
+	IOPort_notify(entry, callback);
 	runMicrotasks();
 	IOManager_context.stop();
 	IOManager_checkpoint();
 }
 
+function IOManager_openPort(port, root, name, args) {
+	var txid = ++IOManager_uniqueID;
+	IOManager_openPorts[txid] = port;
+	port.txid = txid;
+	if (IOManager_state !== 'online') {
+		return;
+	}
+	if (root.handler === undefined) {
+		IOManager_rebindPort(root);
+	}
+	if (root.handler === null) {
+		return;
+	}
+	IOManager_context.pauseTime();
+	port.handler = undefined;
+	try {
+		args = IOManager_copyAny(args); // safeguard
+		port.handler = root.handler.open(name, args, function() {
+			var value = Array.prototype.slice.call(arguments);
+			value = IOManager_copyAny(value); // safeguard
+			var entry = {
+				type : 'portEvent',
+				txid : txid,
+				value : value,
+			};
+			if (IOManager_context.isIdle()) {
+				IOManager_portEvent(entry);
+			}
+			else {
+				setImmediate(IOManager_portEvent, entry);
+			}
+		});
+	} catch (e) {
+		console.log("IOManager: open error " + e); // debug
+	}
+	if (port.handler === undefined) {
+		port.handler = null;
+	}
+	IOManager_context.resumeTime();
+}
+
+function IOManager_portEvent(entry) {
+	assert(IOManager_state === 'online');
+	var txid = entry.txid;
+	var port = IOManager_openPorts[txid];
+	if (port === undefined) {
+		return;
+	}
+	var callback = port.Get("callback");
+	if (!IsCallable(callback)) {
+		return;
+	}
+	if (entry.error) {
+		delete (IOManager_openPorts[txid]);
+	}
+	Journal_write(entry);
+	IOManager_context.start();
+	IOPort_notify(entry, callback);
+	runMicrotasks();
+	IOManager_context.stop();
+	IOManager_checkpoint();
+}
+
+function IOManager_closePort(port) {
+	var txid = port.txid;
+	var p = IOManager_openPorts[txid];
+	if (p) {
+		assert(p === port);
+		delete (IOManager_openPorts[txid]);
+	}
+	port.handler = null;
+}
+
+function IOManager_evaluate(text, filename) {
+	Journal_write({
+		type : 'evaluate',
+		text : text,
+		filename : filename,
+	});
+	IOManager_context.start();
+	var result = evaluateProgram(text, filename);
+	runMicrotasks();
+	IOManager_context.stop();
+	IOManager_checkpoint();
+	return result;
+}
+
 function IOManager_online() {
 	assert(IOManager_state === 'roll-forward');
+	for ( var txid in IOManager_openPorts) {
+		var entry = {
+			type : 'portEvent',
+			txid : Number(txid),
+			error : 'restart'
+		};
+		setImmediate(IOManager_portEvent, entry);
+	}
 	for ( var txid in IOManager_asyncCallbacks) {
 		txid = Number(txid);
-		setImmediate(IOManager_asyncIO_completion, failure, 'restart', txid);
+		var entry = {
+			type : 'asyncIO',
+			txid : Number(txid),
+			error : 'restart'
+		};
+		setImmediate(IOManager_asyncIO_completion, entry);
 	}
 	IOManager_state = 'online';
 }
@@ -272,16 +335,23 @@ function IOManager_start() {
 			IOManager_online();
 			break;
 		}
-		if (entry.type === 'asyncIO') {
+		if (entry.type === 'evaluate') {
+			evaluateProgram(entry.text, entry.filename);
+		}
+		else if (entry.type === 'asyncIO') {
 			var txid = entry.txid;
 			var callback = IOManager_asyncCallbacks[txid];
 			assert(callback !== undefined);
 			delete (IOManager_asyncCallbacks[txid]);
-			IOPort_asyncIO_completion(entry.event, callback);
+			IOPort_notify(entry, callback);
 		}
-		else if (entry.type === 'evaluate') {
-			var event = entry.event;
-			evaluateProgram(event.text, event.filename);
+		else if (entry.type === 'portEvent') {
+			var txid = entry.txid;
+			var port = IOManager_openPorts[txid];
+			assert(port !== undefined);
+			var callback = port.Get("callback");
+			assert(IsCallable(callback));
+			IOPort_notify(entry, callback);
 		}
 		else {
 			assert(false, entry.type);

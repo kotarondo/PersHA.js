@@ -47,59 +47,83 @@ function IOPort_Construct(argumentsList) {
 	return port;
 }
 
-function IOPort_prototype_open(thisValue, argumentsList) {
-	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort") throw VMTypeError();
-	var args = IOPort_unwrapArgs(argumentsList, 0, 0);
-	var root = thisValue;
-	var port = VMObject(CLASSID_IOPort);
-	port.Prototype = builtin_IOPort_prototype;
-	port.Extensible = true;
-	IOManager_openPort(port, root, args);
-	return port;
-}
-
 function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort") throw VMTypeError();
 	var port = thisValue;
 	var name = ToString(argumentsList[0]);
-	var args = IOPort_unwrapArgs(argumentsList, 1, 0);
-	var event = IOManager_syncIO(port, name, args);
-	if (event.error !== true) {
-		return IOPort_wrap(event.value);
+	var args = IOPort_unwrapArgs(argumentsList[1]);
+	var entry = IOManager_syncIO(port, name, args);
+	if (entry.error) {
+		assert(isPrimitiveValue(entry.error));
+		throw IOPortError_Construct([ entry.error ]);
 	}
-	if (event.failure) {
-		throw IOPortError_Construct([ event.failure ]);
+	if (entry.exception) {
+		throw IOPort_wrap(entry.exception);
 	}
-	throw IOPort_wrap(event.value);
+	return IOPort_wrap(entry.value);
 }
 
 function IOPort_prototype_asyncIO(thisValue, argumentsList) {
 	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort") throw VMTypeError();
 	var name = ToString(argumentsList[0]);
-	var args = IOPort_unwrapArgs(argumentsList, 1, 1);
-	var callback = argumentsList[argumentsList.length - 1];
+	var args = IOPort_unwrapArgs(argumentsList[1]);
+	var callback = argumentsList[2];
 	if (IsCallable(callback) === false) throw VMTypeError();
 	var port = thisValue;
 	return IOManager_asyncIO(port, name, args, callback);
 }
 
-function IOPort_asyncIO_completion(event, callback) {
-	if (event.failure) {
-		scheduleMicrotask(callback, [ IOPortError_Construct([ event.failure ]) ]);
-	}
-	else {
-		scheduleMicrotask(callback, [ IOPort_wrap(event.error), IOPort_wrap(event.value) ]);
+function IOPort_notify(entry, callback) {
+	try {
+		if (entry.error) {
+			assert(typeof entry.error === "string");
+			callback.Call(undefined, [ IOPortError_Construct([ entry.error ]) ]);
+		}
+		else {
+			callback.Call(undefined, IOPort_wrapArgs(entry.value));
+		}
+	} catch (e) {
+		if (isInternalError(e)) throw e;
+		console.log(e.Get('stack')); //TODO handle uncaught exception
 	}
 }
 
-function IOPort_unwrapArgs(A, start, end) {
-	assert(A instanceof Array);
-	var length = A.length;
-	var a = [];
-	for (var i = start; i < length - end; i++) {
-		a[i - start] = IOPort_unwrap(A[i], []);
+function IOPort_prototype_open(thisValue, argumentsList) {
+	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort") throw VMTypeError();
+	var name = ToString(argumentsList[0]);
+	var args = IOPort_unwrapArgs(argumentsList[1]);
+	var callback = argumentsList[2];
+	var root = thisValue;
+	var port = VMObject(CLASSID_IOPort);
+	port.Prototype = builtin_IOPort_prototype;
+	port.Extensible = true;
+	defineFinal(port, "callback", callback);
+	IOManager_openPort(port, root, name, args);
+	return port;
+}
+
+function IOPort_prototype_close(thisValue, argumentsList) {
+	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "IOPort") throw VMTypeError();
+	var port = thisValue;
+	IOManager_closePort(port);
+}
+
+function IOPort_unwrapArgs(A) {
+	var a = IOPort_unwrap(A);
+	if (a instanceof Array) {
+		return a;
 	}
-	return a;
+	return [ a ];
+}
+
+function IOPort_wrapArgs(a) {
+	assert(a instanceof Array);
+	var length = a.length;
+	var A = [];
+	for (var i = 0; i < length; i++) {
+		A[i] = IOPort_wrap(a[i]);
+	}
+	return A;
 }
 
 function IOPort_unwrap(A, stack) {
@@ -112,9 +136,10 @@ function IOPort_unwrap(A, stack) {
 	if (A.Class === "Date") {
 		return new Date(A.PrimitiveValue);
 	}
+	if (stack === undefined) stack = [];
 	if (isIncluded(A, stack)) throw VMTypeError();
 	stack.push(A);
-	if (A.Class === "Array") {
+	if (A.Class === "Array" || A.Class === "Arguments") {
 		var a = [];
 		var length = A.Get("length");
 		for (var i = 0; i < length; i++) {

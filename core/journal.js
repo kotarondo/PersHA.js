@@ -47,14 +47,7 @@ function Journal_read() {
 	}
 	try {
 		var position = Journal_inputStream.getPosition();
-		var type = Journal_inputStream.readString();
-		var event = Journal_inputStream.readAny();
-		var txid = Journal_inputStream.readInt();
-		return {
-			type : type,
-			event : event,
-			txid : txid,
-		};
+		return Journal_inputStream.readAny();
 	} catch (e) {
 		Journal_closeInputStream();
 		Journal_openLog(position);
@@ -62,13 +55,11 @@ function Journal_read() {
 	}
 }
 
-function Journal_write(type, event, txid) {
+function Journal_write(entry) {
 	if (Journal_outputStream === undefined) {
 		return;
 	}
-	Journal_outputStream.writeString(type);
-	Journal_outputStream.writeAny(event);
-	Journal_outputStream.writeInt(txid);
+	Journal_outputStream.writeAny(entry);
 	Journal_outputStream.flush();
 }
 

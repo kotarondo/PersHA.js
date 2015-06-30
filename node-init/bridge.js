@@ -168,11 +168,11 @@ process.binding = (function() {
 		},
 
 		open : function(path, flags, mode, req) {
-			process.debug("binding[fs] open "+path);
+			process.debug("binding[fs] open " + path);
 			if (req === undefined) {
 				while (true) {
 					try {
-						var fd = fsPort.syncIO('open', path, flags, mode);
+						var fd = fsPort.syncIO('open', [ path, flags, mode ]);
 						//TODO rename fd
 						return fd;
 					} catch (err) {
@@ -185,7 +185,7 @@ process.binding = (function() {
 			}
 			else {
 				(function retry() {
-					fsPort.asyncIO("open", path, flags, mode, function(err, fd) {
+					fsPort.asyncIO("open", [ path, flags, mode ], function(err, fd) {
 						if (err instanceof IOPortError && err.message === 'restart') {
 							retry();
 							return;
@@ -248,11 +248,11 @@ process.binding = (function() {
 		},
 
 		writeBuffer : function(fd, buffer, offset, length, position, req) {
-			//process.debug("binding[fs] writeBuffer ");
+			process.debug("binding[fs] writeBuffer ");
 			if (req === undefined) {
 				while (true) {
 					try {
-						return fsPort.syncIO('writeBuffer', fd, buffer, offset, length, position);
+						return fsPort.syncIO('writeBuffer', [ fd, buffer, offset, length, position ]);
 					} catch (err) {
 						if (err instanceof IOPortError && err.message === 'restart') {
 							if (fd === 1 || fd === 2) {
@@ -268,7 +268,7 @@ process.binding = (function() {
 			}
 			else {
 				(function retry() {
-					fsPort.asyncIO("writeBuffer", fd, buffer, offset, length, position, function(err, transferred) {
+					fsPort.asyncIO("writeBuffer", [ fd, buffer, offset, length, position ], function(err, transferred) {
 						if (err instanceof IOPortError && err.message === 'restart') {
 							if (fd === 1 || fd === 2) {
 								retry();
@@ -283,11 +283,11 @@ process.binding = (function() {
 
 		read : function(fd, buffer, offset, length, position, req) {
 			//process.debug("binding[fs] read " + new Error().stack);
-			//process.debug("binding[fs] read ");
+			process.debug("binding[fs] read ");
 			if (req === undefined) {
 				while (true) {
 					try {
-						var b = fsPort.syncIO('readBuffer', fd, length, position);
+						var b = fsPort.syncIO('readBuffer', [ fd, length, position ]);
 						b.copy(buffer, offset, 0, b.length);
 						return b.length;
 					} catch (err) {
@@ -303,7 +303,7 @@ process.binding = (function() {
 			}
 			else {
 				(function retry() {
-					fsPort.asyncIO("readBuffer", fd, length, position, function(err, b) {
+					fsPort.asyncIO("readBuffer", [ fd, length, position ], function(err, b) {
 						if (err instanceof IOPortError && err.message === 'restart') {
 							if (fd === 0) {
 								process.debug("binding[fs] read error restart retry");
