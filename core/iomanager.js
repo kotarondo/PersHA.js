@@ -154,12 +154,9 @@ function IOManager_syncIO(port, name, args) {
 		}
 		else {
 			try {
-				args = IOManager_copyAny(args); // safeguard
 				var value = port.handler.syncIO(name, args);
-				value = IOManager_copyAny(value); // safeguard
 				entry.value = value;
 			} catch (exception) {
-				exception = IOManager_copyAny(exception); // safeguard
 				entry.exception = exception;
 			}
 		}
@@ -187,10 +184,8 @@ function IOManager_asyncIO(port, name, args, callback) {
 		return txid;
 	}
 	try {
-		args = IOManager_copyAny(args); // safeguard
 		port.handler.asyncIO(name, args, function() {
 			var value = Array.prototype.slice.call(arguments);
-			value = IOManager_copyAny(value); // safeguard
 			var entry = {
 				type : 'asyncIO',
 				txid : txid,
@@ -240,10 +235,8 @@ function IOManager_openPort(port, root, name, args) {
 	}
 	port.handler = undefined;
 	try {
-		args = IOManager_copyAny(args); // safeguard
 		port.handler = root.handler.open(name, args, function() {
 			var value = Array.prototype.slice.call(arguments);
-			value = IOManager_copyAny(value); // safeguard
 			var entry = {
 				type : 'portEvent',
 				txid : txid,
@@ -401,48 +394,3 @@ var IOManager_context = (function() {
 		isInterruptible : isInterruptible,
 	};
 })();
-
-function IOManager_copyAny(x, stack) {
-	if (isPrimitiveValue(x)) {
-		return x;
-	}
-	if (x instanceof Buffer) {
-		return new Buffer(x);
-	}
-	if (x instanceof Date) {
-		return new Date(x.getTime());
-	}
-	if (x instanceof Error) {
-		if (x instanceof TypeError) {
-			return new TypeError(x.message);
-		}
-		if (x instanceof ReferenceError) {
-			return new ReferenceError(x.message);
-		}
-		if (x instanceof RangeError) {
-			return new RangeError(x.message);
-		}
-		return new Error(x.message);
-	}
-	if (stack === undefined) stack = [];
-	if (isIncluded(x, stack)) return null;
-	stack.push(x);
-	if (x instanceof Array) {
-		var y = [];
-		var length = x.length;
-		for (var i = 0; i < length; i++) {
-			y[i] = IOManager_copyAny(x[i], stack);
-		}
-	}
-	else {
-		var y = {};
-		var keys = Object.keys(x);
-		var length = keys.length;
-		for (var i = 0; i < length; i++) {
-			var P = keys[i];
-			y[P] = IOManager_copyAny(x[P], stack);
-		}
-	}
-	stack.pop();
-	return y;
-}

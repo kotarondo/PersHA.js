@@ -39,6 +39,10 @@ Object.prototype.__defineGetter__ = function(n, getter) {
 	});
 };
 
+Number.isFinite = Number.isFinite || function(value) {
+	return typeof value === "number" && isFinite(value);
+}
+
 var process = {
 	execPath : '.',
 	cwd : function() {
@@ -113,18 +117,12 @@ process.binding = (function() {
 
 	var uv = {}; // configured by initdb.js
 
-	var http_parser = {
-		HTTPParser : HTTPParser
-	};
-
-	HTTPParser.methods = [];
-
-	function HTTPParser() {
-	}
+	var Stats;
+	var fsPort = new IOPort('fs');
 
 	function makeFSmethods(name, reqPos, options) {
 		return function() {
-			process.debug("binding[fs] " + name);
+			//process.debug("binding[fs] " + name);
 			var args = Array.prototype.slice.call(arguments);
 			var req = args[reqPos];
 			if (req === undefined) {
@@ -208,16 +206,12 @@ process.binding = (function() {
 		return value;
 	}
 
-	var Stats;
-	var fsPort = new IOPort('fs');
-
 	var fs = {
 		FSInitialize : function(s) {
 			Stats = s;
 		},
 		FSReqWrap : function() {
 		},
-
 		open : makeFSmethods('open', 3, {
 			restartPolicy : 'retry',
 			valueFilter : renameFdValueFilter,
@@ -244,7 +238,6 @@ process.binding = (function() {
 			offlinePolicy : 'return0',
 			argsFilter : renameFdArgsFilter,
 		}),
-
 		read : makeFSmethods('readBuffer', 5, {
 			restartPolicy : 'retry',
 			offlinePolicy : 'return0',
@@ -262,7 +255,6 @@ process.binding = (function() {
 				return value.length;
 			},
 		}),
-
 		StatWatcher : function() {
 			process.debug("binding[fs] StatWatcher ");
 		},
@@ -321,9 +313,67 @@ process.binding = (function() {
 			process.debug("binding[fs] utimes ");
 		},
 		writeString : function() {
-			process.debug("binding[fs] writeString TODO ");
+			process.debug("binding[fs] writeString ");
 		},
 	};
+
+	var parserPort = new IOPort('http_parser');
+
+	var http_parser = {
+		HTTPParser : function HTTPParser() {
+			parserPort.open('HTTPParser', arguments, function() {
+				process.debug("port event " + arguments);
+			});
+		},
+	};
+	http_parser.HTTPParser.methods = [];
+	http_parser.HTTPParser.prototype.close = function() {
+	};
+	http_parser.HTTPParser.prototype.execute = function() {
+	};
+	http_parser.HTTPParser.prototype.finish = function() {
+	};
+	http_parser.HTTPParser.prototype.reinitialize = function() {
+	};
+	http_parser.HTTPParser.prototype.pause = function() {
+	};
+	http_parser.HTTPParser.prototype.resume = function() {
+	};
+
+	var timer_wrap = {
+		Timer : function() {
+		},
+	};
+
+	var pipe_wrap = {};
+
+	var cares_wrap = {
+		getHostByAddr : function() {
+		},
+		getaddrinfo : function() {
+		},
+		getnameinfo : function() {
+		},
+		isIP : function() {
+		},
+		strerror : function() {
+		},
+		getServers : function() {
+		},
+		setServers : function() {
+		},
+		GetAddrInfoReqWrap : function() {
+		},
+		GetNameInfoReqWrap : function() {
+		},
+	};
+
+	var tcp_wrap = {
+		TCP : function() {
+		},
+	};
+
+	var stream_wrap = {};
 
 	return function(name) {
 		if (name === 'fs') {
@@ -341,14 +391,29 @@ process.binding = (function() {
 		if (name === 'constants') {
 			return constants;
 		}
-		if (name === 'tty_wrap') {
-			return tty_wrap;
-		}
 		if (name === 'uv') {
 			return uv;
 		}
 		if (name === 'http_parser') {
 			return http_parser;
+		}
+		if (name === 'tty_wrap') {
+			return tty_wrap;
+		}
+		if (name === 'timer_wrap') {
+			return timer_wrap;
+		}
+		if (name === 'pipe_wrap') {
+			return pipe_wrap;
+		}
+		if (name === 'cares_wrap') {
+			return cares_wrap;
+		}
+		if (name === 'tcp_wrap') {
+			return tcp_wrap;
+		}
+		if (name === 'stream_wrap') {
+			return stream_wrap;
 		}
 	};
 

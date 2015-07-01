@@ -35,15 +35,11 @@ Copyright (c) 2015, Kotaro Endo.
 
 module.exports = {
 	open : open,
-	close : close,
 	syncIO : syncIO,
 	asyncIO : asyncIO,
 };
 
-function open(name, args) {
-}
-
-function close() {
+function open(name, args, callback) {
 }
 
 function syncIO(name, args) {

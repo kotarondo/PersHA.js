@@ -97,6 +97,14 @@ try {
 		}
 	}
 
+	var cares_binding = Global_eval(undefined, [ "process.binding('cares_wrap')" ]);
+	var cares = process.binding('cares_wrap');
+	for ( var P in cares) {
+		if (isPrimitiveValue(cares[P])) {
+			cares_binding.Put(P, cares[P]);
+		}
+	}
+
 	var text = fs.readFileSync(INITSCRIPT_DIR + 'node.js').toString();
 	var prog = Global_evaluateProgram(undefined, [ text, 'node.js' ]);
 	IOManager_context.start();

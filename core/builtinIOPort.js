@@ -141,7 +141,7 @@ function IOPort_unwrap(A, stack) {
 		return A;
 	}
 	if (A.Class === 'Buffer') {
-		return A.wrappedBuffer;
+		return new Buffer(A.wrappedBuffer); // safeguard
 	}
 	if (A.Class === 'Date') {
 		return new Date(A.PrimitiveValue);
@@ -181,7 +181,7 @@ function IOPort_wrap(a, stack) {
 		var A = VMObject(CLASSID_Buffer);
 		A.Prototype = builtin_Buffer_prototype;
 		A.Extensible = true;
-		A.wrappedBuffer = a;
+		A.wrappedBuffer = new Buffer(a); // safeguard
 		defineFinal(A, 'length', a.length);
 		defineFinal(A, 'parent', A);
 		return A;

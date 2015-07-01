@@ -416,7 +416,7 @@ Socket.prototype._read = function(n) {
 Socket.prototype.end = function(data, encoding) {
   stream.Duplex.prototype.end.call(this, data, encoding);
   this.writable = false;
-  DTRACE_NET_STREAM_END(this);
+  //DTRACE_NET_STREAM_END(this);
 
   // just in case we're waiting for an EOF.
   if (this.readable && !this._readableState.endEmitted)
@@ -497,7 +497,7 @@ Socket.prototype._destroy = function(exception, cb) {
   fireErrorCallbacks();
 
   if (this.server) {
-    COUNTER_NET_SERVER_CONNECTION_CLOSE(this);
+    //COUNTER_NET_SERVER_CONNECTION_CLOSE(this);
     debug('has server');
     this.server._connections--;
     if (this.server._emitCloseIfDrained) {
@@ -1328,8 +1328,8 @@ function onconnection(err, clientHandle) {
   self._connections++;
   socket.server = self;
 
-  DTRACE_NET_SERVER_CONNECTION(socket);
-  COUNTER_NET_SERVER_CONNECTION(socket);
+  //DTRACE_NET_SERVER_CONNECTION(socket);
+  //COUNTER_NET_SERVER_CONNECTION(socket);
   self.emit('connection', socket);
 }
 

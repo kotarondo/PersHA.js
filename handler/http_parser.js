@@ -39,88 +39,20 @@ module.exports = {
 	asyncIO : asyncIO,
 };
 
-var fs = require('fs');
-
 function open(name, args, callback) {
-	console.log("[unhandled] fs open:" + name);
+	console.log("[unhandled] http_parser open:" + name);
 	console.log(args);
 }
 
 function syncIO(name, args) {
-	if (name === 'readBuffer') {
-		var fd = args[0];
-		var length = args[1];
-		var position = args[2];
-		var buffer = new Buffer(length);
-		var transferred = fs.readSync(fd, buffer, 0, length, position);
-		return buffer.slice(0, transferred);
-	}
-	if (name === 'writeBuffer') {
-		return fs.writeSync.apply(fs, args);
-	}
-	if (name === 'open') {
-		return fs.openSync.apply(fs, args);
-	}
-	if (name === 'close') {
-		return fs.closeSync.apply(fs, args);
-	}
-	if (name === 'stat') {
-		return fs.statSync.apply(fs, args);
-	}
-	if (name === 'lstat') {
-		return fs.lstatSync.apply(fs, args);
-	}
-	if (name === 'fstat') {
-		return fs.fstatSync.apply(fs, args);
-	}
 
-	console.log("[unhandled] fs syncIO:" + name);
+	console.log("[unhandled] http_parser syncIO:" + name);
 	console.log(args);
 }
 
 function asyncIO(name, args, callback) {
-	if (name === 'readBuffer') {
-		var fd = args[0];
-		var length = args[1];
-		var position = args[2];
-		var buffer = new Buffer(length);
-		fs.read(fd, buffer, 0, length, position, function(err, transferred, buffer) {
-			if (err) {
-				callback(err);
-				return;
-			}
-			if (fd === 0 && transferred === 0) {
-				buffer = new Buffer(1);
-				buffer[0] = '\n';
-				return buffer;
-			}
-			buffer = buffer.slice(0, transferred);
-			callback(undefined, buffer);
-		});
-		return;
-	}
-	if (name === 'writeBuffer') {
-		args.push(callback);
-		return fs.write.apply(fs, args);
-	}
-	if (name === 'stat') {
-		args.push(callback);
-		return fs.stat.apply(fs, args);
-	}
-	if (name === 'lstat') {
-		args.push(callback);
-		return fs.lstat.apply(fs, args);
-	}
-	if (name === 'fstat') {
-		args.push(callback);
-		return fs.fstat.apply(fs, args);
-	}
-	if (name === 'open') {
-		args.push(callback);
-		return fs.stat.apply(fs, args);
-	}
 
-	console.log("[unhandled] fs asyncIO:" + name);
+	console.log("[unhandled] http_parser asyncIO:" + name);
 	console.log(args);
 	callback();
 }
