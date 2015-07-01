@@ -40,18 +40,22 @@ Object.prototype.__defineGetter__ = function(n, getter) {
 };
 
 var process = {
-	execPath : ".",
+	execPath : '.',
 	cwd : function() {
-		return "."
+		return '.'
 	},
-	argv : [ "node" ],
+	argv : [ 'node' ],
 	env : {
-		NODE_DEBUG : "module",
+		NODE_DEBUG : "module,net,dns",
 	},
 	_eval : null,
 	_forceRepl : true,
 	moduleLoadList : [],
 };
+
+process.reallyExit = function() {
+	throw new Error("the process is really exiting");
+}
 
 process.debug = (function() {
 	var debug = new IOPort('debug');
@@ -67,40 +71,21 @@ process._setupNextTick = function(tickInfo, _tickCallback, _runMicrotasks) {
 	tickInfo[0] = 0;
 	tickInfo[1] = 0;
 	function callbackNextTick() {
-		process.debug("callbackNextTick ");
 		if (tickInfo[0] < tickInfo[1]) {
 			_tickCallback();
 		}
 	}
 	_runMicrotasks.runMicrotasks = function() {
-		process.debug("runMicrotasks ");
 		callbackNextTick.scheduleAsMicrotask();
 	};
 	_runMicrotasks.runMicrotasks();
 };
 
 process._setupDomainUse = function(_domain, _domain_flag) {
-	process.debug("_setupDomainUse");
+	//TODO domain support
 }
 
 process.binding = (function() {
-
-	var contextify = {
-		ContextifyScript : function(code, options) {
-			this.runInThisContext = function() {
-				//process.debug("runInThisContext " + options.filename + " " + new Error().stack);
-				process.debug("runInThisContext " + options.filename);
-				return evaluateProgram(code, options.filename);
-			};
-		},
-	};
-
-	var natives = {};
-	natives.config = "\n{}";
-
-	var smalloc = {};
-
-	var constants = {};
 
 	var tty_wrap = {
 		guessHandleType : function(fd) {
@@ -111,15 +96,172 @@ process.binding = (function() {
 		},
 	};
 
+	var contextify = {
+		ContextifyScript : function(code, options) {
+			this.runInThisContext = function() {
+				return evaluateProgram(code, options.filename);
+			};
+		},
+	};
+
+	var natives = {}; // configured by initdb.js
+	natives.config = "\n{}";
+
+	var smalloc = {}; // configured by initdb.js
+
+	var constants = {}; // configured by initdb.js
+
+	var uv = {}; // configured by initdb.js
+
+	var http_parser = {
+		HTTPParser : HTTPParser
+	};
+
+	HTTPParser.methods = [];
+
+	function HTTPParser() {
+	}
+
+	function makeFSmethods(name, reqPos, options) {
+		return function() {
+			process.debug("binding[fs] " + name);
+			var args = Array.prototype.slice.call(arguments);
+			var req = args[reqPos];
+			if (req === undefined) {
+				while (true) {
+					try {
+						if (options.argsFilter) {
+							var a = options.argsFilter.apply(undefined, args);
+						}
+						else {
+							var a = args.slice(0, reqPos);
+						}
+						var value = fsPort.syncIO(name, a);
+						if (options.valueFilter) {
+							value = options.valueFilter(value, args);
+						}
+						return value;
+					} catch (err) {
+						if (err instanceof IOPortError) {
+							if (err.message === 'restart') {
+								if (options.restartPolicy === 'retry') {
+									continue;
+								}
+								if (options.restartPolicy === 'ignore') {
+									return;
+								}
+							}
+							if (err.message === 'offline') {
+								if (options.offlinePolicy === 'return0') {
+									return 0;
+								}
+							}
+						}
+						throw err;
+					}
+				}
+			}
+			else {
+				(function retry() {
+					if (options.argsFilter) {
+						var a = options.argsFilter.apply(undefined, args);
+					}
+					else {
+						var a = args.slice(0, reqPos);
+					}
+					fsPort.asyncIO(name, a, function(err, value) {
+						if (err instanceof IOPortError) {
+							if (err.message === 'restart') {
+								if (options.restartPolicy === 'retry') {
+									retry();
+									return;
+								}
+								if (options.restartPolicy === 'ignore') {
+									req.oncomplete();
+									return;
+								}
+							}
+						}
+						if (options.valueFilter) {
+							value = options.valueFilter(value, args);
+						}
+						req.oncomplete(err, value);
+					});
+				})();
+			}
+		};
+	}
+
+	function renameFdArgsFilter() {
+		var args = Array.prototype.slice.call(arguments);
+		//TODO renaming
+		return args;
+	}
+
+	function renameFdValueFilter(value) {
+		//TODO renaming
+		return value;
+	}
+
+	function statValueFilter(value) {
+		value.__proto__ = Stats.prototype;
+		return value;
+	}
+
+	var Stats;
 	var fsPort = new IOPort('fs');
 
 	var fs = {
-		FSInitialize : function() {
+		FSInitialize : function(s) {
+			Stats = s;
+		},
+		FSReqWrap : function() {
 		},
 
-		FSReqWrap : function() {
-			return {};
-		},
+		open : makeFSmethods('open', 3, {
+			restartPolicy : 'retry',
+			valueFilter : renameFdValueFilter,
+		}),
+		close : makeFSmethods('close', 1, {
+			restartPolicy : 'ignore',
+			argsFilter : renameFdArgsFilter,
+		}),
+		stat : makeFSmethods('stat', 1, {
+			restartPolicy : 'retry',
+			valueFilter : statValueFilter,
+		}),
+		lstat : makeFSmethods('lstat', 1, {
+			restartPolicy : 'retry',
+			valueFilter : statValueFilter,
+		}),
+		fstat : makeFSmethods('fstat', 1, {
+			restartPolicy : 'retry',
+			argsFilter : renameFdArgsFilter,
+			valueFilter : statValueFilter,
+		}),
+		writeBuffer : makeFSmethods('writeBuffer', 5, {
+			restartPolicy : 'retry',
+			offlinePolicy : 'return0',
+			argsFilter : renameFdArgsFilter,
+		}),
+
+		read : makeFSmethods('readBuffer', 5, {
+			restartPolicy : 'retry',
+			offlinePolicy : 'return0',
+			argsFilter : function(fd, buffer, offset, length, position, req) {
+				//TODO renaming
+				return [ fd, length, position ];
+			},
+			valueFilter : function(value, args) {
+				if (!(value instanceof Buffer)) {
+					return 0;
+				}
+				var buffer = args[1];
+				var offset = args[2];
+				value.copy(buffer, offset, 0, value.length);
+				return value.length;
+			},
+		}),
 
 		StatWatcher : function() {
 			process.debug("binding[fs] StatWatcher ");
@@ -133,9 +275,6 @@ process.binding = (function() {
 		chown : function() {
 			process.debug("binding[fs] chown ");
 		},
-		close : function() {
-			process.debug("binding[fs] close ");
-		},
 		fchmod : function() {
 			process.debug("binding[fs] fchmod ");
 		},
@@ -144,9 +283,6 @@ process.binding = (function() {
 		},
 		fdatasync : function() {
 			process.debug("binding[fs] fdatasync ");
-		},
-		fstat : function() {
-			process.debug("binding[fs] fstat ");
 		},
 		fsync : function() {
 			process.debug("binding[fs] fsync ");
@@ -160,43 +296,9 @@ process.binding = (function() {
 		link : function() {
 			process.debug("binding[fs] link ");
 		},
-		lstat : function() {
-			process.debug("binding[fs] lstat ");
-		},
 		mkdir : function() {
 			process.debug("binding[fs] mkdir ");
 		},
-
-		open : function(path, flags, mode, req) {
-			process.debug("binding[fs] open " + path);
-			if (req === undefined) {
-				while (true) {
-					try {
-						var fd = fsPort.syncIO('open', [ path, flags, mode ]);
-						//TODO rename fd
-						return fd;
-					} catch (err) {
-						if (err instanceof IOPortError && err.message === 'restart') {
-							continue;
-						}
-						throw err;
-					}
-				}
-			}
-			else {
-				(function retry() {
-					fsPort.asyncIO("open", [ path, flags, mode ], function(err, fd) {
-						if (err instanceof IOPortError && err.message === 'restart') {
-							retry();
-							return;
-						}
-						//TODO rename fd
-						req.oncomplete(err, fd);
-					});
-				})();
-			}
-		},
-
 		readdir : function() {
 			process.debug("binding[fs] readdir ");
 		},
@@ -209,34 +311,6 @@ process.binding = (function() {
 		rmdir : function() {
 			process.debug("binding[fs] rmdir ");
 		},
-
-		stat : function(path, req) {
-			process.debug("binding[fs] stat " + path);
-			if (req === undefined) {
-				while (true) {
-					try {
-						return fsPort.syncIO('stat', path);
-					} catch (err) {
-						if (err instanceof IOPortError && err.message === 'restart') {
-							continue;
-						}
-						throw err;
-					}
-				}
-			}
-			else {
-				(function retry() {
-					fsPort.asyncIO("stat", path, function(err, stats) {
-						if (err instanceof IOPortError && err.message === 'restart') {
-							retry();
-							return;
-						}
-						req.oncomplete(err, stats);
-					});
-				})();
-			}
-		},
-
 		symlink : function() {
 			process.debug("binding[fs] symlink ");
 		},
@@ -246,102 +320,20 @@ process.binding = (function() {
 		utimes : function() {
 			process.debug("binding[fs] utimes ");
 		},
-
-		writeBuffer : function(fd, buffer, offset, length, position, req) {
-			process.debug("binding[fs] writeBuffer ");
-			if (req === undefined) {
-				while (true) {
-					try {
-						return fsPort.syncIO('writeBuffer', [ fd, buffer, offset, length, position ]);
-					} catch (err) {
-						if (err instanceof IOPortError && err.message === 'restart') {
-							if (fd === 1 || fd === 2) {
-								continue;
-							}
-						}
-						if (err instanceof IOPortError && err.message === 'offline') {
-							return 0;
-						}
-						throw err;
-					}
-				}
-			}
-			else {
-				(function retry() {
-					fsPort.asyncIO("writeBuffer", [ fd, buffer, offset, length, position ], function(err, transferred) {
-						if (err instanceof IOPortError && err.message === 'restart') {
-							if (fd === 1 || fd === 2) {
-								retry();
-								return;
-							}
-						}
-						req.oncomplete(err, transferred);
-					});
-				})();
-			}
-		},
-
-		read : function(fd, buffer, offset, length, position, req) {
-			//process.debug("binding[fs] read " + new Error().stack);
-			process.debug("binding[fs] read ");
-			if (req === undefined) {
-				while (true) {
-					try {
-						var b = fsPort.syncIO('readBuffer', [ fd, length, position ]);
-						b.copy(buffer, offset, 0, b.length);
-						return b.length;
-					} catch (err) {
-						if (err instanceof IOPortError && err.message === 'restart') {
-							if (fd === 0) {
-								buffer[0] = 0x0a;
-								return 1;
-							}
-						}
-						throw err;
-					}
-				}
-			}
-			else {
-				(function retry() {
-					fsPort.asyncIO("readBuffer", [ fd, length, position ], function(err, b) {
-						if (err instanceof IOPortError && err.message === 'restart') {
-							if (fd === 0) {
-								process.debug("binding[fs] read error restart retry");
-								buffer[0] = 0x0a;
-								req.oncomplete(undefined, 1);
-								return;
-							}
-							process.debug("binding[fs] read error " + err);
-							req.oncomplete(err, undefined);
-							return;
-						}
-						if (b.length === 0) {
-							process.debug("binding[fs] read retry transferred=0");
-							buffer[0] = 0x0a;
-							req.oncomplete(undefined, 1);
-							return;
-						}
-						b.copy(buffer, offset, 0, b.length);
-						req.oncomplete(undefined, b.length);
-					});
-				})();
-			}
-		},
-
-		writeString : function(fd, buffer, offset, length, position, req) {
+		writeString : function() {
 			process.debug("binding[fs] writeString TODO ");
 		},
 	};
 
 	return function(name) {
+		if (name === 'fs') {
+			return fs;
+		}
 		if (name === 'contextify') {
 			return contextify;
 		}
 		if (name === 'natives') {
 			return natives;
-		}
-		if (name === 'fs') {
-			return fs;
 		}
 		if (name === 'smalloc') {
 			return smalloc;
@@ -352,5 +344,12 @@ process.binding = (function() {
 		if (name === 'tty_wrap') {
 			return tty_wrap;
 		}
+		if (name === 'uv') {
+			return uv;
+		}
+		if (name === 'http_parser') {
+			return http_parser;
+		}
 	};
+
 })();

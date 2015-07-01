@@ -39,7 +39,9 @@ try {
 	initializeVM();
 
 	var prog = fs.readFileSync(INITSCRIPT_DIR + 'bridge.js').toString();
+	IOManager_context.start();
 	Global_evaluateProgram(undefined, [ prog, 'bridge.js' ]);
+	IOManager_context.stop();
 
 	/* hacking
 	*/
@@ -48,9 +50,10 @@ try {
 	};
 
 	var natives_binding = Global_eval(undefined, [ "process.binding('natives')" ]);
-	var list = [ 'events', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs', 'path', 'net',
-			'repl', 'readline', 'domain', 'string_decoder', '_stream_readable', '_stream_writable', '_stream_duplex', '_stream_transform',
-			'_stream_passthrough', ];
+	var list = [ 'events', 'constants', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs', 'path',
+			'net', 'repl', 'readline', 'domain', 'string_decoder', '_stream_readable', '_stream_writable', '_stream_duplex',
+			'_stream_transform', '_stream_passthrough', 'http', '_http_agent', '_http_client', '_http_common', '_http_incoming',
+			'_http_outgoing', '_http_server', 'freelist', '_linklist', 'url', 'punycode', 'querystring', 'dns', ];
 	for (var i = 0; i < list.length; i++) {
 		var n = list[i];
 		var s = fs.readFileSync(INITSCRIPT_DIR + n + '.js').toString();
@@ -58,28 +61,54 @@ try {
 	}
 
 	var smalloc_binding = Global_eval(undefined, [ "process.binding('smalloc')" ]);
-	smalloc_binding.Put('kMaxLength', require('smalloc').kMaxLength, false);
-
-	var constants_binding = Global_eval(undefined, [ "process.binding('constants')" ]);
-	var constants = require('constants');
-	for ( var P in constants) {
-		assert(isPrimitiveValue(constants[P]));
-		constants_binding.Put(P, constants[P]);
+	var smalloc = process.binding('smalloc');
+	for ( var P in smalloc) {
+		if (isPrimitiveValue(smalloc[P])) {
+			smalloc_binding.Put(P, smalloc[P]);
+		}
 	}
 
-	var prog = fs.readFileSync(INITSCRIPT_DIR + 'node.js').toString();
-	Global_evaluateProgram(undefined, [ prog, "node.js" ]).Call(theGlobalObject, [ Global_eval(undefined, [ "process" ]) ]);
+	var constants_binding = Global_eval(undefined, [ "process.binding('constants')" ]);
+	var constants = process.binding('constants');
+	for ( var P in constants) {
+		if (isPrimitiveValue(constants[P])) {
+			constants_binding.Put(P, constants[P]);
+		}
+	}
+
+	var uv_binding = Global_eval(undefined, [ "process.binding('uv')" ]);
+	var uv = process.binding('uv');
+	for ( var P in uv) {
+		if (isPrimitiveValue(uv[P])) {
+			uv_binding.Put(P, uv[P]);
+		}
+	}
+
+	var HTTPParser_binding = Global_eval(undefined, [ "process.binding('http_parser').HTTPParser" ]);
+	var HTTPParser = process.binding('http_parser').HTTPParser;
+	for ( var P in HTTPParser) {
+		if (isPrimitiveValue(HTTPParser[P])) {
+			HTTPParser_binding.Put(P, HTTPParser[P]);
+		}
+	}
+	for ( var P in HTTPParser.methods) {
+		if (isPrimitiveValue(HTTPParser.methods[P])) {
+			HTTPParser_binding.Get('methods').Put(P, HTTPParser.methods[P]);
+		}
+	}
+
+	var text = fs.readFileSync(INITSCRIPT_DIR + 'node.js').toString();
+	var prog = Global_evaluateProgram(undefined, [ text, 'node.js' ]);
+	IOManager_context.start();
+	prog.Call(theGlobalObject, [ Global_eval(undefined, [ 'process' ]) ]);
+	IOManager_context.stop();
+	Journal_init();
 
 } catch (e) {
 	if (isInternalError(e)) {
 		console.log(e);
 	}
 	else {
-		console.log(e.Get("stack"));
+		console.log(e.Get('stack'));
 	}
-	return;
 }
-
-runMicrotasks();
-
-Journal_init();

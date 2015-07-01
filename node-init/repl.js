@@ -742,9 +742,8 @@ REPLServer.prototype.memory = function memory(cmd) {
   if (cmd) {
     // going down is { and (   e.g. function() {
     // going up is } and )
-	// modified for PersHA.js
-    var dw = cmd.match(/\{|\(/g);
-    var up = cmd.match(/\}|\)/g);
+    var dw = cmd.match(/\{|\(/g); // modified for PersHA.js
+    var up = cmd.match(/\}|\)/g); // modified for PersHA.js
     up = up ? up.length : 0;
     dw = dw ? dw.length : 0;
     var depth = dw - up;

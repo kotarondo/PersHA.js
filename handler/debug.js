@@ -35,21 +35,22 @@ Copyright (c) 2015, Kotaro Endo.
 
 module.exports = {
 	open : open,
+	close : close,
 	syncIO : syncIO,
 	asyncIO : asyncIO,
 };
 
-function open(args) {
+function open(name, args) {
+}
+
+function close() {
 }
 
 function syncIO(name, args) {
-	if (name === 'debug') {
-		console.log("debug: " + args);
-		return;
-	}
-	console.log("unhandled: " + name);
+	console.log("debug: " + args);
 }
 
 function asyncIO(name, args, callback) {
-	console.log("unhandled: " + name);
+	console.log("debug: " + args);
+	callback();
 }

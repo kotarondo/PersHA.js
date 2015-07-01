@@ -96,6 +96,7 @@ var HANDLER_DIR;
 		}
 		persha_initdb();
 	}
+
 	if (cmd === '-startup') {
 		if (!fs.existsSync(PERSHA_DB)) {
 			console.log("ERROR: does not exist: " + PERSHA_DB);
@@ -107,4 +108,5 @@ var HANDLER_DIR;
 		}
 		IOManager_start();
 	}
+
 })();

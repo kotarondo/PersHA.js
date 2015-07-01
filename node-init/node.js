@@ -408,6 +408,7 @@
 
       nextTickQueue.push(obj);
       tickInfo[kLength]++;
+      _runMicrotasks(); // modified for PersHA.js
     }
   };
 

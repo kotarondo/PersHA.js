@@ -534,8 +534,7 @@ Module._initPaths = function() {
 
 // bootstrap repl
 Module.requireRepl = function() {
-	// modified for PersHA.js
-  return Module._load('repl');
+  return Module._load('repl'); // modified for PersHA.js
 };
 
 Module._initPaths();
