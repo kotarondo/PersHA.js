@@ -38,33 +38,39 @@ var fs = require('fs');
 try {
 	initializeVM();
 
-	var prog = fs.readFileSync(INITSCRIPT_DIR + 'bridge.js').toString();
-	IOManager_context.start();
-	Global_evaluateProgram(undefined, [ prog, 'bridge.js' ]);
-	IOManager_context.stop();
+	var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + 'bridge.js').toString();
+	Global_evaluateProgram(undefined, [ text, 'bridge.js' ]);
 
 	/* hacking
 	*/
-	Global_eval(undefined, [ "process.debug" ]).Call = function(thisValue, argumentsList) {
+	Global_eval(undefined, [ "_debug" ]).Call = function(thisValue, argumentsList) {
 		console.log(argumentsList);
 	};
 
+	var bridge_list = [ 'fs', 'uv', 'http_parser', 'tcp_wrap', 'tty_wrap', 'timer_wrap', 'pipe_wrap', 'cares_wrap', 'stream_wrap', ];
+	for (var i = 0; i < bridge_list.length; i++) {
+		var n = bridge_list[i];
+		var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + n + '.js').toString();
+		text = "(function(){" + text + "})();";
+		Global_evaluateProgram(undefined, [ text, n + '.js' ]);
+	}
+
 	var natives_binding = Global_eval(undefined, [ "process.binding('natives')" ]);
-	var list = [ 'events', 'constants', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs', 'path',
-			'net', 'repl', 'readline', 'domain', 'string_decoder', '_stream_readable', '_stream_writable', '_stream_duplex',
+	var natives_list = [ 'events', 'constants', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs',
+			'path', 'net', 'repl', 'readline', 'domain', 'string_decoder', '_stream_readable', '_stream_writable', '_stream_duplex',
 			'_stream_transform', '_stream_passthrough', 'http', '_http_agent', '_http_client', '_http_common', '_http_incoming',
 			'_http_outgoing', '_http_server', 'freelist', '_linklist', 'url', 'punycode', 'querystring', 'dns', ];
-	for (var i = 0; i < list.length; i++) {
-		var n = list[i];
-		var s = fs.readFileSync(INITSCRIPT_DIR + n + '.js').toString();
-		natives_binding.Put(n, s, false);
+	for (var i = 0; i < natives_list.length; i++) {
+		var n = natives_list[i];
+		var text = fs.readFileSync(NODE_INIT_SCRIPT_DIR + n + '.js').toString();
+		natives_binding.Put(n, text, false);
 	}
 
 	var smalloc_binding = Global_eval(undefined, [ "process.binding('smalloc')" ]);
 	var smalloc = process.binding('smalloc');
 	for ( var P in smalloc) {
 		if (isPrimitiveValue(smalloc[P])) {
-			smalloc_binding.Put(P, smalloc[P]);
+			smalloc_binding.Put(P, smalloc[P], false);
 		}
 	}
 
@@ -72,7 +78,7 @@ try {
 	var constants = process.binding('constants');
 	for ( var P in constants) {
 		if (isPrimitiveValue(constants[P])) {
-			constants_binding.Put(P, constants[P]);
+			constants_binding.Put(P, constants[P], false);
 		}
 	}
 
@@ -80,7 +86,7 @@ try {
 	var uv = process.binding('uv');
 	for ( var P in uv) {
 		if (isPrimitiveValue(uv[P])) {
-			uv_binding.Put(P, uv[P]);
+			uv_binding.Put(P, uv[P], false);
 		}
 	}
 
@@ -88,12 +94,12 @@ try {
 	var HTTPParser = process.binding('http_parser').HTTPParser;
 	for ( var P in HTTPParser) {
 		if (isPrimitiveValue(HTTPParser[P])) {
-			HTTPParser_binding.Put(P, HTTPParser[P]);
+			HTTPParser_binding.Put(P, HTTPParser[P], false);
 		}
 	}
 	for ( var P in HTTPParser.methods) {
 		if (isPrimitiveValue(HTTPParser.methods[P])) {
-			HTTPParser_binding.Get('methods').Put(P, HTTPParser.methods[P]);
+			HTTPParser_binding.Get('methods').Put(P, HTTPParser.methods[P], false);
 		}
 	}
 
@@ -101,22 +107,21 @@ try {
 	var cares = process.binding('cares_wrap');
 	for ( var P in cares) {
 		if (isPrimitiveValue(cares[P])) {
-			cares_binding.Put(P, cares[P]);
+			cares_binding.Put(P, cares[P], false);
 		}
 	}
 
-	var text = fs.readFileSync(INITSCRIPT_DIR + 'node.js').toString();
+	var text = fs.readFileSync(NODE_INIT_SCRIPT_DIR + 'node.js').toString();
 	var prog = Global_evaluateProgram(undefined, [ text, 'node.js' ]);
-	IOManager_context.start();
 	prog.Call(theGlobalObject, [ Global_eval(undefined, [ 'process' ]) ]);
-	IOManager_context.stop();
+	runMicrotasks();
 	Journal_init();
 
 } catch (e) {
 	if (isInternalError(e)) {
-		console.log(e);
+		console.log("FATAL: " + e.stack);
 	}
 	else {
-		console.log(e.Get('stack'));
+		console.log("FATAL: " + e.Get('stack'));
 	}
 }

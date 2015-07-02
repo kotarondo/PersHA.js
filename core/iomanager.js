@@ -33,7 +33,7 @@
 
 'use strict';
 
-var HANDLER_DIR;
+var HANDLER_SCRIPT_DIR;
 var RECOVERY_TARGET = 3000;
 
 var IOManager_state = 'offline'; // -> 'recovery' -> 'online'
@@ -47,7 +47,7 @@ function IOManager_bindPort(port, name) {
 	}
 	port.handler = undefined;
 	try {
-		port.handler = require(HANDLER_DIR + name);
+		port.handler = require(HANDLER_SCRIPT_DIR + name);
 	} catch (e) {
 		console.log("IOManager: bind error " + e); // debug
 	}
@@ -374,12 +374,14 @@ var IOManager_context = (function() {
 		}
 	}
 	function pause(intr) {
+		if (IOManager_state === 'offline') return;
 		assert(pauseCount + 1 === startCount && !interruptible);
 		pauseCount++;
 		interruptible = intr;
 		pauseTimer();
 	}
 	function resume() {
+		if (IOManager_state === 'offline') return;
 		assert(pauseCount === startCount);
 		pauseCount--;
 		interruptible = false;
@@ -389,8 +391,8 @@ var IOManager_context = (function() {
 	return {
 		start : start,
 		stop : stop,
-		resume : resume,
 		pause : pause,
+		resume : resume,
 		isInterruptible : isInterruptible,
 	};
 })();

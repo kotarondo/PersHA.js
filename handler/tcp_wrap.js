@@ -40,70 +40,70 @@ module.exports = {
 };
 
 function open(name, args, callback) {
-	if (name === 'HTTPParser') {
-		return new HTTPParserPort(args, callback);
+	if (name === 'TCP') {
+		return new TCPPort(args, callback);
 	}
-	console.log("[unhandled] http_parser open:" + name);
+	console.log("[unhandled] tcp_wrap open:" + name);
 	console.log(args);
 }
 
 function syncIO(name, args) {
-	console.log("[unhandled] http_parser syncIO:" + name);
+	console.log("[unhandled] tcp_wrap syncIO:" + name);
 	console.log(args);
 }
 
 function asyncIO(name, args, callback) {
-	console.log("[unhandled] http_parser asyncIO:" + name);
+	console.log("[unhandled] tcp_wrap asyncIO:" + name);
 	console.log(args);
 	callback();
 }
 
-function HTTPParserPort(args, callback) {
-	var HTTPParser = process.binding('http_parser').HTTPParser;
-	var kOnHeaders = HTTPParser.kOnHeaders;
-	var kOnHeadersComplete = HTTPParser.kOnHeadersComplete;
-	var kOnBody = HTTPParser.kOnBody;
-	var kOnMessageComplete = HTTPParser.kOnMessageComplete;
+function TCPPort(args, callback) {
+	var TCP = process.binding('tcp_wrap').TCP;
+	var TCPConnectWrap = process.binding('tcp_wrap').TCPConnectWrap;
+	var PipeConnectWrap = process.binding('pipe_wrap').PipeConnectWrap;
+	var ShutdownWrap = process.binding('stream_wrap').ShutdownWrap;
+	var WriteWrap = process.binding('stream_wrap').WriteWrap;
 
-	var parser = new HTTPParser(args[0]);
+	var handle = new TCP();
 
-	parser[kOnHeaders] = function() {
-		callback(kOnHeaders, arguments);
-	};
-	parser[kOnHeadersComplete] = function() {
-		callback(kOnHeadersComplete, arguments);
-	};
-	parser[kOnBody] = function() {
-		callback(kOnBody, arguments);
-	};
-	parser[kOnMessageComplete] = function() {
-		callback(kOnMessageComplete, arguments);
+	handle.onread = function() {
+		callback('onread', arguments);
 	};
 
 	this.syncIO = function(name, args) {
+		if (name === 'readStart') {
+			return handle.readStart();
+		}
 		if (name === 'close') {
-			return parser.close();
+			return handle.close();
 		}
-		if (name === 'execute') {
-			return parser.execute(args[0]);
-		}
-		if (name === 'finish') {
-			return parser.finish();
-		}
-		if (name === 'reinitialize') {
-			return parser.reinitialize(args[0]);
-		}
-		if (name === 'pause') {
-			return parser.pause();
-		}
-		if (name === 'resume') {
-			return parser.resume();
-		}
-		console.log("[unhandled] HTTPParser syncIO:" + name);
+		console.log("[unhandled] TCP syncIO:" + name);
 		console.log(args);
 	};
+
 	this.asyncIO = function(name, args, callback) {
-		console.log("[unhandled] HTTPParser asyncIO:" + name);
+		if (name === 'connect') {
+			var req = new TCPConnectWrap();
+			req.oncomplete = function(status, self, req, readable, writable) {
+				callback(status, readable, writable);
+			};
+			handle.connect(req, args[0], args[1]);
+			return;
+		}
+		if (name === 'writeBinaryString') {
+			var req = new WriteWrap();
+			req.oncomplete = function(status, self, err) {
+				callback(status, err);
+			};
+			handle.writeBinaryString(req, args[0]);
+			return;
+		}
+		if (name === 'close') {
+			handle.close(callback);
+			return;
+		}
+		console.log("[unhandled] TCP asyncIO:" + name);
 		console.log(args);
 		callback();
 	};

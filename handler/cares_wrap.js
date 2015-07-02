@@ -39,72 +39,31 @@ module.exports = {
 	asyncIO : asyncIO,
 };
 
+var cares = process.binding('cares_wrap');
+var GetAddrInfoReqWrap = cares.GetAddrInfoReqWrap;
+var GetNameInfoReqWrap = cares.GetNameInfoReqWrap;
+
 function open(name, args, callback) {
-	if (name === 'HTTPParser') {
-		return new HTTPParserPort(args, callback);
-	}
-	console.log("[unhandled] http_parser open:" + name);
+	console.log("[unhandled] cares_wrap open:" + name);
 	console.log(args);
 }
 
 function syncIO(name, args) {
-	console.log("[unhandled] http_parser syncIO:" + name);
+	if (name === 'isIP') {
+		return cares.isIP(args[0]);
+	}
+	console.log("[unhandled] cares_wrap syncIO:" + name);
 	console.log(args);
 }
 
 function asyncIO(name, args, callback) {
-	console.log("[unhandled] http_parser asyncIO:" + name);
+	if (name === 'getaddrinfo') {
+		var req = new GetAddrInfoReqWrap();
+		req.oncomplete = callback;
+		cares.getaddrinfo(req, args[0], args[1], args[2]);
+		return;
+	}
+	console.log("[unhandled] cares_wrap asyncIO:" + name);
 	console.log(args);
 	callback();
-}
-
-function HTTPParserPort(args, callback) {
-	var HTTPParser = process.binding('http_parser').HTTPParser;
-	var kOnHeaders = HTTPParser.kOnHeaders;
-	var kOnHeadersComplete = HTTPParser.kOnHeadersComplete;
-	var kOnBody = HTTPParser.kOnBody;
-	var kOnMessageComplete = HTTPParser.kOnMessageComplete;
-
-	var parser = new HTTPParser(args[0]);
-
-	parser[kOnHeaders] = function() {
-		callback(kOnHeaders, arguments);
-	};
-	parser[kOnHeadersComplete] = function() {
-		callback(kOnHeadersComplete, arguments);
-	};
-	parser[kOnBody] = function() {
-		callback(kOnBody, arguments);
-	};
-	parser[kOnMessageComplete] = function() {
-		callback(kOnMessageComplete, arguments);
-	};
-
-	this.syncIO = function(name, args) {
-		if (name === 'close') {
-			return parser.close();
-		}
-		if (name === 'execute') {
-			return parser.execute(args[0]);
-		}
-		if (name === 'finish') {
-			return parser.finish();
-		}
-		if (name === 'reinitialize') {
-			return parser.reinitialize(args[0]);
-		}
-		if (name === 'pause') {
-			return parser.pause();
-		}
-		if (name === 'resume') {
-			return parser.resume();
-		}
-		console.log("[unhandled] HTTPParser syncIO:" + name);
-		console.log(args);
-	};
-	this.asyncIO = function(name, args, callback) {
-		console.log("[unhandled] HTTPParser asyncIO:" + name);
-		console.log(args);
-		callback();
-	};
 }

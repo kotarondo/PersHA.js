@@ -91,7 +91,7 @@ function IOPort_notify(entry, callback) {
 		}
 	} catch (e) {
 		if (isInternalError(e)) throw e;
-		console.log(e.Get('stack')); //TODO handle uncaught exception
+		console.log("DEBUG: " + e.Get('stack')); //TODO handle uncaught exception
 	}
 }
 
@@ -145,6 +145,9 @@ function IOPort_unwrap(A, stack) {
 	}
 	if (A.Class === 'Date') {
 		return new Date(A.PrimitiveValue);
+	}
+	if (A.Class === 'Function') {
+		return undefined;
 	}
 	if (stack === undefined) stack = [];
 	if (isIncluded(A, stack)) throw VMTypeError();
@@ -201,8 +204,13 @@ function IOPort_wrap(a, stack) {
 		}
 		return Error_Construct([ a.message ]);
 	}
+	if (a instanceof Function) {
+		return undefined;
+	}
 	if (stack === undefined) stack = [];
-	if (isIncluded(a, stack)) return null;
+	if (isIncluded(a, stack)) {
+		return null;
+	}
 	stack.push(a);
 	if (a instanceof Array) {
 		var length = a.length;
@@ -213,10 +221,13 @@ function IOPort_wrap(a, stack) {
 	}
 	else {
 		var A = Object_Construct([]);
-		var keys = Object.keys(a);
+		var keys = Object.getOwnPropertyNames(a);
 		var length = keys.length;
 		for (var i = 0; i < length; i++) {
 			var P = keys[i];
+			if (P === 'caller' || P === 'callee' || P === 'arguments') {
+				continue;
+			}
 			A.Put(P, IOPort_wrap(a[P], stack), false);
 		}
 	}

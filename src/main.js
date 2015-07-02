@@ -36,8 +36,9 @@
 var PERSHA_HOME;
 var PERSHA_DB;
 var JOURNAL_FILEBASE;
-var INITSCRIPT_DIR;
-var HANDLER_DIR;
+var NODE_INIT_SCRIPT_DIR;
+var BRIDGE_SCRIPT_DIR;
+var HANDLER_SCRIPT_DIR;
 
 (function() {
 	var path = require('path');
@@ -74,14 +75,12 @@ var HANDLER_DIR;
 		console.log("ERROR: PERSHA_DB must be absolute path: " + PERSHA_DB);
 		process.exit(1);
 	}
-	//console.log("PERSHA_DB: " + PERSHA_DB);
-	//console.log("JOURNAL_FILEBASE: " + JOURNAL_FILEBASE);
-
 	PERSHA_HOME = path.dirname(path.dirname(process.argv[1]));
-	INITSCRIPT_DIR = PERSHA_HOME + "/node-init/";
-	HANDLER_DIR = PERSHA_HOME + "/handler/";
-	//console.log("INITSCRIPT_DIR: " + INITSCRIPT_DIR);
-	//console.log("HANDLER_DIR: " + HANDLER_DIR);
+	NODE_INIT_SCRIPT_DIR = PERSHA_HOME + "/node-init/";
+	BRIDGE_SCRIPT_DIR = PERSHA_HOME + "/bridge/";
+	HANDLER_SCRIPT_DIR = PERSHA_HOME + "/handler/";
+	//console.log("PERSHA_DB: " + PERSHA_DB);
+	//console.log("PERSHA_HOME: " + PERSHA_HOME);
 
 	if (cmd === '-initdb') {
 		if (fs.existsSync(PERSHA_DB)) {

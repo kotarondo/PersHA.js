@@ -171,19 +171,23 @@ function FileOutputStream(filename, openExists) {
 			return;
 		}
 		if (x instanceof Error) {
-            if (x instanceof TypeError) {
-                writeInt(91);
-            }
-            else if (x instanceof ReferenceError) {
-                writeInt(92);
-            }
-            else if (x instanceof RangeError) {
-                writeInt(93);
-            }
-            else{
-                writeInt(9);
-            }
+			if (x instanceof TypeError) {
+				writeInt(91);
+			}
+			else if (x instanceof ReferenceError) {
+				writeInt(92);
+			}
+			else if (x instanceof RangeError) {
+				writeInt(93);
+			}
+			else {
+				writeInt(9);
+			}
 			writeString(x.message);
+			return;
+		}
+		if (x instanceof Function) {
+			writeInt(1);
 			return;
 		}
 		if (stack === undefined) stack = [];
@@ -202,11 +206,14 @@ function FileOutputStream(filename, openExists) {
 		}
 		else {
 			writeInt(11);
-			var keys = Object.keys(x);
+			var keys = Object.getOwnPropertyNames(x);
 			var length = keys.length;
 			writeInt(length);
 			for (var i = 0; i < length; i++) {
 				var P = keys[i];
+				if (P === 'caller' || P === 'callee' || P === 'arguments') {
+					continue;
+				}
 				writeString(P);
 				writeAny(x[P], stack);
 			}
