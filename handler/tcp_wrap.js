@@ -41,7 +41,7 @@ module.exports = {
 
 function open(name, args, callback) {
 	if (name === 'TCP') {
-		return new TCPPort(args, callback);
+		return new TCPPort(null, callback);
 	}
 	console.log("[unhandled] tcp_wrap open:" + name);
 	console.log(args);
@@ -58,18 +58,37 @@ function asyncIO(name, args, callback) {
 	callback();
 }
 
-function TCPPort(args, callback) {
+function TCPPort(handle, callback) {
 	var TCP = process.binding('tcp_wrap').TCP;
 	var TCPConnectWrap = process.binding('tcp_wrap').TCPConnectWrap;
 	var PipeConnectWrap = process.binding('pipe_wrap').PipeConnectWrap;
 	var ShutdownWrap = process.binding('stream_wrap').ShutdownWrap;
 	var WriteWrap = process.binding('stream_wrap').WriteWrap;
 
-	var handle = new TCP();
+	if (!handle) {
+		var handle = new TCP();
+	}
+	var queue = [];
 
 	handle.onread = function() {
 		callback('onread', arguments);
 	};
+
+	handle.onconnection = function(err, h) {
+		if (!err) {
+			queue.push(h);
+		}
+		callback('onconnection', err);
+	};
+
+	this.open = function(name, args, callback) {
+		if (name === 'accept') {
+			var h = queue.shift();
+			return new TCPPort(h, callback);
+		}
+		console.log("[unhandled] TCPPort open:" + name);
+		console.log(args);
+	}
 
 	this.syncIO = function(name, args) {
 		if (name === 'readStart') {
@@ -77,6 +96,15 @@ function TCPPort(args, callback) {
 		}
 		if (name === 'close') {
 			return handle.close();
+		}
+		if (name === 'bind6') {
+			return handle.bind6.apply(handle, args);
+		}
+		if (name === 'bind') {
+			return handle.bind.apply(handle, args);
+		}
+		if (name === 'listen') {
+			return handle.listen.apply(handle, args);
 		}
 		console.log("[unhandled] TCP syncIO:" + name);
 		console.log(args);
@@ -89,6 +117,14 @@ function TCPPort(args, callback) {
 				callback(status, readable, writable);
 			};
 			handle.connect(req, args[0], args[1]);
+			return;
+		}
+		if (name === 'writev') {
+			var req = new WriteWrap();
+			req.oncomplete = function(status, self, err) {
+				callback(status, err);
+			};
+			handle.writev(req, args[0]);
 			return;
 		}
 		if (name === 'writeBinaryString') {

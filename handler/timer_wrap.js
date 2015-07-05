@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2015, Kotaro Endo.
+Copyright (c) 2015, Kotaro Endo.
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without
@@ -31,83 +31,69 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-'use strict';
+'use strict'
 
-var timer = process.binding('timer_wrap');
-var timerPort = new IOPort('timer_wrap');
+var Timer = process.binding('timer_wrap').Timer;
 
-timer.Timer = Timer;
-
-Timer.now = function() {
-	return timerPort.syncIO('now', arguments);
+module.exports = {
+	open : open,
+	syncIO : syncIO,
+	asyncIO : asyncIO,
 };
 
-function Timer() {
-	var self = this;
-	var port = timerPort.open('Timer', arguments, portEventCallback);
-
-	function portEventCallback(name, args) {
-		_debug("binding[timer] port event " + name);
-		if (name instanceof IOPortError) {
-			return;
-		}
-		self[name].apply(self, args);
+function open(name, args, callback) {
+	if (name === 'Timer') {
+		return new TimerPort(null, callback);
 	}
+	console.log("[unhandled] timer_wrap open:" + name);
+	console.log(args);
+}
 
-	this.close = function() {
-		try {
-			return port.syncIO('close', arguments);
-		} catch (e) {
-		}
+function syncIO(name, args) {
+	if (name === 'now') {
+		return Timer.now();
+	}
+	console.log("[unhandled] timer_wrap syncIO:" + name);
+	console.log(args);
+}
+
+function asyncIO(name, args, callback) {
+	console.log("[unhandled] timer_wrap asyncIO:" + name);
+	console.log(args);
+	callback();
+}
+
+function TimerPort(handle, callback) {
+	var handle = new Timer();
+	var kOnTimeout = Timer.kOnTimeout;
+
+	handle[kOnTimeout] = function() {
+		callback('kOnTimeout', arguments);
 	};
 
-	this.ref = function() {
-		try {
-			return port.syncIO('ref', arguments);
-		} catch (e) {
+	this.syncIO = function(name, args) {
+		if (name === 'close') {
+			return handle.close();
 		}
+		if (name === 'ref') {
+			return handle.ref.apply(handle, args);
+		}
+		if (name === 'unref') {
+			return handle.unref.apply(handle, args);
+		}
+		if (name === 'start') {
+			return handle.start.apply(handle, args);
+		}
+		if (name === 'stop') {
+			return handle.stop.apply(handle, args);
+		}
+		console.log("[unhandled] Timer syncIO:" + name);
+		console.log(args);
 	};
 
-	this.unref = function() {
-		try {
-			return port.syncIO('unref', arguments);
-		} catch (e) {
-		}
+	this.asyncIO = function(name, args, callback) {
+		console.log("[unhandled] Timer asyncIO:" + name);
+		console.log(args);
+		callback();
 	};
-
-	this.start = function() {
-		try {
-			return port.syncIO('start', arguments);
-		} catch (e) {
-		}
-	};
-
-	this.stop = function() {
-		try {
-			return port.syncIO('stop', arguments);
-		} catch (e) {
-		}
-	};
-
-	this.setRepeat = function() {
-		try {
-			return port.syncIO('setRepeat', arguments);
-		} catch (e) {
-		}
-	};
-
-	this.getRepeat = function() {
-		try {
-			return port.syncIO('getRepeat', arguments);
-		} catch (e) {
-		}
-	};
-
-	this.again = function() {
-		try {
-			return port.syncIO('again', arguments);
-		} catch (e) {
-		}
-	};
-
 }

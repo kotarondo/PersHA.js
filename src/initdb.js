@@ -47,7 +47,7 @@ try {
 		console.log(argumentsList);
 	};
 
-	var bridge_list = [ 'fs', 'uv', 'http_parser', 'tcp_wrap', 'tty_wrap', 'timer_wrap', 'pipe_wrap', 'cares_wrap', 'stream_wrap', ];
+	var bridge_list = [ 'fs', 'uv', 'http_parser', 'tcp_wrap','udp_wrap',  'tty_wrap', 'timer_wrap', 'pipe_wrap', 'cares_wrap', 'stream_wrap', ];
 	for (var i = 0; i < bridge_list.length; i++) {
 		var n = bridge_list[i];
 		var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + n + '.js').toString();
@@ -59,7 +59,7 @@ try {
 	var natives_list = [ 'events', 'constants', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs',
 			'path', 'net', 'repl', 'readline', 'domain', 'string_decoder', '_stream_readable', '_stream_writable', '_stream_duplex',
 			'_stream_transform', '_stream_passthrough', 'http', '_http_agent', '_http_client', '_http_common', '_http_incoming',
-			'_http_outgoing', '_http_server', 'freelist', '_linklist', 'url', 'punycode', 'querystring', 'dns', ];
+			'_http_outgoing', '_http_server', 'freelist', '_linklist', 'url', 'punycode', 'querystring', 'dns', 'cluster', 'dgram', ];
 	for (var i = 0; i < natives_list.length; i++) {
 		var n = natives_list[i];
 		var text = fs.readFileSync(NODE_INIT_SCRIPT_DIR + n + '.js').toString();

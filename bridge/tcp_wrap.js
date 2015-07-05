@@ -36,13 +36,49 @@
 var tcp = process.binding('tcp_wrap');
 var tcpPort = new IOPort('tcp_wrap');
 
-tcp.TCPConnectWrap = function() {
+tcp.TCPConnectWrap = TCPConnectWrap;
+tcp.TCP = TCP;
+
+function TCPConnectWrap() {
 };
 
-tcp.TCP = function() {
+function TCP() {
 	var self = this;
-	var port = tcpPort.open('TCP', arguments, portEventCallback);
-	self._port = port;
+	self._port = tcpPort.open('TCP', [], portEventCallback);
+
+	function portEventCallback(name, args) {
+		if (name instanceof IOPortError) {
+			_debug("binding[tcp] IOPortError event " + name);
+			if (name.message === 'restart') {
+				if (self._listenArgs) { // restart server automatically
+					self._port = tcpPort.open('TCP', [], portEventCallback);
+					if (self._bindArgs) {
+						self._port.syncIO('bind', self._bindArgs);
+					}
+					else if (self._bind6Args) {
+						self._port.syncIO('bind6', self._bind6Args);
+					}
+					self._port.syncIO('listen', self._listenArgs);
+				}
+			}
+			return;
+		}
+		_debug("binding[tcp] port event " + name);
+		if (name === 'onconnection') {
+			var err = args[0];
+			if (!err) {
+				var handle = new accept(self._port);
+			}
+			self.onconnection(err, handle);
+			return;
+		}
+		self[name].apply(self, args);
+	}
+}
+
+function accept(port) {
+	var self = this;
+	self._port = port.open('accept', [], portEventCallback);
 
 	function portEventCallback(name, args) {
 		_debug("binding[tcp] port event " + name);
@@ -51,40 +87,138 @@ tcp.TCP = function() {
 		}
 		self[name].apply(self, args);
 	}
-};
+}
 
-tcp.TCP.prototype.connect = function(req, address, port) {
+accept.prototype = TCP.prototype;
+
+TCP.prototype.connect = function(req, address, port) {
 	var self = this;
 	self._port.asyncIO('connect', [ address, port ], function(status, readable, writable) {
 		if (status instanceof IOPortError) {
-			req.oncomplete(-1); //TODO
-			return;
+			//TODO
 		}
 		req.oncomplete(status, self, req, readable, writable);
 	});
 };
 
-tcp.TCP.prototype.readStart = function() {
+TCP.prototype.readStart = function() {
 	var self = this;
-	self._port.syncIO('readStart', arguments);
+	return self._port.syncIO('readStart', arguments);
 };
 
-tcp.TCP.prototype.writeBinaryString = function(req, data) {
+TCP.prototype.close = function(callback) {
 	var self = this;
-	self._port.asyncIO('writeBinaryString', data, function(status, err) {
+	if (callback === undefined) {
+		return self._port.syncIO('close');
+	}
+	else {
+		self._port.asyncIO('close', null, callback);
+	}
+};
+
+TCP.prototype.ref = function() {
+	_debug("[unhandled1] TCP.prototype.ref");
+};
+
+TCP.prototype.unref = function() {
+	_debug("[unhandled1] TCP.prototype.unref");
+};
+
+TCP.prototype.readStop = function() {
+	_debug("[unhandled1] TCP.prototype.readStop ");
+};
+
+TCP.prototype.shutdown = function() {
+	_debug("[unhandled1] TCP.prototype.shutdown ");
+};
+
+TCP.prototype.writeBuffer = function() {
+	_debug("[unhandled1] TCP.prototype.writeBuffer ");
+};
+
+TCP.prototype.writeAsciiString = function() {
+	_debug("[unhandled1] TCP.prototype.writeAsciiString ");
+};
+
+TCP.prototype.writeUtf8String = function() {
+	_debug("[unhandled1] TCP.prototype.writeUtf8String ");
+};
+
+TCP.prototype.writeUcs2String = function() {
+	_debug("[unhandled1] TCP.prototype.writeUcs2String ");
+};
+
+TCP.prototype.writev = function(req, chunks) {
+	var self = this;
+	self._port.asyncIO('writev', [ chunks ], function(status, err) {
 		if (status instanceof IOPortError) {
-			return; //TODO
+			//TODO
 		}
 		req.oncomplete(status, self, req, err);
 	});
 };
 
-tcp.TCP.prototype.close = function(callback) {
+TCP.prototype.writeBinaryString = function(req, data) {
 	var self = this;
-	if (callback === undefined) {
-		self._port.syncIO('close');
+	self._port.asyncIO('writeBinaryString', data, function(status, err) {
+		if (status instanceof IOPortError) {
+			//TODO
+		}
+		req.oncomplete(status, self, req, err);
+	});
+};
+
+TCP.prototype.open = function() {
+	_debug("[unhandled1] TCP.prototype.open ");
+};
+
+TCP.prototype.listen = function() {
+	var self = this;
+	var err = self._port.syncIO('listen', arguments);
+	if (!err) {
+		self._listenArgs = arguments;
 	}
-	else {
-		self._port.asyncIO('close', null, callback);
+	return err;
+};
+
+TCP.prototype.connect = function() {
+	_debug("[unhandled1] TCP.prototype.connect ");
+};
+
+TCP.prototype.bind = function() {
+	var self = this;
+	var err = self._port.syncIO('bind', arguments);
+	if (!err) {
+		self._bindArgs = arguments;
 	}
+	return err;
+};
+
+TCP.prototype.bind6 = function() {
+	var self = this;
+	var err = self._port.syncIO('bind6', arguments);
+	if (!err) {
+		self._bind6Args = arguments;
+	}
+	return err;
+};
+
+TCP.prototype.connect6 = function() {
+	_debug("[unhandled1] TCP.prototype.connect6 ");
+};
+
+TCP.prototype.getsockname = function() {
+	_debug("[unhandled1] TCP.prototype.getsockname ");
+};
+
+TCP.prototype.getpeername = function() {
+	_debug("[unhandled1] TCP.prototype.getpeername ");
+};
+
+TCP.prototype.setNoDelay = function() {
+	_debug("[unhandled1] TCP.prototype.setNoDelay ");
+};
+
+TCP.prototype.setKeepAlive = function() {
+	_debug("[unhandled1] TCP.prototype.setKeepAlive ");
 };

@@ -103,6 +103,7 @@ process.binding = (function() {
 		pipe_wrap : {},
 		cares_wrap : {},
 		tcp_wrap : {},
+		udp_wrap : {},
 		stream_wrap : {},
 	};
 	return function(name) {
