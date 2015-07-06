@@ -49,6 +49,11 @@ function Journal_read() {
 		var position = Journal_inputStream.getPosition();
 		return Journal_inputStream.readAny();
 	} catch (e) {
+		if (e.message != 'end of file') {
+			console.log(e);
+			console.log(e.stack);
+			process.exit(1);
+		}
 		Journal_closeInputStream();
 		Journal_openLog(position);
 		return undefined;

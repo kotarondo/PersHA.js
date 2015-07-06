@@ -164,6 +164,9 @@ function IOPort_unwrap(A, stack) {
 		var next = A.enumerator(false, true);
 		var P;
 		while ((P = next()) !== undefined) {
+			if (P === 'caller' || P === 'callee' || P === 'arguments') {
+				continue;
+			}
 			a[P] = IOPort_unwrap(A.Get(P), stack);
 		}
 	}

@@ -211,10 +211,10 @@ function FileOutputStream(filename, openExists) {
 			writeInt(length);
 			for (var i = 0; i < length; i++) {
 				var P = keys[i];
+				writeString(P);
 				if (P === 'caller' || P === 'callee' || P === 'arguments') {
 					continue;
 				}
-				writeString(P);
 				writeAny(x[P], stack);
 			}
 		}
@@ -393,11 +393,14 @@ function FileInputStream(filename) {
 			var a = {};
 			for (var i = 0; i < length; i++) {
 				var P = readString();
+				if (P === 'caller' || P === 'callee' || P === 'arguments') {
+					continue;
+				}
 				a[P] = readAny();
 			}
 			return a;
 		}
-		throw Error("file broken");
+		throw Error("file broken: type=" + type);
 	}
 
 	function readFully(fd, buffer, startPos, minPos, capacity) {
