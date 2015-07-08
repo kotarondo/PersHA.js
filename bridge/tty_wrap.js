@@ -37,9 +37,103 @@ var tty = process.binding('tty_wrap');
 var ttyPort = new IOPort('tty_wrap');
 
 tty.guessHandleType = function(fd) {
-	return 'FILE';
+	while (true) {
+		try {
+			return ttyPort.syncIO('guessHandleType', arguments);
+		} catch (e) {
+			if (e instanceof IOPortError) {
+				if (e.message === 'restart') {
+					continue;
+				}
+			}
+			throw e;
+		}
+	}
 };
 
 tty.isTTY = function(fd) {
-	return false;
+	return ttyPort.syncIO('isTTY', arguments);
 };
+
+tty.TTY = TTY;
+
+function TTY(fd, flag) {
+	var self = this;
+	var port = ttyPort.open('TTY', arguments, portEventCallback);
+	var reading;
+	var rawMode;
+
+	function portEventCallback(name, args) {
+		if (name instanceof IOPortError) {
+			if (name.message === 'restart') {
+				if (0 <= fd && fd <= 2) {
+					port = ttyPort.open('TTY', [ fd, flag ], portEventCallback);
+					if (reading) {
+						port.syncIO('readStart', []);
+					}
+					if (rawMode) {
+						port.syncIO('setRawMode', [ rawMode ]);
+					}
+				}
+			}
+			return;
+		}
+		self[name].apply(self, args);
+	}
+
+	this.setRawMode = function() {
+		rawMode = arguments[0] ? true : false;
+		return port.syncIO('setRawMode', [ rawMode ]);
+	};
+
+	this.close = function() {
+		port.close();
+		return port.syncIO('close', arguments);
+	};
+
+	this.unref = function() {
+		return port.syncIO('unref', arguments);
+	};
+
+	this.readStart = function() {
+		reading = true;
+		return port.syncIO('readStart', arguments);
+	};
+
+	this.readStop = function() {
+		reading = false;
+		return port.syncIO('readStop', arguments);
+	};
+
+	this.writeBuffer = function() {
+		_debug("[unhandled] tty.writeBuffer " + new Error().stack);
+	};
+
+	this.writeAsciiString = function() {
+		_debug("[unhandled] tty.writeAsciiString " + new Error().stack);
+	};
+
+	this.writeUtf8String = function(req, data) {
+		port.asyncIO('writeUtf8String', [ data ], function(status, err) {
+			if (status instanceof IOPortError) {
+				//TODO
+			}
+			req.oncomplete(status, self, req, err);
+		});
+	};
+
+	this.writeUcs2String = function() {
+		_debug("[unhandled] tty.writeUcs2String " + new Error().stack);
+	};
+
+	this.writeBinaryString = function() {
+		_debug("[unhandled] tty.writeBinaryString " + new Error().stack);
+	};
+
+	this.getWindowSize = function(winSize) {
+		var ws = port.syncIO('getWindowSize');
+		winSize[0] = ws[0];
+		winSize[1] = ws[1];
+	};
+
+}

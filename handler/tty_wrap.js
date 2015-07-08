@@ -33,7 +33,7 @@ Copyright (c) 2015, Kotaro Endo.
 
 'use strict'
 
-var Timer = process.binding('timer_wrap').Timer;
+var tty = process.binding('tty_wrap');
 
 module.exports = {
 	open : open,
@@ -42,57 +42,75 @@ module.exports = {
 };
 
 function open(name, args, callback) {
-	if (name === 'Timer') {
-		return new TimerPort(null, callback);
+	if (name === 'TTY') {
+		return new TTYPort(args, callback);
 	}
-	console.log("[unhandled] timer_wrap open:" + name);
+	console.log("[unhandled] tty_wrap open:" + name);
 	console.log(args);
 }
 
 function syncIO(name, args) {
-	if (name === 'now') {
-		return Timer.now();
+	if (name === 'guessHandleType') {
+		return tty.guessHandleType(args[0]);
 	}
-	console.log("[unhandled] timer_wrap syncIO:" + name);
+	console.log("[unhandled] tty_wrap syncIO:" + name);
 	console.log(args);
 }
 
 function asyncIO(name, args, callback) {
-	console.log("[unhandled] timer_wrap asyncIO:" + name);
+	console.log("[unhandled] tty_wrap asyncIO:" + name);
 	console.log(args);
 	callback();
 }
 
-function TimerPort(handle, callback) {
-	var handle = new Timer();
-	var kOnTimeout = Timer.kOnTimeout;
+function TTYPort(args, callback) {
+	var TTY = process.binding('tty_wrap').TTY;
+	var WriteWrap = process.binding('stream_wrap').WriteWrap;
 
-	handle[kOnTimeout] = function() {
-		callback(kOnTimeout, arguments);
+	var handle = new TTY(args[0], args[1]);
+
+	handle.onread = function() {
+		callback('onread', arguments);
 	};
 
 	this.syncIO = function(name, args) {
+		if (name === 'getWindowSize') {
+			var winSize = [];
+			var err = handle.getWindowSize(winSize);
+			if (err) {
+				throw err;
+			}
+			return winSize;
+		}
 		if (name === 'close') {
 			return handle.close();
 		}
-		if (name === 'ref') {
-			return handle.ref.apply(handle, args);
-		}
 		if (name === 'unref') {
-			return handle.unref.apply(handle, args);
+			return handle.unref();
 		}
-		if (name === 'start') {
-			return handle.start.apply(handle, args);
+		if (name === 'readStart') {
+			return handle.readStart();
 		}
-		if (name === 'stop') {
-			return handle.stop.apply(handle, args);
+		if (name === 'readStop') {
+			return handle.readStop();
 		}
-		console.log("[unhandled] Timer syncIO:" + name);
+		if (name === 'setRawMode') {
+			return handle.setRawMode(args[0]);
+		}
+		console.log("[unhandled] TTY syncIO:" + name);
 		console.log(args);
 	};
 
 	this.asyncIO = function(name, args, callback) {
-		console.log("[unhandled] Timer asyncIO:" + name);
+		if (name === 'writeUtf8String') {
+			var req = new WriteWrap();
+			req.oncomplete = function(status, self, err) {
+				callback(status, err);
+			};
+			handle.writeUtf8String(req, args[0]);
+			return;
+		}
+		console.log("[unhandled] TTY asyncIO:" + name);
 		console.log(args);
 		callback();
 	};

@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2015, Kotaro Endo.
+Copyright (c) 2015, Kotaro Endo.
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without
@@ -31,58 +31,26 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-'use strict';
+'use strict'
 
-var cares = process.binding('cares_wrap');
-var caresPort = new IOPort('cares_wrap');
-
-cares.getHostByAddr = function() {
+module.exports = {
+	open : open,
+	syncIO : syncIO,
+	asyncIO : asyncIO,
 };
 
-cares.getaddrinfo = function(req, hostname, family, hints) {
-	(function retry() {
-		caresPort.asyncIO('getaddrinfo', [ hostname, family, hints ], function(err, value) {
-			if (err instanceof IOPortError) {
-				if (err.message === 'restart') {
-					retry();
-					return;
-				}
-			}
-			req.oncomplete(err, value);
-		});
-	})();
-};
+function open(name, args, callback) {
+}
 
-cares.getnameinfo = function() {
-};
-
-cares.isIP = function() {
-	while (true) {
-		try {
-			var value = caresPort.syncIO('isIP', arguments);
-			return value;
-		} catch (e) {
-			if (e instanceof IOPortError) {
-				if (e.message === 'restart') {
-					continue;
-				}
-			}
-			throw e;
-		}
+function syncIO(name, args) {
+	if (name === 'debug') {
+		console.log("debug: " + args);
 	}
-};
+	if (name === 'exit') {
+		process.exit();
+	}
+}
 
-cares.strerror = function() {
-};
-
-cares.getServers = function() {
-};
-
-cares.setServers = function() {
-};
-
-cares.GetAddrInfoReqWrap = function() {
-};
-
-cares.GetNameInfoReqWrap = function() {
-};
+function asyncIO(name, args, callback) {
+	callback();
+}

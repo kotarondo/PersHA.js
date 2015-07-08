@@ -37,5 +37,5 @@ var uv = process.binding('uv');
 var uvPort = new IOPort('uv');
 
 uv.errname = function() {
-	_debug("binding[uv] errname"); //TODO
+	_debug("binding[uv] errname" + new Error().stack); //TODO
 };

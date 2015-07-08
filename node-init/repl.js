@@ -339,6 +339,7 @@ exports.REPLServer = REPLServer;
 // source is a stream to use for I/O, defaulting to stdin/stdout.
 exports.start = function(prompt, source, eval_, useGlobal, ignoreUndefined) {
   var repl = new REPLServer(prompt, source, eval_, useGlobal, ignoreUndefined);
+  repl.close=function(){process.reallyExit()} // modified for PersHA.js
   if (!exports.repl) exports.repl = repl;
   return repl;
 };

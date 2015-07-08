@@ -105,6 +105,13 @@ var HANDLER_SCRIPT_DIR;
 			console.log("ERROR: invalid: " + PERSHA_DB);
 			process.exit(1);
 		}
+
+		/* hacking
+		Global_eval(undefined, [ "_debug" ]).Call = function(thisValue, argumentsList) {
+			console.log(argumentsList);
+		};
+		*/
+
 		IOManager_start();
 	}
 

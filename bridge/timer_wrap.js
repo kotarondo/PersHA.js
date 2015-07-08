@@ -55,59 +55,36 @@ function Timer() {
 	}
 
 	this.close = function() {
-		try {
-			return port.syncIO('close', arguments);
-		} catch (e) {
-		}
+		port.close();
+		return port.syncIO('close', arguments);
 	};
 
 	this.ref = function() {
-		try {
-			return port.syncIO('ref', arguments);
-		} catch (e) {
-		}
+		return port.syncIO('ref', arguments);
 	};
 
 	this.unref = function() {
-		try {
-			return port.syncIO('unref', arguments);
-		} catch (e) {
-		}
+		return port.syncIO('unref', arguments);
 	};
 
 	this.start = function() {
-		try {
-			return port.syncIO('start', arguments);
-		} catch (e) {
-		}
+		return port.syncIO('start', arguments);
 	};
 
 	this.stop = function() {
-		try {
-			return port.syncIO('stop', arguments);
-		} catch (e) {
-		}
+		return port.syncIO('stop', arguments);
 	};
 
 	this.setRepeat = function() {
-		try {
-			return port.syncIO('setRepeat', arguments);
-		} catch (e) {
-		}
+		return port.syncIO('setRepeat', arguments);
 	};
 
 	this.getRepeat = function() {
-		try {
-			return port.syncIO('getRepeat', arguments);
-		} catch (e) {
-		}
+		return port.syncIO('getRepeat', arguments);
 	};
 
 	this.again = function() {
-		try {
-			return port.syncIO('again', arguments);
-		} catch (e) {
-		}
+		return port.syncIO('again', arguments);
 	};
 
 }

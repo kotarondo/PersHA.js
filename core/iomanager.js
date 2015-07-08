@@ -73,10 +73,6 @@ function IOManager_closePort(port) {
 		assert(p === port);
 		delete (IOManager_openPorts[txid]);
 	}
-	if (port.handler && port.handler.close) {
-		port.handler.close();
-	}
-	port.handler = null;
 }
 
 function IOManager_date_now() {
@@ -307,6 +303,9 @@ function IOManager_evaluate(text, filename) {
 	}
 	IOManager_context.start();
 	var result = evaluateProgram(text, filename);
+	if (result.error) {
+		console.log("debug: " + result.value);
+	}
 	IOManager_context.stop();
 	return result;
 }

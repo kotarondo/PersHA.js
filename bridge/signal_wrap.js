@@ -33,56 +33,48 @@
 
 'use strict';
 
-var cares = process.binding('cares_wrap');
-var caresPort = new IOPort('cares_wrap');
+var signal = process.binding('signal_wrap');
+var signalPort = new IOPort('signal_wrap');
 
-cares.getHostByAddr = function() {
-};
+signal.Signal = Signal;
 
-cares.getaddrinfo = function(req, hostname, family, hints) {
-	(function retry() {
-		caresPort.asyncIO('getaddrinfo', [ hostname, family, hints ], function(err, value) {
-			if (err instanceof IOPortError) {
-				if (err.message === 'restart') {
-					retry();
-					return;
-				}
+function Signal() {
+	var self = this;
+	var port = signalPort.open('Signal', [], portEventCallback);
+	var signum;
+
+	function portEventCallback(name, args) {
+		if (name instanceof IOPortError) {
+			port = signalPort.open('Signal', [], portEventCallback);
+			if (signum) {
+				port.syncIO('start', [ signum ]);
 			}
-			req.oncomplete(err, value);
-		});
-	})();
-};
-
-cares.getnameinfo = function() {
-};
-
-cares.isIP = function() {
-	while (true) {
-		try {
-			var value = caresPort.syncIO('isIP', arguments);
-			return value;
-		} catch (e) {
-			if (e instanceof IOPortError) {
-				if (e.message === 'restart') {
-					continue;
-				}
-			}
-			throw e;
+			return;
 		}
+		self[name].apply(self, args);
 	}
-};
 
-cares.strerror = function() {
-};
+	this.close = function() {
+		port.close();
+		return port.syncIO('close', arguments);
+	};
 
-cares.getServers = function() {
-};
+	this.ref = function() {
+		return port.syncIO('ref', arguments);
+	};
 
-cares.setServers = function() {
-};
+	this.unref = function() {
+		return port.syncIO('unref', arguments);
+	};
 
-cares.GetAddrInfoReqWrap = function() {
-};
+	this.start = function() {
+		signum = arguments[0];
+		return port.syncIO('start', [ signum ]);
+	};
 
-cares.GetNameInfoReqWrap = function() {
-};
+	this.stop = function() {
+		signum = undefined;
+		return port.syncIO('stop', arguments);
+	};
+
+}

@@ -49,25 +49,16 @@ parser.HTTPParser = function() {
 	}
 
 	this.close = function() {
-		try {
-			port.syncIO('close', arguments);
-			port.close();
-		} catch (e) {
-		}
+		port.close();
+		return port.syncIO('close', arguments);
 	};
 
 	this.execute = function() {
-		try {
-			return port.syncIO('execute', arguments);
-		} catch (e) {
-		}
+		return port.syncIO('execute', arguments);
 	};
 
 	this.finish = function() {
-		try {
-			return port.syncIO('finish', arguments);
-		} catch (e) {
-		}
+		return port.syncIO('finish', arguments);
 	};
 
 	this.reinitialize = function() {
@@ -79,17 +70,11 @@ parser.HTTPParser = function() {
 	};
 
 	this.pause = function() {
-		try {
-			return port.syncIO('pause', arguments);
-		} catch (e) {
-		}
+		return port.syncIO('pause', arguments);
 	};
 
 	this.resume = function() {
-		try {
-			return port.syncIO('resume', arguments);
-		} catch (e) {
-		}
+		return port.syncIO('resume', arguments);
 	};
 };
 

@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2015, Kotaro Endo.
+Copyright (c) 2015, Kotaro Endo.
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without
@@ -31,58 +31,67 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-'use strict';
+'use strict'
 
-var cares = process.binding('cares_wrap');
-var caresPort = new IOPort('cares_wrap');
+var signal = process.binding('signal_wrap');
 
-cares.getHostByAddr = function() {
+module.exports = {
+	open : open,
+	syncIO : syncIO,
+	asyncIO : asyncIO,
 };
 
-cares.getaddrinfo = function(req, hostname, family, hints) {
-	(function retry() {
-		caresPort.asyncIO('getaddrinfo', [ hostname, family, hints ], function(err, value) {
-			if (err instanceof IOPortError) {
-				if (err.message === 'restart') {
-					retry();
-					return;
-				}
-			}
-			req.oncomplete(err, value);
-		});
-	})();
-};
-
-cares.getnameinfo = function() {
-};
-
-cares.isIP = function() {
-	while (true) {
-		try {
-			var value = caresPort.syncIO('isIP', arguments);
-			return value;
-		} catch (e) {
-			if (e instanceof IOPortError) {
-				if (e.message === 'restart') {
-					continue;
-				}
-			}
-			throw e;
-		}
+function open(name, args, callback) {
+	if (name === 'Signal') {
+		return new SignalPort(null, callback);
 	}
-};
+	console.log("[unhandled] signal_wrap open:" + name);
+	console.log(args);
+}
 
-cares.strerror = function() {
-};
+function syncIO(name, args) {
+	console.log("[unhandled] signal_wrap syncIO:" + name);
+	console.log(args);
+}
 
-cares.getServers = function() {
-};
+function asyncIO(name, args, callback) {
+	console.log("[unhandled] signal_wrap asyncIO:" + name);
+	console.log(args);
+	callback();
+}
 
-cares.setServers = function() {
-};
+function SignalPort(handle, callback) {
+	var Signal = process.binding('signal_wrap').Signal;
 
-cares.GetAddrInfoReqWrap = function() {
-};
+	var handle = new Signal();
 
-cares.GetNameInfoReqWrap = function() {
-};
+	handle.onsignal = function() {
+		callback('onsignal', arguments);
+	};
+
+	this.syncIO = function(name, args) {
+		if (name === 'close') {
+			return handle.close();
+		}
+		if (name === 'ref') {
+			return handle.ref();
+		}
+		if (name === 'unref') {
+			return handle.unref();
+		}
+		if (name === 'start') {
+			return handle.start(args[0]);
+		}
+		if (name === 'stop') {
+			return handle.stop();
+		}
+		console.log("[unhandled] Signal syncIO:" + name);
+		console.log(args);
+	};
+
+	this.asyncIO = function(name, args, callback) {
+		console.log("[unhandled] Signal asyncIO:" + name);
+		console.log(args);
+		callback();
+	};
+}

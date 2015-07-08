@@ -816,4 +816,4 @@
   };
 
   startup();
-});
+}).call(this, process); // modified for PersHA.js

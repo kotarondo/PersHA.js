@@ -34,7 +34,7 @@
 'use strict';
 
 var _debug = (function() {
-	var debug = new IOPort('debug');
+	var debug = new IOPort('process');
 	return function() {
 		try {
 			debug.syncIO('debug', arguments);
@@ -60,7 +60,7 @@ var process = {
 	},
 	argv : [ 'node' ],
 	env : {
-		NODE_DEBUG : "module,net,dns,http",
+	// NODE_DEBUG : "module,net,dns,http",
 	},
 	_eval : null,
 	_forceRepl : true,
@@ -68,8 +68,13 @@ var process = {
 };
 
 process.reallyExit = function() {
-	throw new Error("the process is really exiting");
-}
+	var debug = new IOPort('process');
+	try {
+		debug.syncIO('exit', arguments);
+	} catch (e) {
+		// when the process restarts
+	}
+};
 
 process._setupNextTick = function(tickInfo, _tickCallback, _runMicrotasks) {
 	tickInfo[0] = 0;
@@ -105,6 +110,7 @@ process.binding = (function() {
 		tcp_wrap : {},
 		udp_wrap : {},
 		stream_wrap : {},
+		signal_wrap : {},
 	};
 	return function(name) {
 		return bindings[name];

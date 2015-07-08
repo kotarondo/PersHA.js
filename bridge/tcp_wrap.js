@@ -48,7 +48,6 @@ function TCP() {
 
 	function portEventCallback(name, args) {
 		if (name instanceof IOPortError) {
-			_debug("binding[tcp] IOPortError event " + name);
 			if (name.message === 'restart') {
 				if (self._listenArgs) { // restart server automatically
 					self._port = tcpPort.open('TCP', [], portEventCallback);
@@ -63,7 +62,6 @@ function TCP() {
 			}
 			return;
 		}
-		_debug("binding[tcp] port event " + name);
 		if (name === 'onconnection') {
 			var err = args[0];
 			if (!err) {
@@ -108,6 +106,7 @@ TCP.prototype.readStart = function() {
 
 TCP.prototype.close = function(callback) {
 	var self = this;
+	self._port.close();
 	if (callback === undefined) {
 		return self._port.syncIO('close');
 	}
@@ -160,7 +159,7 @@ TCP.prototype.writev = function(req, chunks) {
 
 TCP.prototype.writeBinaryString = function(req, data) {
 	var self = this;
-	self._port.asyncIO('writeBinaryString', data, function(status, err) {
+	self._port.asyncIO('writeBinaryString', [ data ], function(status, err) {
 		if (status instanceof IOPortError) {
 			//TODO
 		}
