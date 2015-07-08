@@ -37,9 +37,9 @@ module.exports= {
 	Buffer: Buffer,
 	SlowBuffer: Buffer,
 	get INSPECT_MAX_BYTES (){
-		return Buffer.INSPECT_MAX_BYTES ;
+		return getSystemProperty("INSPECT_MAX_BYTES");
 	},
 	set INSPECT_MAX_BYTES (b){
-		Buffer.INSPECT_MAX_BYTES = b;
+		setSystemProperty("INSPECT_MAX_BYTES", b);
 	},
 };

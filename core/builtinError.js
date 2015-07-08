@@ -255,9 +255,31 @@ function get_Error_prototype_stack(thisValue, argumentsList) {
 	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "Error") throw VMTypeError();
 	var stackTrace = thisValue.stackTrace;
 	var A = [];
+	var info = {};
 	A[0] = Error_prototype_toString(thisValue, []);
 	for (var i = 0; i < stackTrace.length; i++) {
-		A[i + 1] = theParser.locateDebugInfo(stackTrace[i]);
+		theParser.locateDebugInfo(stackTrace[i], info);
+		var finfo = info.filename + ":" + info.lineNumber + ":" + info.columnNumber;
+		A[i + 1] = finfo;
+		if (info.functionName) {
+			A[i + 1] = info.functionName + " (" + finfo + ")";
+		}
 	}
 	return A.join("\n    at ");
+}
+
+function Error_prototype_getStackTraceEntry(thisValue, argumentsList) {
+	var index = ToUint32(argumentsList[0]);
+	var stackTrace = thisValue.stackTrace;
+	if (stackTrace[index] === undefined) {
+		return undefined;
+	}
+	var info = {};
+	theParser.locateDebugInfo(stackTrace[index], info);
+	var obj = Object_Construct([]);
+	obj.Put("functionName", info.functionName);
+	obj.Put("filename", info.filename);
+	obj.Put("lineNumber", info.lineNumber);
+	obj.Put("columnNumber", info.columnNumber);
+	return obj;
 }

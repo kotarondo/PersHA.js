@@ -104,7 +104,7 @@ var theParser = function() {
 			index : subcodes.length,
 			startPos : undefined,
 			endPos : undefined,
-			funcname : undefined,
+			functionName : undefined,
 		});
 		subcodes.push(code);
 		return code;
@@ -164,7 +164,7 @@ var theParser = function() {
 		stack = Stack();
 		var body = code;
 		body.isFunctionCode = true;
-		body.funcname = (name || "anonymous");
+		body.functionName = (name || "anonymous");
 		var sourceElements = readSourceElements();
 		body.strict = strict;
 		body.evaluate = FunctionBody(sourceElements);
@@ -1574,7 +1574,7 @@ var theParser = function() {
 		current = source[currentPos];
 	}
 
-	function convertToLineColumn(source, pos) {
+	function convertToLineColumn(source, pos, info) {
 		var lineNumber = 1;
 		var lineHeadPos = 0;
 		var i = 0;
@@ -1589,26 +1589,30 @@ var theParser = function() {
 			lineNumber++;
 			lineHeadPos = i;
 		}
-		return lineNumber + ":" + (pos - lineHeadPos + 1);
+		info.lineNumber = lineNumber;
+		info.columnNumber = pos - lineHeadPos + 1;
 	}
 
-	function locateDebugInfo(stackTraceEntry) {
+	function locateDebugInfo(stackTraceEntry, info) {
 		var code = stackTraceEntry.code;
 		var sourceObject = code.sourceObject;
 		var source = sourceObject.source;
 		var pos = stackTraceEntry.pos;
-		var finfo = sourceObject.filename + ":" + convertToLineColumn(source, pos);
+		convertToLineColumn(source, pos, info);
+		info.filename = sourceObject.filename;
+		info.functionName = undefined;
 		if (code.isFunctionCode) {
-			return code.funcname + " (" + finfo + ")";
+			info.functionName = code.functionName;
 		}
-		return finfo;
 	}
 
 	function SyntaxError(pos) {
 		if (pos === undefined) {
 			pos = currentPos;
 		}
-		var finfo = sourceObject.filename + ":" + convertToLineColumn(source, pos);
+		var info = {};
+		convertToLineColumn(source, pos, info);
+		var finfo = sourceObject.filename + ":" + info.lineNumber + ":" + info.columnNumber;
 		throw VMSyntaxError(finfo);
 	}
 

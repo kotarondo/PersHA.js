@@ -316,6 +316,8 @@ function initializeVM() {
 		defineFunction(theGlobalObject, "escape", 1, Global_escape);
 		defineFunction(theGlobalObject, "unescape", 1, Global_unescape);
 		defineFunction(theGlobalObject, "evaluateProgram", 1, Global_evaluateProgram);
+		defineFunction(theGlobalObject, "setSystemProperty", 2, Global_setSystemProperty);
+		defineFunction(theGlobalObject, "getSystemProperty", 1, Global_getSystemProperty);
 	}
 	define(theGlobalObject, "Object", builtin_Object);
 	define(theGlobalObject, "Function", builtin_Function);
@@ -552,6 +554,7 @@ function initializeVM() {
 	defineFunction(builtin_Error_prototype, "toString", 0, Error_prototype_toString);
 	if (STRICT_CONFORMANCE === false) {
 		defineAccessor(builtin_Error_prototype, "stack", get_Error_prototype_stack, undefined);
+		defineFunction(builtin_Error_prototype, "getStackTraceEntry", 1, Error_prototype_getStackTraceEntry);
 	}
 
 	defineFinal(builtin_EvalError, "length", 1);
@@ -599,7 +602,6 @@ function initializeVM() {
 	initExecutionContext();
 }
 
-var builtin_Buffer;
 var builtin_Buffer_prototype;
 
 function initializeBuffer() {
@@ -608,14 +610,13 @@ function initializeBuffer() {
 	builtin_Buffer_prototype.Extensible = true;
 	builtin_Buffer_prototype.wrappedBuffer = new Buffer(0);
 
-	builtin_Buffer = VMObject(CLASSID_BuiltinFunction);
+	var builtin_Buffer = VMObject(CLASSID_BuiltinFunction);
 	builtin_Buffer.Call = Buffer_Call;
 	builtin_Buffer.Construct = Buffer_Construct;
 	builtin_Buffer.Prototype = builtin_Function_prototype;
 	builtin_Buffer.Extensible = true;
 	define(theGlobalObject, "Buffer", builtin_Buffer);
 
-	define(builtin_Buffer, "INSPECT_MAX_BYTES", 52);
 	defineFinal(builtin_Buffer, "length", 2);
 	defineFinal(builtin_Buffer, "prototype", builtin_Buffer_prototype);
 	defineFunction(builtin_Buffer, "isEncoding", 1, Buffer_isEncoding);
@@ -672,7 +673,6 @@ function initializeBuffer() {
 	defineFunction(builtin_Buffer_prototype, "inspect", 0, Buffer_prototype_inspect);
 }
 
-var builtin_IOPort;
 var builtin_IOPort_prototype;
 var builtin_IOPortError_prototype;
 
@@ -682,7 +682,7 @@ function initializeIOPort() {
 	builtin_IOPort_prototype.Extensible = true;
 	builtin_IOPort_prototype.handler = null;
 
-	builtin_IOPort = VMObject(CLASSID_BuiltinFunction);
+	var builtin_IOPort = VMObject(CLASSID_BuiltinFunction);
 	builtin_IOPort.Call = IOPort_Call;
 	builtin_IOPort.Construct = IOPort_Construct;
 	builtin_IOPort.Prototype = builtin_Function_prototype;

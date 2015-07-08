@@ -33,16 +33,6 @@
 
 'use strict';
 
-var _debug = (function() {
-	var debug = new IOPort('process');
-	return function() {
-		try {
-			debug.syncIO('debug', arguments);
-		} catch (e) {
-		}
-	};
-})();
-
 Object.prototype.__defineGetter__ = function(n, getter) {
 	Object.defineProperty(this, n, {
 		get : getter
@@ -52,6 +42,64 @@ Object.prototype.__defineGetter__ = function(n, getter) {
 Number.isFinite = function(value) {
 	return typeof value === "number" && isFinite(value);
 }
+
+Object.defineProperty(Error, "stackTraceLimit", {
+	get : function() {
+		return getSystemProperty("stackTraceLimit");
+	},
+	set : function(value) {
+		setSystemProperty("stackTraceLimit", value);
+	},
+});
+
+Error.captureStackTrace = (function() {
+	function StackTraceEntry(info) {
+		this.info = info;
+	}
+	StackTraceEntry.prototype.getFileName = function() {
+		return this.info.filename;
+	}
+	StackTraceEntry.prototype.getLineNumber = function() {
+		return this.info.lineNumber;
+	}
+	StackTraceEntry.prototype.getColumnNumber = function() {
+		return this.info.columnNumber;
+	}
+	StackTraceEntry.prototype.getFunctionName = function() {
+		return this.info.functionName;
+	}
+	StackTraceEntry.prototype.getMethodName = function() {
+		return undefined; //TODO
+	}
+	StackTraceEntry.prototype.isEval = function() {
+		return false; //TODO
+	}
+
+	return function(obj) {
+		Error.stackTraceLimit++;
+		var e = new Error();
+		Error.stackTraceLimit--;
+		var stack = [];
+		for (var i = 1;; i++) {
+			var info = e.getStackTraceEntry(i);
+			if (!info) {
+				break;
+			}
+			stack.push(new StackTraceEntry(info));
+		}
+		obj.stack = stack;
+	}
+})();
+
+var _debug = (function() {
+	var debug = new IOPort('process');
+	return function() {
+		try {
+			debug.syncIO('debug', arguments);
+		} catch (e) {
+		}
+	};
+})();
 
 var process = {
 	execPath : '.',

@@ -35,6 +35,8 @@
 
 // Node.js Buffer wrapper; experimental;
 
+var INSPECT_MAX_BYTES = 50;
+
 function BufferObject_GetOwnProperty(P) {
 	var B = this;
 	var index = ToUint32(P);
@@ -763,8 +765,7 @@ function Buffer_prototype_fill(thisValue, argumentsList) {
 function Buffer_prototype_inspect(thisValue, argumentsList) {
 	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== "Buffer") throw VMTypeError();
 	var buffer = require('buffer');
-	var max = ToPrimitive(builtin_Buffer.Get("INSPECT_MAX_BYTES"));
-	buffer.INSPECT_MAX_BYTES = max;
+	buffer.INSPECT_MAX_BYTES = INSPECT_MAX_BYTES;
 	try {
 		return thisValue.wrappedBuffer.inspect();
 	} catch (e) {

@@ -154,12 +154,10 @@ function writeSnapshot(l_ostream) {
 	mark(theEvalFunction);
 	mark(theThrowTypeError);
 	// mark extensions
-	if (builtin_Buffer !== undefined) {
-		mark(builtin_Buffer);
+	if (builtin_Buffer_prototype !== undefined) {
 		mark(builtin_Buffer_prototype);
 	}
-	if (builtin_IOPort !== undefined) {
-		mark(builtin_IOPort);
+	if (builtin_IOPort_prototype !== undefined) {
 		mark(builtin_IOPort_prototype);
 		mark(builtin_IOPortError_prototype);
 	}
@@ -192,18 +190,21 @@ function writeSnapshot(l_ostream) {
 
 	// extensions
 	{
+		ostream.writeString("StackTrace");
+		ostream.writeInt(stackTraceLimit);
+	}
+	{
 		ostream.writeString("Timezone");
 		ostream.writeInt(LocalTZA);
 		ostream.writeString(LocalTZAString);
 	}
-	if (builtin_Buffer !== undefined) {
+	if (builtin_Buffer_prototype !== undefined) {
 		ostream.writeString("Buffer");
-		ostream.writeInt(builtin_Buffer.ID);
 		ostream.writeInt(builtin_Buffer_prototype.ID);
+		ostream.writeInt(INSPECT_MAX_BYTES);
 	}
-	if (builtin_IOPort !== undefined) {
+	if (builtin_IOPort_prototype !== undefined) {
 		ostream.writeString("IOPort");
-		ostream.writeInt(builtin_IOPort.ID);
 		ostream.writeInt(builtin_IOPort_prototype.ID);
 		ostream.writeInt(builtin_IOPortError_prototype.ID);
 	}
@@ -314,11 +315,11 @@ function readSnapshot(l_istream) {
 	initExecutionContext();
 
 	// extensions
+	stackTraceLimit = 10;
 	LocalTZA = 9 * 3600000;
 	LocalTZAString = "JST";
-	builtin_Buffer = undefined;
+	INSPECT_MAX_BYTES = 50;
 	builtin_Buffer_prototype = undefined;
-	builtin_IOPort = undefined;
 	builtin_IOPort_prototype = undefined;
 	builtin_IOPortError_prototype = undefined;
 	assert(IOManager_state === 'offline');
@@ -331,22 +332,22 @@ function readSnapshot(l_istream) {
 			break;
 		}
 		switch (ext) {
+		case "StackTrace":
+			stackTraceLimit = istream.readInt();
+			break;
 		case "Timezone":
 			LocalTZA = istream.readInt();
 			LocalTZAString = istream.readString();
 			break;
 		case "Buffer":
-			builtin_Buffer = allObjs[istream.readInt()];
 			builtin_Buffer_prototype = allObjs[istream.readInt()];
-			istream.assert(builtin_Buffer.ClassID === CLASSID_BuiltinFunction);
 			istream.assert(builtin_Buffer_prototype.ClassID === CLASSID_Buffer);
+			INSPECT_MAX_BYTES = istream.readInt();
 			break;
 		case "IOPort":
-			builtin_IOPort = allObjs[istream.readInt()];
 			builtin_IOPort_prototype = allObjs[istream.readInt()];
-			builtin_IOPortError_prototype = allObjs[istream.readInt()];
-			istream.assert(builtin_IOPort.ClassID === CLASSID_BuiltinFunction);
 			istream.assert(builtin_IOPort_prototype.ClassID === CLASSID_IOPort);
+			builtin_IOPortError_prototype = allObjs[istream.readInt()];
 			istream.assert(builtin_IOPortError_prototype.ClassID === CLASSID_Error);
 			break;
 		case "IOManager":

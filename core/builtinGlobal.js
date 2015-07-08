@@ -346,3 +346,36 @@ function Global_unescape(thisValue, argumentsList) {
 		k++;
 	}
 }
+
+function Global_setSystemProperty(thisValue, argumentsList) {
+	var name = ToString(argumentsList[0]);
+	var value = argumentsList[1];
+	if (name === "stackTraceLimit") {
+		stackTraceLimit = ToUint32(value);
+	}
+	if (name === "LocalTZA") {
+		LocalTZA = ToUint32(value);
+	}
+	if (name === "LocalTZAString") {
+		LocalTZAString = ToString(value);
+	}
+	if (name === "INSPECT_MAX_BYTES") {
+		INSPECT_MAX_BYTES = ToUint32(value);
+	}
+}
+
+function Global_getSystemProperty(thisValue, argumentsList) {
+	var name = ToString(argumentsList[0]);
+	if (name === "stackTraceLimit") {
+		return stackTraceLimit;
+	}
+	if (name === "LocalTZA") {
+		return LocalTZA;
+	}
+	if (name === "LocalTZAString") {
+		return LocalTZAString;
+	}
+	if (name === "INSPECT_MAX_BYTES") {
+		return INSPECT_MAX_BYTES;
+	}
+}

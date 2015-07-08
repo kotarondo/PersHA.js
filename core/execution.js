@@ -242,15 +242,23 @@ function exitExecutionContext() {
 	outerExecutionContext = ctx.outerExecutionContext;
 }
 
+var stackTraceLimit = 10;
+
 function getStackTrace() {
 	var stackTrace = [];
 	if (runningCode !== undefined) {
+		if (stackTrace.length >= stackTraceLimit) {
+			return stackTrace;
+		}
 		stackTrace.push({
 			code : runningCode,
 			pos : runningSourcePos,
 		});
 		var ctx = outerExecutionContext;
 		while (ctx.runningCode !== undefined) {
+			if (stackTrace.length >= stackTraceLimit) {
+				return stackTrace;
+			}
 			stackTrace.push({
 				code : ctx.runningCode,
 				pos : ctx.runningSourcePos,
