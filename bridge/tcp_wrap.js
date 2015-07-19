@@ -139,8 +139,14 @@ TCP.prototype.writeAsciiString = function() {
 	_debug("[unhandled1] TCP.prototype.writeAsciiString ");
 };
 
-TCP.prototype.writeUtf8String = function() {
-	_debug("[unhandled1] TCP.prototype.writeUtf8String ");
+TCP.prototype.writeUtf8String = function(req, data) {
+	var self = this;
+	self._port.asyncIO('writeUtf8String', [ data ], function(status, err) {
+		if (status instanceof IOPortError) {
+			//TODO
+		}
+		req.oncomplete(status, self, req, err);
+	});
 };
 
 TCP.prototype.writeUcs2String = function() {

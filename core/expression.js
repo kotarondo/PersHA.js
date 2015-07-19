@@ -97,6 +97,12 @@ function PropertyAssignment(name, expression) {
 	return function(obj) {
 		var exprValue = expression();
 		var propValue = GetValue(exprValue);
+		if (STRICT_CONFORMANCE === false) {
+			if (name === '__proto__') {
+				set_Object_prototype___proto__(obj, [ propValue ]);
+				return;
+			}
+		}
 		var desc = PropertyDescriptor({
 			Value : propValue,
 			Writable : true,

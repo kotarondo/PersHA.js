@@ -127,6 +127,14 @@ function TCPPort(handle, callback) {
 			handle.writev(req, args[0]);
 			return;
 		}
+		if (name === 'writeUtf8String') {
+			var req = new WriteWrap();
+			req.oncomplete = function(status, self, err) {
+				callback(status, err);
+			};
+			handle.writeUtf8String(req, args[0]);
+			return;
+		}
 		if (name === 'writeBinaryString') {
 			var req = new WriteWrap();
 			req.oncomplete = function(status, self, err) {

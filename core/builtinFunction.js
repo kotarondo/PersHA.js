@@ -76,7 +76,7 @@ function Function_prototype_toString(thisValue, argumentsList) {
 	}
 	assert(func.ClassID === CLASSID_FunctionObject);
 	var param = func.FormalParameters;
-	var name = func.Code.name;
+	var name = func.Code.functionName;
 	var startPos = func.Code.startPos;
 	var endPos = func.Code.endPos;
 	var source = func.Code.sourceObject.source;

@@ -151,6 +151,7 @@ process.binding = (function() {
 		fs : {},
 		uv : {},
 		http_parser : {},
+		crypto : {},
 		tty_wrap : {},
 		timer_wrap : {},
 		pipe_wrap : {},

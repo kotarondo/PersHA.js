@@ -287,6 +287,7 @@ var intrinsicFunctions = {
 	IOPort_Call : IOPort_Call,
 	IOPort_Construct : IOPort_Construct,
 	IOPort_prototype_open : IOPort_prototype_open,
+	IOPort_prototype_close : IOPort_prototype_close,
 	IOPort_prototype_syncIO : IOPort_prototype_syncIO,
 	IOPort_prototype_asyncIO : IOPort_prototype_asyncIO,
 	IOPortError_Call : IOPortError_Call,

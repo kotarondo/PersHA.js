@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2015, Kotaro Endo.
+Copyright (c) 2015, Kotaro Endo.
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without
@@ -31,65 +31,51 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-'use strict';
+'use strict'
 
-var cares = process.binding('cares_wrap');
-var caresPort = new IOPort('cares_wrap');
-
-cares.getHostByAddr = function() {
-	_debug("cares.getHostByAddr TODO");
+module.exports = {
+	open : open,
+	syncIO : syncIO,
+	asyncIO : asyncIO,
 };
 
-cares.getaddrinfo = function(req, hostname, family, hints) {
-	(function retry() {
-		caresPort.asyncIO('getaddrinfo', [ hostname, family, hints ], function(err, value) {
-			if (err instanceof IOPortError) {
-				if (err.message === 'restart') {
-					retry();
-					return;
-				}
-			}
-			req.oncomplete(err, value);
-		});
-	})();
-};
-
-cares.getnameinfo = function() {
-	_debug("cares.getnameinfo TODO");
-};
-
-cares.isIP = function() {
-	while (true) {
-		try {
-			var value = caresPort.syncIO('isIP', arguments);
-			return value;
-		} catch (e) {
-			if (e instanceof IOPortError) {
-				if (e.message === 'restart') {
-					continue;
-				}
-			}
-			throw e;
-		}
+function open(name, args, callback) {
+	if (name === 'Hash') {
+		return new Hash(args, callback);
 	}
-};
+	console.log("[unhandled] crypto open:" + name);
+	console.log(args);
+}
 
-cares.strerror = function() {
-	_debug("cares.strerror TODO");
-};
+function syncIO(name, args) {
+	console.log("[unhandled] crypto syncIO:" + name);
+	console.log(args);
+}
 
-cares.getServers = function() {
-	_debug("cares.getServers TODO");
-};
+function asyncIO(name, args, callback) {
+	console.log("[unhandled] crypto asyncIO:" + name);
+	console.log(args);
+	callback();
+}
 
-cares.setServers = function() {
-	_debug("cares.setServers TODO");
-};
+function Hash(args, callback) {
+	var Hash = process.binding('crypto').Hash;
 
-cares.GetAddrInfoReqWrap = function() {
-	_debug("cares.GetAddrInfoReqWrap TODO");
-};
+	var obj = new Hash(args[0]);
 
-cares.GetNameInfoReqWrap = function() {
-	_debug("cares.GetNameInfoReqWrap TODO");
-};
+	this.syncIO = function(name, args) {
+		if (name === 'update') {
+			return obj.update.apply(obj, args);
+		}
+		if (name === 'digest') {
+			return obj.digest.apply(obj, args);
+		}
+		console.log("[unhandled] Hash syncIO:" + name);
+		console.log(args);
+	};
+	this.asyncIO = function(name, args, callback) {
+		console.log("[unhandled] Hash asyncIO:" + name);
+		console.log(args);
+		callback();
+	};
+}
