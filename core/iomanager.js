@@ -302,12 +302,13 @@ function IOManager_evaluate(text, filename) {
 		});
 	}
 	IOManager_context.start();
-	var result = evaluateProgram(text, filename);
-	if (result.error) {
-		console.log("debug: " + result.value);
+	try {
+		Global_evaluateProgram(undefined, [ text, filename ]);
+	} catch (e) {
+		if (isInternalError(e)) throw e;
+		console.log("debug: " + ToString(e));
 	}
 	IOManager_context.stop();
-	return result;
 }
 
 function IOManager_start() {

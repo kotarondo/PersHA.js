@@ -228,6 +228,7 @@ var intrinsicFunctions = {
 	ReturnUndefined : ReturnUndefined,
 	// extensions
 	Global_evaluateProgram : Global_evaluateProgram,
+	Global_parseProgram : Global_parseProgram,
 	Global_getSystemProperty : Global_getSystemProperty,
 	Global_setSystemProperty : Global_setSystemProperty,
 	get_Error_prototype_stack : get_Error_prototype_stack,

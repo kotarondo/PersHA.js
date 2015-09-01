@@ -63,6 +63,13 @@ function Global_evaluateProgram(thisValue, argumentsList) {
 	throw result.value;
 }
 
+function Global_parseProgram(thisValue, argumentsList) {
+	var x = argumentsList[0];
+	var filename = ToString(argumentsList[1]);
+	if (Type(x) !== TYPE_String) return;
+	theParser.readProgram(x, false, [], filename);
+}
+
 function Global_parseInt(thisValue, argumentsList) {
 	var string = argumentsList[0];
 	var radix = argumentsList[1];

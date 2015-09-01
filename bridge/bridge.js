@@ -166,6 +166,7 @@ process.binding = (function() {
 })();
 
 process.binding('contextify').ContextifyScript = function(code, options) {
+	parseProgram(code, options.filename);
 	this.runInThisContext = function() {
 		return evaluateProgram(code, options.filename);
 	};

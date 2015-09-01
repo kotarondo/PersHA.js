@@ -316,6 +316,7 @@ function initializeVM() {
 		defineFunction(theGlobalObject, "escape", 1, Global_escape);
 		defineFunction(theGlobalObject, "unescape", 1, Global_unescape);
 		defineFunction(theGlobalObject, "evaluateProgram", 1, Global_evaluateProgram);
+		defineFunction(theGlobalObject, "parseProgram", 1, Global_parseProgram);
 		defineFunction(theGlobalObject, "setSystemProperty", 2, Global_setSystemProperty);
 		defineFunction(theGlobalObject, "getSystemProperty", 1, Global_getSystemProperty);
 	}
