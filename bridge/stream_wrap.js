@@ -37,6 +37,7 @@ var stream = process.binding('stream_wrap');
 var streamPort = new IOPort('stream_wrap');
 
 stream.ShutdownWrap = function() {
+	_debug("stream.ShutdownWrap TODO");
 };
 
 stream.WriteWrap = function() {

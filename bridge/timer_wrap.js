@@ -44,11 +44,17 @@ Timer.now = function() {
 
 function Timer() {
 	var self = this;
-	var port = timerPort.open('Timer', arguments, portEventCallback);
+	var port = timerPort.open('Timer', [], portEventCallback);
+	var startArgs;
 
 	function portEventCallback(name, args) {
-		_debug("binding[timer] port event " + name);
 		if (name instanceof IOPortError) {
+			if (name.message === 'restart') {
+				port = timerPort.open('Timer', [], portEventCallback);
+				if (startArgs) {
+					port.syncIO('start', startArgs);
+				}
+			}
 			return;
 		}
 		self[name].apply(self, args);
@@ -68,10 +74,12 @@ function Timer() {
 	};
 
 	this.start = function() {
+		startArgs = arguments;
 		return port.syncIO('start', arguments);
 	};
 
 	this.stop = function() {
+		startArgs = null;
 		return port.syncIO('stop', arguments);
 	};
 

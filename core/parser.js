@@ -1610,6 +1610,9 @@ var theParser = function() {
 		if (pos === undefined) {
 			pos = currentPos;
 		}
+		if (pos >= source.length) {
+			throw VMSyntaxError("Unexpected end of input");
+		}
 		var info = {};
 		convertToLineColumn(source, pos, info);
 		var finfo = sourceObject.filename + ":" + info.lineNumber + ":" + info.columnNumber;

@@ -41,7 +41,6 @@ parser.HTTPParser = function() {
 	var port = parserPort.open('HTTPParser', arguments, portEventCallback);
 
 	function portEventCallback(name, args) {
-		_debug("binding[parser] port event " + name);
 		if (name instanceof IOPortError) {
 			return;
 		}

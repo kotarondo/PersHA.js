@@ -39,7 +39,6 @@ var Stats;
 
 function makeFSmethods(name, reqPos, options) {
 	return function() {
-		//_debug("binding[fs] " + name);
 		var args = Array.prototype.slice.call(arguments);
 		var req = args[reqPos];
 		if (req === undefined) {

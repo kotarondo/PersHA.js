@@ -120,7 +120,6 @@ process.reallyExit = function() {
 	try {
 		debug.syncIO('exit', arguments);
 	} catch (e) {
-		// when the process restarts
 	}
 };
 

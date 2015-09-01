@@ -79,7 +79,6 @@ function accept(port) {
 	self._port = port.open('accept', [], portEventCallback);
 
 	function portEventCallback(name, args) {
-		_debug("binding[tcp] port event " + name);
 		if (name instanceof IOPortError) {
 			return;
 		}

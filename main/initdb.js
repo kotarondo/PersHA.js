@@ -41,12 +41,6 @@ try {
 	var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + 'bridge.js').toString();
 	Global_evaluateProgram(undefined, [ text, 'bridge.js' ]);
 
-	/* hacking
-	*/
-	Global_eval(undefined, [ "_debug" ]).Call = function(thisValue, argumentsList) {
-		console.log(argumentsList);
-	};
-
 	var process_binding = Global_eval(undefined, [ "process" ]);
 	process_binding.Put('execPath', process.execPath, false);
 
