@@ -212,7 +212,19 @@ function IOManager_asyncIO_completion(entry) {
 		Journal_write(entry);
 	}
 	IOManager_context.start();
-	IOPort_notify(entry, callback);
+	try{
+		IOPort_notify(entry, callback);
+	} catch (e) {
+		if (isInternalError(e)) throw e;
+		if (IOManager_state === 'online') {
+			if (Type(e) === TYPE_Object && e.Class === "Error") {
+				console.log("ERROR: " + e.Get('stack'));
+			}
+			else{
+				console.log("ERROR: " + ToString(e));
+			}
+		}
+	}
 	IOManager_context.stop();
 }
 
@@ -266,7 +278,19 @@ function IOManager_portEvent(entry) {
 		Journal_write(entry);
 	}
 	IOManager_context.start();
-	IOPort_notify(entry, port.Get('callback'));
+	try {
+		IOPort_notify(entry, port.Get('callback'));
+	} catch (e) {
+		if (isInternalError(e)) throw e;
+		if (IOManager_state === 'online') {
+			if (Type(e) === TYPE_Object && e.Class === "Error") {
+				console.log("ERROR: " + e.Get('stack'));
+			}
+			else{
+				console.log("ERROR: " + ToString(e));
+			}
+		}
+	}
 	IOManager_context.stop();
 }
 
@@ -303,7 +327,19 @@ function IOManager_evaluate(text, filename) {
 		});
 	}
 	IOManager_context.start();
-	Global_evaluateProgram(undefined, [ text, filename ]);
+	try{
+		Global_evaluateProgram(undefined, [ text, filename ]);
+	} catch (e) {
+		if (isInternalError(e)) throw e;
+		if (IOManager_state === 'online') {
+			if (Type(e) === TYPE_Object && e.Class === "Error") {
+				console.log("ERROR: " + e.Get('stack'));
+			}
+			else{
+				console.log("ERROR: " + ToString(e));
+			}
+		}
+	}
 	IOManager_context.stop();
 }
 

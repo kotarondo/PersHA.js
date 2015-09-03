@@ -43,6 +43,7 @@ try {
 
 	var process_binding = Global_eval(undefined, [ "process" ]);
 	process_binding.Put('execPath', process.execPath, false);
+	process_binding.Put('__cwd', process.cwd(), false);
 
 	var argv_binding = Global_eval(undefined, [ "process.argv" ]);
 	for(var i=3;i<process.argv.length;i++){

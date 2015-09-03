@@ -124,6 +124,7 @@ var process = {
 		// NODE_DEBUG : "module,net,dns,http",
 	},
 	_eval : null,
+	_forceRepl : true,
 	moduleLoadList : [],
 };
 

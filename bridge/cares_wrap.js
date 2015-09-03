@@ -59,19 +59,7 @@ cares.getnameinfo = function() {
 };
 
 cares.isIP = function() {
-	while (true) {
-		try {
-			var value = caresPort.syncIO('isIP', arguments);
-			return value;
-		} catch (e) {
-			if (e instanceof IOPortError) {
-				if (e.message === 'restart') {
-					continue;
-				}
-			}
-			throw e;
-		}
-	}
+	return caresPort.syncIO('isIP', arguments);
 };
 
 cares.strerror = function() {
@@ -87,9 +75,7 @@ cares.setServers = function() {
 };
 
 cares.GetAddrInfoReqWrap = function() {
-	_debug("cares.GetAddrInfoReqWrap TODO");
 };
 
 cares.GetNameInfoReqWrap = function() {
-	_debug("cares.GetNameInfoReqWrap TODO");
 };

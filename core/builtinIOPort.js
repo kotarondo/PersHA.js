@@ -85,7 +85,6 @@ function IOPort_prototype_asyncIO(thisValue, argumentsList) {
 }
 
 function IOPort_notify(entry, callback) {
-	try {
 		if (entry.error) {
 			assert(typeof entry.error === 'string');
 			callback.Call(undefined, [ IOPortError_Construct([ entry.error ]) ]);
@@ -93,17 +92,6 @@ function IOPort_notify(entry, callback) {
 		else {
 			callback.Call(undefined, IOPort_wrapArgs(entry.value));
 		}
-	} catch (e) {
-		if (isInternalError(e)) throw e;
-		if (IOManager_state === 'online') {
-			if (Type(e) === TYPE_Object && e.Class === "Error") {
-				console.log("ERROR: " + e.Get('stack'));
-			}
-			else{
-				console.log("ERROR: " + ToString(e));
-			}
-		}
-	}
 }
 
 function IOPort_prototype_open(thisValue, argumentsList) {

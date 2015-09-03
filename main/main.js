@@ -40,6 +40,18 @@ var NODE_INIT_SCRIPT_DIR;
 var BRIDGE_SCRIPT_DIR;
 var HANDLER_SCRIPT_DIR;
 
+function rmdirSync (path) {
+    fs.readdirSync(path).forEach(function(file){
+      var p = path + "/" + file;
+      if(fs.lstatSync(p).isDirectory()) {
+        rmdirSync(p);
+      } else {
+        fs.unlinkSync(p);
+      }
+    });
+    fs.rmdirSync(path);
+}
+
 (function() {
 	var path = require('path');
 	var fs = require('fs');
@@ -47,7 +59,6 @@ var HANDLER_SCRIPT_DIR;
 	function print_usage() {
 		console.log("Usage:");
 		console.log("    persha -init [main module]");
-		console.log("    persha -destroy");
 		console.log("    persha -restart");
 		console.log("  where data directory can be specified by the environment variable PERSHA_DATA which defaults to $HOME/.persha");
 	}
@@ -71,8 +82,7 @@ var HANDLER_SCRIPT_DIR;
 	var cmd = process.argv[2];
 	if (cmd === '-init') {
 		if (fs.existsSync(PERSHA_DATA)) {
-			console.log("ERROR: already exists: " + PERSHA_DATA);
-			process.exit(1);
+			rmdirSync(PERSHA_DATA);
 		}
 		try {
 			fs.mkdirSync(PERSHA_DATA);
@@ -81,9 +91,6 @@ var HANDLER_SCRIPT_DIR;
 			process.exit(1);
 		}
 		persha_init();
-	}
-	else if (cmd === '-destroy') {
-		//TODO
 	}
 	else if (cmd === '-restart') {
 		if (!fs.existsSync(PERSHA_DATA)) {

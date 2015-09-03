@@ -46,7 +46,6 @@ function makeFSmethods(name, reqPos, options) {
 		var args = Array.prototype.slice.call(arguments);
 		var req = args[reqPos];
 		if (req === undefined) {
-			while (true) {
 				try {
 					if (options.argsFilter) {
 						var a = options.argsFilter.apply(undefined, args);
@@ -54,7 +53,7 @@ function makeFSmethods(name, reqPos, options) {
 					else {
 						var a = args.slice(0, reqPos);
 					}
-					var value = fsPort.syncIO(name, a);
+					var value = fsPort.syncIO(name, a, options.restartPolicy !== 'retry');
 					if (options.valueFilter) {
 						value = options.valueFilter(value, args);
 					}
@@ -62,9 +61,6 @@ function makeFSmethods(name, reqPos, options) {
 				} catch (err) {
 					if (err instanceof IOPortError) {
 						if (err.message === 'restart') {
-							if (options.restartPolicy === 'retry') {
-								continue;
-							}
 							if (options.restartPolicy === 'ignore') {
 								return;
 							}
@@ -77,7 +73,6 @@ function makeFSmethods(name, reqPos, options) {
 					}
 					throw err;
 				}
-			}
 		}
 		else {
 			(function retry() {
