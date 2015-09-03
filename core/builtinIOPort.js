@@ -54,9 +54,13 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	var port = thisValue;
 	var name = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList[1]);
-	IOManager_context.pause(true);
-	var entry = IOManager_syncIO(port, name, args);
-	IOManager_context.resume();
+	var noRetry = IOPort_unwrapArgs(argumentsList[2]);
+	do{
+		IOManager_context.pause(true);
+		var entry = IOManager_syncIO(port, name, args);
+		IOManager_context.resume();
+	}
+	while(!noRetry && entry.error === 'restart');
 	if (entry.error) {
 		assert(isPrimitiveValue(entry.error));
 		throw IOPortError_Construct([ entry.error ]);
@@ -91,7 +95,14 @@ function IOPort_notify(entry, callback) {
 		}
 	} catch (e) {
 		if (isInternalError(e)) throw e;
-		console.log("DEBUG: " + e.Get('stack')); //TODO handle uncaught exception
+		if (IOManager_state === 'online') {
+			if (Type(e) === TYPE_Object && e.Class === "Error") {
+				console.log("ERROR: " + e.Get('stack'));
+			}
+			else{
+				console.log("ERROR: " + ToString(e));
+			}
+		}
 	}
 }
 

@@ -53,6 +53,9 @@ function syncIO(name, args) {
 	if (name === 'guessHandleType') {
 		return tty.guessHandleType(args[0]);
 	}
+	if (name === 'isTTY') {
+		return tty.isTTY(args[0]);
+	}
 	console.log("[unhandled] tty_wrap syncIO:" + name);
 	console.log(args);
 }

@@ -44,6 +44,11 @@ try {
 	var process_binding = Global_eval(undefined, [ "process" ]);
 	process_binding.Put('execPath', process.execPath, false);
 
+	var argv_binding = Global_eval(undefined, [ "process.argv" ]);
+	for(var i=3;i<process.argv.length;i++){
+		argv_binding.Put(String(i-2), process.argv[i], false);
+	}
+
 	var env_binding = Global_eval(undefined, [ "process.env" ]);
 	env_binding.Put('HOME', process.env['HOME'], false);
 	env_binding.Put('NODE_PATH', process.env['NODE_PATH'], false);
@@ -116,17 +121,19 @@ try {
 
 	var text = fs.readFileSync(NODE_INIT_SCRIPT_DIR + 'node.js').toString();
 	Journal_init();
-	Journal_write({
-		type : 'evaluate',
-		text : text,
-		filename : 'node.js',
-	});
+	IOManager_state = 'online';
+	IOManager_evaluate(text, 'node.js');
 
 } catch (e) {
 	if (isInternalError(e)) {
 		console.log("FATAL: " + e.stack);
 	}
 	else {
-		console.log("FATAL: " + e.Get('stack'));
+		if (Type(e) === TYPE_Object && e.Class === "Error") {
+			console.log("FATAL: " + e.Get('stack'));
+		}
+		else{
+			console.log("FATAL: " + ToString(e));
+		}
 	}
 }

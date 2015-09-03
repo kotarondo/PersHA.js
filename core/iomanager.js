@@ -272,6 +272,7 @@ function IOManager_portEvent(entry) {
 
 function IOManager_online() {
 	assert(IOManager_state === 'recovery');
+	console.log('READY');
 	IOManager_state = 'online';
 	for ( var txid in IOManager_openPorts) {
 		var entry = {
@@ -302,12 +303,7 @@ function IOManager_evaluate(text, filename) {
 		});
 	}
 	IOManager_context.start();
-	try {
-		Global_evaluateProgram(undefined, [ text, filename ]);
-	} catch (e) {
-		if (isInternalError(e)) throw e;
-		console.log("debug: " + ToString(e));
-	}
+	Global_evaluateProgram(undefined, [ text, filename ]);
 	IOManager_context.stop();
 }
 
@@ -332,7 +328,6 @@ function IOManager_start() {
 			IOManager_portEvent(entry);
 		}
 	}
-	console.log('READY');
 }
 
 var IOManager_context = (function() {

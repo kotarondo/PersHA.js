@@ -42,6 +42,9 @@ module.exports = {
 var fs = require('fs');
 
 function open(name, args, callback) {
+	if (name === '') {
+		return;
+	}
 	console.log("[unhandled] fs open:" + name);
 	console.log(args);
 }

@@ -13,8 +13,8 @@ do
 	cat ${file} >>${TARGET}
 done
 
-echo "function persha_initdb(){" >>${TARGET}
-cat ${SRCPATH}/initdb.js >>${TARGET}
+echo "function persha_init(){" >>${TARGET}
+cat ${SRCPATH}/init.js >>${TARGET}
 echo "}" >>${TARGET}
 
 cat ${SRCPATH}/main.js >>${TARGET}

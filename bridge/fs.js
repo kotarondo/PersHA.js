@@ -37,6 +37,10 @@ var fs = process.binding('fs');
 var fsPort = new IOPort('fs');
 var Stats;
 
+fsPort.open("", [], function(event){
+	_debug("fs bridge DEBUG: fs callback:"+event);
+});
+
 function makeFSmethods(name, reqPos, options) {
 	return function() {
 		var args = Array.prototype.slice.call(arguments);

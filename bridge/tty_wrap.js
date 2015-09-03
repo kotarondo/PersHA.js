@@ -37,18 +37,7 @@ var tty = process.binding('tty_wrap');
 var ttyPort = new IOPort('tty_wrap');
 
 tty.guessHandleType = function(fd) {
-	while (true) {
-		try {
-			return ttyPort.syncIO('guessHandleType', arguments);
-		} catch (e) {
-			if (e instanceof IOPortError) {
-				if (e.message === 'restart') {
-					continue;
-				}
-			}
-			throw e;
-		}
-	}
+	return ttyPort.syncIO('guessHandleType', arguments);
 };
 
 tty.isTTY = function(fd) {

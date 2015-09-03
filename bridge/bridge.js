@@ -33,15 +33,25 @@
 
 'use strict';
 
-Object.prototype.__defineGetter__ = function(n, getter) {
-	Object.defineProperty(this, n, {
-		get : getter
-	});
-};
+Object.defineProperty(Object.prototype, "__defineGetter__", {
+	value: function(n, getter) {
+		Object.defineProperty(this, n, {
+			get : getter
+		});
+	},
+	writable: true,
+  enumerable: false,
+  configurable: true
+});
 
-Number.isFinite = function(value) {
-	return typeof value === "number" && isFinite(value);
-}
+Object.defineProperty(Number, "isFinite", {
+	value: function(value) {
+		return typeof value === "number" && isFinite(value);
+	},
+	writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 Object.defineProperty(Error, "stackTraceLimit", {
 	get : function() {
@@ -50,6 +60,8 @@ Object.defineProperty(Error, "stackTraceLimit", {
 	set : function(value) {
 		setSystemProperty("stackTraceLimit", value);
 	},
+  enumerable: true,
+  configurable: true
 });
 
 Error.captureStackTrace = (function() {
@@ -103,23 +115,24 @@ var _debug = (function() {
 
 var process = {
 	execPath : '.',
+	__cwd : '.',
 	cwd : function() {
-		return '.'
+		return this.__cwd;
 	},
 	argv : [ 'node' ],
 	env : {
-	// NODE_DEBUG : "module,net,dns,http",
+		// NODE_DEBUG : "module,net,dns,http",
 	},
 	_eval : null,
-	_forceRepl : true,
 	moduleLoadList : [],
 };
 
 process.reallyExit = function() {
 	var debug = new IOPort('process');
 	try {
-		debug.syncIO('exit', arguments);
+		debug.syncIO('exit', arguments, true);
 	} catch (e) {
+		// ignore restart error
 	}
 };
 
