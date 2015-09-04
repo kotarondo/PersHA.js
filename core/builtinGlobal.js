@@ -367,7 +367,7 @@ function Global_setSystemProperty(thisValue, argumentsList) {
 		LocalTZAString = ToString(value);
 	}
 	if (name === "INSPECT_MAX_BYTES") {
-		INSPECT_MAX_BYTES = ToUint32(value);
+		INSPECT_MAX_BYTES = ToInteger(value);
 	}
 	if (name === "stackDepthLimit") {
 		stackDepthLimit= ToUint32(value);

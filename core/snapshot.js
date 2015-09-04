@@ -205,7 +205,7 @@ function writeSnapshot(l_ostream) {
 	if (builtin_Buffer_prototype !== undefined) {
 		ostream.writeString("Buffer");
 		ostream.writeInt(builtin_Buffer_prototype.ID);
-		ostream.writeInt(INSPECT_MAX_BYTES);
+		ostream.writeValue(INSPECT_MAX_BYTES);
 	}
 	if (builtin_IOPort_prototype !== undefined) {
 		ostream.writeString("IOPort");
@@ -350,7 +350,7 @@ function readSnapshot(l_istream) {
 		case "Buffer":
 			builtin_Buffer_prototype = allObjs[istream.readInt()];
 			istream.assert(builtin_Buffer_prototype.ClassID === CLASSID_Buffer);
-			INSPECT_MAX_BYTES = istream.readInt();
+			INSPECT_MAX_BYTES = istream.readValue();
 			break;
 		case "IOPort":
 			builtin_IOPort_prototype = allObjs[istream.readInt()];
