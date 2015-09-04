@@ -41,6 +41,14 @@ try {
 	var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + 'bridge.js').toString();
 	Global_evaluateProgram(undefined, [ text, 'bridge.js' ]);
 
+	var bridge_list = [ 'process', 'fs', 'uv', 'http_parser', 'crypto', 'tcp_wrap', 'udp_wrap', 'tty_wrap', 'timer_wrap', 'pipe_wrap', 'cares_wrap', 'stream_wrap', 'signal_wrap', ];
+	for (var i = 0; i < bridge_list.length; i++) {
+		var n = bridge_list[i];
+		var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + n + '.js').toString();
+		text = "(function(){" + text + "})();";
+		Global_evaluateProgram(undefined, [ text, n + '.js' ]);
+	}
+
 	var process_binding = Global_eval(undefined, [ "process" ]);
 	process_binding.Put('execPath', process.execPath, false);
 	process_binding.Put('__cwd', process.cwd(), false);
@@ -53,15 +61,6 @@ try {
 	var env_binding = Global_eval(undefined, [ "process.env" ]);
 	env_binding.Put('HOME', process.env['HOME'], false);
 	env_binding.Put('NODE_PATH', process.env['NODE_PATH'], false);
-
-	var bridge_list = [ 'fs', 'uv', 'http_parser', 'crypto', 'tcp_wrap', 'udp_wrap', 'tty_wrap', 'timer_wrap', 'pipe_wrap', 'cares_wrap',
-			'stream_wrap', 'signal_wrap', ];
-	for (var i = 0; i < bridge_list.length; i++) {
-		var n = bridge_list[i];
-		var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + n + '.js').toString();
-		text = "(function(){" + text + "})();";
-		Global_evaluateProgram(undefined, [ text, n + '.js' ]);
-	}
 
 	var natives_binding = Global_eval(undefined, [ "process.binding('natives')" ]);
 	var natives_list = [ 'events', 'constants', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs',

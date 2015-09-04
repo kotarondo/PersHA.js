@@ -33,6 +33,32 @@
 
 'use strict';
 
+var process = {};
+
+process.binding = (function() {
+	var bindings = {
+		contextify : {},
+		natives : {},
+		smalloc : {},
+		constants : {},
+		fs : {},
+		uv : {},
+		http_parser : {},
+		crypto : {},
+		tty_wrap : {},
+		timer_wrap : {},
+		pipe_wrap : {},
+		cares_wrap : {},
+		tcp_wrap : {},
+		udp_wrap : {},
+		stream_wrap : {},
+		signal_wrap : {},
+	};
+	return function(name) {
+		return bindings[name];
+	}
+})();
+
 Object.defineProperty(Object.prototype, "__defineGetter__", {
 	value: function(n, getter) {
 		Object.defineProperty(this, n, {
@@ -103,87 +129,4 @@ Error.captureStackTrace = (function() {
 	}
 })();
 
-var _debug = (function() {
-	var debug = new IOPort('process');
-	return function() {
-		try {
-			debug.syncIO('debug', arguments);
-		} catch (e) {
-		}
-	};
-})();
-
-var process = {
-	execPath : '.',
-	__cwd : '.',
-	cwd : function() {
-		return this.__cwd;
-	},
-	argv : [ 'node' ],
-	env : {
-		// NODE_DEBUG : "module,net,dns,http",
-	},
-	_eval : null,
-	_forceRepl : true,
-	moduleLoadList : [],
-};
-
-process.reallyExit = function() {
-	var debug = new IOPort('process');
-	try {
-		debug.syncIO('exit', arguments, true);
-	} catch (e) {
-		// ignore restart error
-	}
-};
-
-process._setupNextTick = function(tickInfo, _tickCallback, _runMicrotasks) {
-	tickInfo[0] = 0;
-	tickInfo[1] = 0;
-	function callbackNextTick() {
-		if (tickInfo[0] < tickInfo[1]) {
-			_tickCallback();
-		}
-	}
-	_runMicrotasks.runMicrotasks = function() {
-		callbackNextTick.scheduleAsMicrotask();
-	};
-	_runMicrotasks.runMicrotasks();
-};
-
-process._setupDomainUse = function(_domain, _domain_flag) {
-	//TODO domain support
-};
-
-process.binding = (function() {
-	var bindings = {
-		contextify : {},
-		natives : {},
-		smalloc : {},
-		constants : {},
-		fs : {},
-		uv : {},
-		http_parser : {},
-		crypto : {},
-		tty_wrap : {},
-		timer_wrap : {},
-		pipe_wrap : {},
-		cares_wrap : {},
-		tcp_wrap : {},
-		udp_wrap : {},
-		stream_wrap : {},
-		signal_wrap : {},
-	};
-	return function(name) {
-		return bindings[name];
-	}
-})();
-
-process.binding('contextify').ContextifyScript = function(code, options) {
-	parseProgram(code, options.filename);
-	this.runInThisContext = function() {
-		return evaluateProgram(code, options.filename);
-	};
-};
-
-process.binding('natives').config = "\n{}";
+var _debug ;
