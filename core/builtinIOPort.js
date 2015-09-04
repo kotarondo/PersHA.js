@@ -54,7 +54,7 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	var port = thisValue;
 	var name = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList[1]);
-	var noRetry = IOPort_unwrapArgs(argumentsList[2]);
+	var noRetry = ToBoolean(argumentsList[2]);
 	do {
 		IOManager_context.pause(true);
 		var entry = IOManager_syncIO(port, name, args);
