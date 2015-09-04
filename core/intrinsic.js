@@ -101,6 +101,7 @@ var intrinsicFunctions = {
 	Function_prototype_call : Function_prototype_call,
 	Function_prototype_bind : Function_prototype_bind,
 	Function_prototype_scheduleAsMicrotask : Function_prototype_scheduleAsMicrotask,
+	get_Function_prototype_name: get_Function_prototype_name,
 	Array_isArray : Array_isArray,
 	Array_prototype_toString : Array_prototype_toString,
 	Array_prototype_toLocaleString : Array_prototype_toLocaleString,

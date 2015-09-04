@@ -76,12 +76,25 @@ function Function_prototype_toString(thisValue, argumentsList) {
 	}
 	assert(func.ClassID === CLASSID_FunctionObject);
 	var param = func.FormalParameters;
-	var name = func.Code.functionName;
+	var name = func.Code.functionName || "anonymous";
 	var startPos = func.Code.startPos;
 	var endPos = func.Code.endPos;
 	var source = func.Code.sourceObject.source;
 	var codeText = source.substring(startPos, endPos);
 	return "function " + name + "(" + param + "){" + codeText + "}";
+}
+
+function get_Function_prototype_name(thisValue, argumentsList) {
+	var func = thisValue;
+	if (IsCallable(func) === false) throw VMTypeError();
+	while (func.ClassID === CLASSID_BindFunction) {
+		func = func.TargetFunction;
+	}
+	if (func.ClassID === CLASSID_BuiltinFunction) {
+		return getIntrinsicFunctionName(func.Call);
+	}
+	assert(func.ClassID === CLASSID_FunctionObject);
+	return func.Code.functionName;
 }
 
 function Function_prototype_apply(thisValue, argumentsList) {

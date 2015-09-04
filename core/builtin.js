@@ -374,6 +374,7 @@ function initializeVM() {
 	defineFunction(builtin_Function_prototype, "bind", 1, Function_prototype_bind);
 	if (STRICT_CONFORMANCE === false) {
 		defineFunction(builtin_Function_prototype, "scheduleAsMicrotask", 1, Function_prototype_scheduleAsMicrotask);
+		defineAccessor(builtin_Function_prototype, "name", get_Function_prototype_name, undefined);
 	}
 
 	defineFinal(builtin_Array, "length", 1);
