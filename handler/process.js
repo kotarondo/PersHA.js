@@ -40,17 +40,25 @@ module.exports = {
 };
 
 function open(name, args, callback) {
+	console.log("[unhandled] process open:" + name + ":" + args);
 }
 
 function syncIO(name, args) {
 	if (name === 'debug') {
 		console.log("debug: " + args);
+		return;
 	}
 	if (name === 'exit') {
 		process.exit();
+		return;
 	}
+	console.log("[unhandled] process syncIO:" + name + ":" + args);
 }
 
 function asyncIO(name, args, callback) {
-	callback();
+	if (name === 'setImmediate') {
+		setImmediate(callback);
+		return;
+	}
+	console.log("[unhandled] process asyncIO:" + name + ":" + args);
 }

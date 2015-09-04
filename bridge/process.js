@@ -78,3 +78,32 @@ process.binding('contextify').ContextifyScript = function(code, options) {
 };
 
 process.binding('natives').config = "\n{}";
+
+var _needImmediateCallback = false;
+var _immediateCallbackScheduled = false;
+
+Object.defineProperty(process, "_needImmediateCallback", {
+	get : function() {
+		return _needImmediateCallback;
+	},
+	set : function(value) {
+		_needImmediateCallback = value;
+		if (value && !_immediateCallbackScheduled) {
+			_immediateCallbackScheduled = true;
+			processPort.asyncIO('setImmediate', [], immediateCallback);
+		}
+	},
+	enumerable : false,
+	configurable : true
+});
+
+function immediateCallback() {
+	_immediateCallbackScheduled = false;
+	if (_needImmediateCallback) {
+		process._immediateCallback();
+		if (_needImmediateCallback) {
+			_immediateCallbackScheduled = true;
+			processPort.asyncIO('setImmediate', [], immediateCallback);
+		}
+	}
+}
