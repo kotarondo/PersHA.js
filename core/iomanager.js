@@ -368,6 +368,7 @@ function IOManager_start() {
 
 var IOManager_context = (function() {
 	var interruptible = true;
+	var ioCount = 0;
 	var startCount = 0;
 	var pauseCount = 0;
 	var estimate = 0;
@@ -384,8 +385,12 @@ var IOManager_context = (function() {
 	function isInterruptible() {
 		return interruptible;
 	}
+	function getIOCount() {
+		return ioCount;
+	}
 	function start() {
 		assert(pauseCount === startCount && interruptible);
+		ioCount++;
 		startCount++;
 		interruptible = false;
 		resumeTimer();
@@ -425,5 +430,6 @@ var IOManager_context = (function() {
 		pause : pause,
 		resume : resume,
 		isInterruptible : isInterruptible,
+		getIOCount : getIOCount,
 	};
 })();

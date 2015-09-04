@@ -110,4 +110,20 @@ function rmdirSync(path) {
 		process.exit(1);
 	}
 
+	var prevIOCount;
+	process.on('beforeExit', function() {
+		if (IOManager_state !== 'online') {
+			return;
+		}
+		if (prevIOCount === IOManager_context.getIOCount()) {
+			IOManager_evaluate("process.exit()", "");
+			process.exit();
+			return;
+		}
+		IOManager_evaluate("process.emit('beforeExit')", "");
+		prevIOCount = IOManager_context.getIOCount();
+		setTimeout(function() {
+		}, 1);
+	});
+
 })();

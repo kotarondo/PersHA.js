@@ -49,7 +49,15 @@ process._forceRepl = true;
 process.moduleLoadList = [];
 
 process.reallyExit = function() {
-	processPort.syncIO('exit', arguments, true);
+	processPort.syncIO('exit', arguments);
+};
+
+process.suspendExit = function() {
+	try {
+		processPort.syncIO('exit', arguments, true);
+	} catch (e) {
+		// ignore restart error
+	}
 };
 
 process._setupNextTick = function(tickInfo, _tickCallback, _runMicrotasks) {
