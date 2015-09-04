@@ -900,7 +900,7 @@ function ArrayObject_DefineOwnProperty(P, Desc, Throw) {
 
 //optimized version of ArrayObject_DefineOwnProperty
 function ArrayObject_DefineOwnProperty_Value(A, P, V, ownDesc) {
-	assert(ownDesc.Writable , ownDesc);
+	assert(ownDesc.Writable, ownDesc);
 	if (P === "length") {
 		var oldLen = ownDesc.Value;
 		V = ToNumber(V);

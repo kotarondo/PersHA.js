@@ -212,7 +212,7 @@ function IOManager_asyncIO_completion(entry) {
 		Journal_write(entry);
 	}
 	IOManager_context.start();
-	try{
+	try {
 		IOPort_notify(entry, callback);
 	} catch (e) {
 		if (isInternalError(e)) throw e;
@@ -220,7 +220,7 @@ function IOManager_asyncIO_completion(entry) {
 			if (Type(e) === TYPE_Object && e.Class === "Error") {
 				console.log("ERROR: " + e.Get('stack'));
 			}
-			else{
+			else {
 				console.log("ERROR: " + ToString(e));
 			}
 		}
@@ -286,7 +286,7 @@ function IOManager_portEvent(entry) {
 			if (Type(e) === TYPE_Object && e.Class === "Error") {
 				console.log("ERROR: " + e.Get('stack'));
 			}
-			else{
+			else {
 				console.log("ERROR: " + ToString(e));
 			}
 		}
@@ -327,7 +327,7 @@ function IOManager_evaluate(text, filename) {
 		});
 	}
 	IOManager_context.start();
-	try{
+	try {
 		Global_evaluateProgram(undefined, [ text, filename ]);
 	} catch (e) {
 		if (isInternalError(e)) throw e;
@@ -335,7 +335,7 @@ function IOManager_evaluate(text, filename) {
 			if (Type(e) === TYPE_Object && e.Class === "Error") {
 				console.log("ERROR: " + e.Get('stack'));
 			}
-			else{
+			else {
 				console.log("ERROR: " + ToString(e));
 			}
 		}

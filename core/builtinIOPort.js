@@ -55,12 +55,11 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	var name = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList[1]);
 	var noRetry = IOPort_unwrapArgs(argumentsList[2]);
-	do{
+	do {
 		IOManager_context.pause(true);
 		var entry = IOManager_syncIO(port, name, args);
 		IOManager_context.resume();
-	}
-	while(!noRetry && entry.error === 'restart');
+	} while (!noRetry && entry.error === 'restart');
 	if (entry.error) {
 		assert(isPrimitiveValue(entry.error));
 		throw IOPortError_Construct([ entry.error ]);
@@ -85,13 +84,13 @@ function IOPort_prototype_asyncIO(thisValue, argumentsList) {
 }
 
 function IOPort_notify(entry, callback) {
-		if (entry.error) {
-			assert(typeof entry.error === 'string');
-			callback.Call(undefined, [ IOPortError_Construct([ entry.error ]) ]);
-		}
-		else {
-			callback.Call(undefined, IOPort_wrapArgs(entry.value));
-		}
+	if (entry.error) {
+		assert(typeof entry.error === 'string');
+		callback.Call(undefined, [ IOPortError_Construct([ entry.error ]) ]);
+	}
+	else {
+		callback.Call(undefined, IOPort_wrapArgs(entry.value));
+	}
 }
 
 function IOPort_prototype_open(thisValue, argumentsList) {

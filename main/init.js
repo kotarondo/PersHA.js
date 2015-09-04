@@ -29,7 +29,7 @@
  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ */
 
 'use strict'
 
@@ -41,7 +41,8 @@ try {
 	var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + 'bridge.js').toString();
 	Global_evaluateProgram(undefined, [ text, 'bridge.js' ]);
 
-	var bridge_list = [ 'process', 'fs', 'uv', 'http_parser', 'crypto', 'tcp_wrap', 'udp_wrap', 'tty_wrap', 'timer_wrap', 'pipe_wrap', 'cares_wrap', 'stream_wrap', 'signal_wrap', ];
+	var bridge_list = [ 'process', 'fs', 'uv', 'http_parser', 'crypto', 'tcp_wrap', 'udp_wrap', 'tty_wrap', 'timer_wrap',
+			'pipe_wrap', 'cares_wrap', 'stream_wrap', 'signal_wrap', ];
 	for (var i = 0; i < bridge_list.length; i++) {
 		var n = bridge_list[i];
 		var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + n + '.js').toString();
@@ -54,8 +55,8 @@ try {
 	process_binding.Put('__cwd', process.cwd(), false);
 
 	var argv_binding = Global_eval(undefined, [ "process.argv" ]);
-	for(var i=3;i<process.argv.length;i++){
-		argv_binding.Put(String(i-2), process.argv[i], false);
+	for (var i = 3; i < process.argv.length; i++) {
+		argv_binding.Put(String(i - 2), process.argv[i], false);
 	}
 
 	var env_binding = Global_eval(undefined, [ "process.env" ]);
@@ -63,11 +64,11 @@ try {
 	env_binding.Put('NODE_PATH', process.env['NODE_PATH'], false);
 
 	var natives_binding = Global_eval(undefined, [ "process.binding('natives')" ]);
-	var natives_list = [ 'events', 'constants', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs',
-			'path', 'net', 'repl', 'readline', 'domain', 'string_decoder', '_stream_readable', '_stream_writable', '_stream_duplex',
-			'_stream_transform', '_stream_passthrough', 'http', '_http_agent', '_http_client', '_http_common', '_http_incoming',
-			'_http_outgoing', '_http_server', 'freelist', '_linklist', 'url', 'punycode', 'querystring', 'dns', 'cluster', 'dgram', 'tty',
-			'crypto', ];
+	var natives_list = [ 'events', 'constants', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream',
+			'console', 'fs', 'path', 'net', 'repl', 'readline', 'domain', 'string_decoder', '_stream_readable',
+			'_stream_writable', '_stream_duplex', '_stream_transform', '_stream_passthrough', 'http', '_http_agent',
+			'_http_client', '_http_common', '_http_incoming', '_http_outgoing', '_http_server', 'freelist', '_linklist', 'url',
+			'punycode', 'querystring', 'dns', 'cluster', 'dgram', 'tty', 'crypto', ];
 	for (var i = 0; i < natives_list.length; i++) {
 		var n = natives_list[i];
 		var text = fs.readFileSync(NODE_INIT_SCRIPT_DIR + n + '.js').toString();
@@ -132,7 +133,7 @@ try {
 		if (Type(e) === TYPE_Object && e.Class === "Error") {
 			console.log("FATAL: " + e.Get('stack'));
 		}
-		else{
+		else {
 			console.log("FATAL: " + ToString(e));
 		}
 	}

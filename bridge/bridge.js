@@ -60,23 +60,23 @@ process.binding = (function() {
 })();
 
 Object.defineProperty(Object.prototype, "__defineGetter__", {
-	value: function(n, getter) {
+	value : function(n, getter) {
 		Object.defineProperty(this, n, {
 			get : getter
 		});
 	},
-	writable: true,
-  enumerable: false,
-  configurable: true
+	writable : true,
+	enumerable : false,
+	configurable : true
 });
 
 Object.defineProperty(Number, "isFinite", {
-	value: function(value) {
+	value : function(value) {
 		return typeof value === "number" && isFinite(value);
 	},
-	writable: true,
-  enumerable: false,
-  configurable: true
+	writable : true,
+	enumerable : false,
+	configurable : true
 });
 
 Object.defineProperty(Error, "stackTraceLimit", {
@@ -86,8 +86,8 @@ Object.defineProperty(Error, "stackTraceLimit", {
 	set : function(value) {
 		setSystemProperty("stackTraceLimit", value);
 	},
-  enumerable: true,
-  configurable: true
+	enumerable : true,
+	configurable : true
 });
 
 Error.captureStackTrace = (function() {
