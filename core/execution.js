@@ -212,6 +212,9 @@ var runningCode;
 var runningSourcePos;
 var outerExecutionContext;
 
+var stackDepth;
+var stackDepthLimit = 1000;
+
 function initExecutionContext() {
 	LexicalEnvironment = theGlobalEnvironment;
 	VariableEnvironment = theGlobalEnvironment;
@@ -219,9 +222,14 @@ function initExecutionContext() {
 	runningCode = undefined;
 	runningSourcePos = undefined;
 	outerExecutionContext = undefined;
+	stackDepth = 0;
 }
 
 function saveExecutionContext() {
+	if(stackDepth >= stackDepthLimit){
+		throw VMRangeError("stack overflow");
+	}
+	stackDepth++;
 	outerExecutionContext = preventExtensions({
 		LexicalEnvironment : LexicalEnvironment,
 		VariableEnvironment : VariableEnvironment,
@@ -240,6 +248,7 @@ function exitExecutionContext() {
 	runningCode = ctx.runningCode;
 	runningSourcePos = ctx.runningSourcePos;
 	outerExecutionContext = ctx.outerExecutionContext;
+	stackDepth--;
 }
 
 var stackTraceLimit = 10;

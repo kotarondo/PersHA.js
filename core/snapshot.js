@@ -194,6 +194,10 @@ function writeSnapshot(l_ostream) {
 		ostream.writeInt(stackTraceLimit);
 	}
 	{
+		ostream.writeString("StackLimit");
+		ostream.writeInt(stackDepthLimit);
+	}
+	{
 		ostream.writeString("Timezone");
 		ostream.writeInt(LocalTZA);
 		ostream.writeString(LocalTZAString);
@@ -316,6 +320,7 @@ function readSnapshot(l_istream) {
 
 	// extensions
 	stackTraceLimit = 10;
+	stackDepthLimit = Infinity;
 	LocalTZA = 9 * 3600000;
 	LocalTZAString = "JST";
 	INSPECT_MAX_BYTES = 50;
@@ -334,6 +339,9 @@ function readSnapshot(l_istream) {
 		switch (ext) {
 		case "StackTrace":
 			stackTraceLimit = istream.readInt();
+			break;
+		case "StackLimit":
+			stackDepthLimit = istream.readInt();
 			break;
 		case "Timezone":
 			LocalTZA = istream.readInt();
