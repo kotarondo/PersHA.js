@@ -95,11 +95,11 @@ function TTY(fd, flag) {
 	};
 
 	this.writeBuffer = function() {
-		_debug("[unhandled] tty.writeBuffer " + new Error().stack);
+		process._debug("[unhandled] tty.writeBuffer " + new Error().stack);
 	};
 
 	this.writeAsciiString = function() {
-		_debug("[unhandled] tty.writeAsciiString " + new Error().stack);
+		process._debug("[unhandled] tty.writeAsciiString " + new Error().stack);
 	};
 
 	this.writeUtf8String = function(req, data) {
@@ -112,11 +112,11 @@ function TTY(fd, flag) {
 	};
 
 	this.writeUcs2String = function() {
-		_debug("[unhandled] tty.writeUcs2String " + new Error().stack);
+		process._debug("[unhandled] tty.writeUcs2String " + new Error().stack);
 	};
 
 	this.writeBinaryString = function() {
-		_debug("[unhandled] tty.writeBinaryString " + new Error().stack);
+		process._debug("[unhandled] tty.writeBinaryString " + new Error().stack);
 	};
 
 	this.getWindowSize = function(winSize) {

@@ -35,7 +35,7 @@
 
 var processPort = new IOPort('process');
 
-_debug = function() {
+process._debug = function() {
 	processPort.syncIO('debug', arguments);
 };
 

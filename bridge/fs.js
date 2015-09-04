@@ -38,7 +38,7 @@ var fsPort = new IOPort('fs');
 var Stats;
 
 fsPort.open("", [], function(event){
-	_debug("fs bridge DEBUG: fs callback:"+event);
+	process._debug("fs bridge DEBUG: fs callback:"+event);
 });
 
 function makeFSmethods(name, reqPos, options) {
@@ -179,81 +179,81 @@ fs.read = makeFSmethods('readBuffer', 5, {
 });
 
 fs.access = function() {
-	_debug("binding[fs] access ");
+	process._debug("binding[fs] access ");
 };
 
 fs.chmod = function() {
-	_debug("binding[fs] chmod ");
+	process._debug("binding[fs] chmod ");
 };
 
 fs.chown = function() {
-	_debug("binding[fs] chown ");
+	process._debug("binding[fs] chown ");
 };
 
 fs.fchmod = function() {
-	_debug("binding[fs] fchmod ");
+	process._debug("binding[fs] fchmod ");
 };
 
 fs.fchown = function() {
-	_debug("binding[fs] fchown ");
+	process._debug("binding[fs] fchown ");
 };
 
 fs.fdatasync = function() {
-	_debug("binding[fs] fdatasync ");
+	process._debug("binding[fs] fdatasync ");
 };
 
 fs.fsync = function() {
-	_debug("binding[fs] fsync ");
+	process._debug("binding[fs] fsync ");
 };
 
 fs.ftruncate = function() {
-	_debug("binding[fs] ftruncate ");
+	process._debug("binding[fs] ftruncate ");
 };
 
 fs.futimes = function() {
-	_debug("binding[fs] futimes ");
+	process._debug("binding[fs] futimes ");
 };
 
 fs.link = function() {
-	_debug("binding[fs] link ");
+	process._debug("binding[fs] link ");
 };
 
 fs.mkdir = function() {
-	_debug("binding[fs] mkdir ");
+	process._debug("binding[fs] mkdir ");
 };
 
 fs.readdir = function() {
-	_debug("binding[fs] readdir ");
+	process._debug("binding[fs] readdir ");
 };
 
 fs.readlink = function() {
-	_debug("binding[fs] readlink ");
+	process._debug("binding[fs] readlink ");
 };
 
 fs.rename = function() {
-	_debug("binding[fs] rename ");
+	process._debug("binding[fs] rename ");
 };
 
 fs.rmdir = function() {
-	_debug("binding[fs] rmdir ");
+	process._debug("binding[fs] rmdir ");
 };
 
 fs.symlink = function() {
-	_debug("binding[fs] symlink ");
+	process._debug("binding[fs] symlink ");
 };
 
 fs.unlink = function() {
-	_debug("binding[fs] unlink ");
+	process._debug("binding[fs] unlink ");
 };
 
 fs.utimes = function() {
-	_debug("binding[fs] utimes ");
+	process._debug("binding[fs] utimes ");
 };
 
 fs.writeString = function() {
-	_debug("binding[fs] writeString ");
+	process._debug("binding[fs] writeString ");
 };
 
 fs.StatWatcher = function() {
-	_debug("binding[fs] StatWatcher ");
+	process._debug("binding[fs] StatWatcher ");
 };

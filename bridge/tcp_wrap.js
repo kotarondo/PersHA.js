@@ -115,27 +115,27 @@ TCP.prototype.close = function(callback) {
 };
 
 TCP.prototype.ref = function() {
-	_debug("[unhandled1] TCP.prototype.ref");
+	process._debug("[unhandled1] TCP.prototype.ref");
 };
 
 TCP.prototype.unref = function() {
-	_debug("[unhandled1] TCP.prototype.unref");
+	process._debug("[unhandled1] TCP.prototype.unref");
 };
 
 TCP.prototype.readStop = function() {
-	_debug("[unhandled1] TCP.prototype.readStop ");
+	process._debug("[unhandled1] TCP.prototype.readStop ");
 };
 
 TCP.prototype.shutdown = function() {
-	_debug("[unhandled1] TCP.prototype.shutdown ");
+	process._debug("[unhandled1] TCP.prototype.shutdown ");
 };
 
 TCP.prototype.writeBuffer = function() {
-	_debug("[unhandled1] TCP.prototype.writeBuffer ");
+	process._debug("[unhandled1] TCP.prototype.writeBuffer ");
 };
 
 TCP.prototype.writeAsciiString = function() {
-	_debug("[unhandled1] TCP.prototype.writeAsciiString ");
+	process._debug("[unhandled1] TCP.prototype.writeAsciiString ");
 };
 
 TCP.prototype.writeUtf8String = function(req, data) {
@@ -149,7 +149,7 @@ TCP.prototype.writeUtf8String = function(req, data) {
 };
 
 TCP.prototype.writeUcs2String = function() {
-	_debug("[unhandled1] TCP.prototype.writeUcs2String ");
+	process._debug("[unhandled1] TCP.prototype.writeUcs2String ");
 };
 
 TCP.prototype.writev = function(req, chunks) {
@@ -173,7 +173,7 @@ TCP.prototype.writeBinaryString = function(req, data) {
 };
 
 TCP.prototype.open = function() {
-	_debug("[unhandled1] TCP.prototype.open ");
+	process._debug("[unhandled1] TCP.prototype.open ");
 };
 
 TCP.prototype.listen = function() {
@@ -186,7 +186,7 @@ TCP.prototype.listen = function() {
 };
 
 TCP.prototype.connect = function() {
-	_debug("[unhandled1] TCP.prototype.connect ");
+	process._debug("[unhandled1] TCP.prototype.connect ");
 };
 
 TCP.prototype.bind = function() {
@@ -208,21 +208,21 @@ TCP.prototype.bind6 = function() {
 };
 
 TCP.prototype.connect6 = function() {
-	_debug("[unhandled1] TCP.prototype.connect6 ");
+	process._debug("[unhandled1] TCP.prototype.connect6 ");
 };
 
 TCP.prototype.getsockname = function() {
-	_debug("[unhandled1] TCP.prototype.getsockname ");
+	process._debug("[unhandled1] TCP.prototype.getsockname ");
 };
 
 TCP.prototype.getpeername = function() {
-	_debug("[unhandled1] TCP.prototype.getpeername ");
+	process._debug("[unhandled1] TCP.prototype.getpeername ");
 };
 
 TCP.prototype.setNoDelay = function() {
-	_debug("[unhandled1] TCP.prototype.setNoDelay ");
+	process._debug("[unhandled1] TCP.prototype.setNoDelay ");
 };
 
 TCP.prototype.setKeepAlive = function() {
-	_debug("[unhandled1] TCP.prototype.setKeepAlive ");
+	process._debug("[unhandled1] TCP.prototype.setKeepAlive ");
 };

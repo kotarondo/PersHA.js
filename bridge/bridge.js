@@ -128,5 +128,3 @@ Error.captureStackTrace = (function() {
 		obj.stack = stack;
 	}
 })();
-
-var _debug ;

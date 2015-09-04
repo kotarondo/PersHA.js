@@ -37,7 +37,7 @@ var cares = process.binding('cares_wrap');
 var caresPort = new IOPort('cares_wrap');
 
 cares.getHostByAddr = function() {
-	_debug("cares.getHostByAddr TODO");
+	process._debug("cares.getHostByAddr TODO");
 };
 
 cares.getaddrinfo = function(req, hostname, family, hints) {
@@ -55,7 +55,7 @@ cares.getaddrinfo = function(req, hostname, family, hints) {
 };
 
 cares.getnameinfo = function() {
-	_debug("cares.getnameinfo TODO");
+	process._debug("cares.getnameinfo TODO");
 };
 
 cares.isIP = function() {
@@ -63,15 +63,15 @@ cares.isIP = function() {
 };
 
 cares.strerror = function() {
-	_debug("cares.strerror TODO");
+	process._debug("cares.strerror TODO");
 };
 
 cares.getServers = function() {
-	_debug("cares.getServers TODO");
+	process._debug("cares.getServers TODO");
 };
 
 cares.setServers = function() {
-	_debug("cares.setServers TODO");
+	process._debug("cares.setServers TODO");
 };
 
 cares.GetAddrInfoReqWrap = function() {

@@ -37,11 +37,11 @@ var crypto = process.binding('crypto');
 var cryptoPort = new IOPort('crypto');
 
 crypto.SecureContext = function() {
-	_debug("crypto.SecureContext TODO ");
+	process._debug("crypto.SecureContext TODO ");
 };
 
 crypto.Connection = function() {
-	_debug("crypto.Connection TODO ");
+	process._debug("crypto.Connection TODO ");
 };
 
 crypto.CipherBase = function() {
@@ -49,7 +49,7 @@ crypto.CipherBase = function() {
 	self._port = cryptoPort.open('CipherBase', arguments, portEventCallback);
 
 	function portEventCallback(name, args) {
-		_debug("binding[crypto] port event " + name);
+		process._debug("binding[crypto] port event " + name);
 		if (name instanceof IOPortError) {
 			return;
 		}
@@ -94,7 +94,7 @@ crypto.DiffieHellman = function() {
 	self._port = cryptoPort.open('DiffieHellman', arguments, portEventCallback);
 
 	function portEventCallback(name, args) {
-		_debug("binding[crypto] port event " + name);
+		process._debug("binding[crypto] port event " + name);
 		if (name instanceof IOPortError) {
 			return;
 		}
@@ -139,7 +139,7 @@ crypto.DiffieHellmanGroup = function() {
 	self._port = cryptoPort.open('DiffieHellmanGroup', arguments, portEventCallback);
 
 	function portEventCallback(name, args) {
-		_debug("binding[crypto] port event " + name);
+		process._debug("binding[crypto] port event " + name);
 		if (name instanceof IOPortError) {
 			return;
 		}
@@ -176,7 +176,7 @@ crypto.ECDH = function() {
 	self._port = cryptoPort.open('ECDH', arguments, portEventCallback);
 
 	function portEventCallback(name, args) {
-		_debug("binding[crypto] port event " + name);
+		process._debug("binding[crypto] port event " + name);
 		if (name instanceof IOPortError) {
 			return;
 		}
@@ -190,7 +190,7 @@ crypto.Hmac = function() {
 	self._port = cryptoPort.open('Hmac', arguments, portEventCallback);
 
 	function portEventCallback(name, args) {
-		_debug("binding[crypto] port event " + name);
+		process._debug("binding[crypto] port event " + name);
 		if (name instanceof IOPortError) {
 			return;
 		}
@@ -204,7 +204,7 @@ crypto.Hash = function() {
 	self._port = cryptoPort.open('Hash', arguments, portEventCallback);
 
 	function portEventCallback(name, args) {
-		_debug("binding[crypto] port event " + name);
+		process._debug("binding[crypto] port event " + name);
 		if (name instanceof IOPortError) {
 			return;
 		}
@@ -225,7 +225,7 @@ crypto.Sign = function() {
 	self._port = cryptoPort.open('Sign', arguments, portEventCallback);
 
 	function portEventCallback(name, args) {
-		_debug("binding[crypto] port event " + name);
+		process._debug("binding[crypto] port event " + name);
 		if (name instanceof IOPortError) {
 			return;
 		}
@@ -239,7 +239,7 @@ crypto.Verify = function() {
 	self._port = cryptoPort.open('Verify', arguments, portEventCallback);
 
 	function portEventCallback(name, args) {
-		_debug("binding[crypto] port event " + name);
+		process._debug("binding[crypto] port event " + name);
 		if (name instanceof IOPortError) {
 			return;
 		}
@@ -253,7 +253,7 @@ crypto.Certificate = function() {
 	self._port = cryptoPort.open('Certificate', arguments, portEventCallback);
 
 	function portEventCallback(name, args) {
-		_debug("binding[crypto] port event " + name);
+		process._debug("binding[crypto] port event " + name);
 		if (name instanceof IOPortError) {
 			return;
 		}
@@ -263,39 +263,39 @@ crypto.Certificate = function() {
 };
 
 crypto.setEngine = function() {
-	_debug("crypto.setEngine TODO ");
+	process._debug("crypto.setEngine TODO ");
 }
 
 crypto.PBKDF2 = function() {
-	_debug("crypto.PBKDF2 TODO ");
+	process._debug("crypto.PBKDF2 TODO ");
 }
 
 crypto.randomBytes = function() {
-	_debug("crypto.randomBytes TODO ");
+	process._debug("crypto.randomBytes TODO ");
 }
 
 crypto.pseudoRandomBytes = function() {
-	_debug("crypto.pseudoRandomBytes TODO ");
+	process._debug("crypto.pseudoRandomBytes TODO ");
 }
 
 crypto.getSSLCiphers = function() {
-	_debug("crypto.getSSLCiphers TODO ");
+	process._debug("crypto.getSSLCiphers TODO ");
 }
 
 crypto.getCiphers = function() {
-	_debug("crypto.getCiphers TODO ");
+	process._debug("crypto.getCiphers TODO ");
 }
 
 crypto.getHashes = function() {
-	_debug("crypto.getHashes TODO ");
+	process._debug("crypto.getHashes TODO ");
 }
 
 crypto.publicEncrypt = function() {
-	_debug("crypto.publicEncrypt TODO ");
+	process._debug("crypto.publicEncrypt TODO ");
 }
 
 crypto.privateDecrypt = function() {
-	_debug("crypto.privateDecrypt TODO ");
+	process._debug("crypto.privateDecrypt TODO ");
 }
 
 crypto.SSL3_ENABLE = 0;
