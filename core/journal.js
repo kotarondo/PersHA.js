@@ -93,7 +93,6 @@ function Journal_start() {
 }
 
 function Journal_checkpoint() {
-	console.log("journal checkpoint ");//debug
 	Journal_currentFileNo = (Journal_currentFileNo + 1) % MAX_CHECKPOINT_FILES;
 	Journal_currentGen++;
 	Journal_clearLogHeader();

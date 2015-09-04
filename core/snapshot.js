@@ -571,8 +571,8 @@ function RegExp_readObject(istream) {
 		theRegExpFactory.compile(this);
 	} catch (e) {
 		if (isInternalError(e)) throw e;
-		console.log(e);
-		console.log("debug :" + this.Get("source"))
+		console.log("debug: regexp load error: " + ToString(e));
+		console.log("debug: regexp load error: " + this.Get("source"))
 	}
 }
 
