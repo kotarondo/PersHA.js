@@ -34,10 +34,8 @@
 'use strict';
 
 var stream = process.binding('stream_wrap');
-var streamPort = new IOPort('stream_wrap');
 
 stream.ShutdownWrap = function() {
-	process._debug("stream.ShutdownWrap TODO");
 };
 
 stream.WriteWrap = function() {

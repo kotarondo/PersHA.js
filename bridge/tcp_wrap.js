@@ -45,11 +45,12 @@ function TCPConnectWrap() {
 function TCP() {
 	var self = this;
 	self._port = tcpPort.open('TCP', [], portEventCallback);
+	self.writeQueueSize = 0;
 
 	function portEventCallback(name, args) {
 		if (name instanceof IOPortError) {
 			if (name.message === 'restart') {
-				if (self._listenArgs) { // restart server automatically
+				if (self._listenArgs) {
 					self._port = tcpPort.open('TCP', [], portEventCallback);
 					if (self._bindArgs) {
 						self._port.syncIO('bind', self._bindArgs);
@@ -65,7 +66,7 @@ function TCP() {
 		if (name === 'onconnection') {
 			var err = args[0];
 			if (!err) {
-				var handle = new accept(self._port);
+				var handle = new AcceptTCP(self._port);
 			}
 			self.onconnection(err, handle);
 			return;
@@ -74,9 +75,10 @@ function TCP() {
 	}
 }
 
-function accept(port) {
+function AcceptTCP(port) {
 	var self = this;
 	self._port = port.open('accept', [], portEventCallback);
+	self.writeQueueSize = 0;
 
 	function portEventCallback(name, args) {
 		if (name instanceof IOPortError) {
@@ -86,94 +88,131 @@ function accept(port) {
 	}
 }
 
-accept.prototype = TCP.prototype;
+AcceptTCP.prototype = TCP.prototype;
 
-TCP.prototype.connect = function(req, address, port) {
-	var self = this;
-	self._port.asyncIO('connect', [ address, port ], function(status, readable, writable) {
-		if (status instanceof IOPortError) {
-			//TODO
-		}
-		req.oncomplete(status, self, req, readable, writable);
-	});
-};
-
-TCP.prototype.readStart = function() {
-	var self = this;
-	return self._port.syncIO('readStart', arguments);
+function nop() {
 };
 
 TCP.prototype.close = function(callback) {
 	var self = this;
 	self._port.close();
 	if (callback === undefined) {
-		return self._port.syncIO('close');
+		callback = nop;
 	}
-	else {
-		self._port.asyncIO('close', null, callback);
-	}
+	self._port.asyncIO('close', [], callback);
 };
 
 TCP.prototype.ref = function() {
-	process._debug("[unhandled1] TCP.prototype.ref");
+	var self = this;
+	return self._port.syncIO('ref', []);
 };
 
 TCP.prototype.unref = function() {
-	process._debug("[unhandled1] TCP.prototype.unref");
+	var self = this;
+	return self._port.syncIO('unref', []);
+};
+
+TCP.prototype.readStart = function() {
+	var self = this;
+	return self._port.syncIO('readStart', []);
 };
 
 TCP.prototype.readStop = function() {
-	process._debug("[unhandled1] TCP.prototype.readStop ");
+	var self = this;
+	return self._port.syncIO('readStop', []);
 };
 
-TCP.prototype.shutdown = function() {
-	process._debug("[unhandled1] TCP.prototype.shutdown ");
+TCP.prototype.shutdown = function(req) {
+	var self = this;
+	self._port.asyncIO('shutdown', [], function(status) {
+		if (status instanceof IOPortError) {
+			status = -1;
+		}
+		req.oncomplete(status, self, req);
+	});
+	return 0;
 };
 
-TCP.prototype.writeBuffer = function() {
-	process._debug("[unhandled1] TCP.prototype.writeBuffer ");
+TCP.prototype.writeBuffer = function(req, data) {
+	var self = this;
+	req.async = true;
+	self._port.asyncIO('write', [ 'writeBuffer', data ], function(status, err) {
+		if (status instanceof IOPortError) {
+			err = status.message;
+			status = -1;
+		}
+		req.oncomplete(status, self, req, err);
+	});
+	return 0;
 };
 
-TCP.prototype.writeAsciiString = function() {
-	process._debug("[unhandled1] TCP.prototype.writeAsciiString ");
+TCP.prototype.writeAsciiString = function(req, data) {
+	var self = this;
+	req.async = true;
+	self._port.asyncIO('write', [ 'writeAsciiString', data ], function(status, err) {
+		if (status instanceof IOPortError) {
+			err = status.message;
+			status = -1;
+		}
+		req.oncomplete(status, self, req, err);
+	});
+	return 0;
 };
 
 TCP.prototype.writeUtf8String = function(req, data) {
 	var self = this;
-	self._port.asyncIO('writeUtf8String', [ data ], function(status, err) {
+	req.async = true;
+	self._port.asyncIO('write', [ 'writeUtf8String', data ], function(status, err) {
 		if (status instanceof IOPortError) {
-			//TODO
+			err = status.message;
+			status = -1;
 		}
 		req.oncomplete(status, self, req, err);
 	});
+	return 0;
 };
 
 TCP.prototype.writeUcs2String = function() {
-	process._debug("[unhandled1] TCP.prototype.writeUcs2String ");
+	var self = this;
+	req.async = true;
+	self._port.asyncIO('write', [ 'writeUcs2String', data ], function(status, err) {
+		if (status instanceof IOPortError) {
+			err = status.message;
+			status = -1;
+		}
+		req.oncomplete(status, self, req, err);
+	});
+	return 0;
 };
 
 TCP.prototype.writev = function(req, chunks) {
 	var self = this;
-	self._port.asyncIO('writev', [ chunks ], function(status, err) {
+	req.async = true;
+	self._port.asyncIO('write', [ 'writev', chunks ], function(status, err) {
 		if (status instanceof IOPortError) {
-			//TODO
+			err = status.message;
+			status = -1;
 		}
 		req.oncomplete(status, self, req, err);
 	});
+	return 0;
 };
 
 TCP.prototype.writeBinaryString = function(req, data) {
 	var self = this;
-	self._port.asyncIO('writeBinaryString', [ data ], function(status, err) {
+	req.async = true;
+	self._port.asyncIO('write', [ 'writeBinaryString', data ], function(status, err) {
 		if (status instanceof IOPortError) {
-			//TODO
+			err = status.message;
+			status = -1;
 		}
 		req.oncomplete(status, self, req, err);
 	});
+	return 0;
 };
 
-TCP.prototype.open = function() {
-	process._debug("[unhandled1] TCP.prototype.open ");
+TCP.prototype.open = function(fd) {
+	throw new Error("[unhandled] TCP.prototype.open");
 };
 
 TCP.prototype.listen = function() {
@@ -183,10 +222,6 @@ TCP.prototype.listen = function() {
 		self._listenArgs = arguments;
 	}
 	return err;
-};
-
-TCP.prototype.connect = function() {
-	process._debug("[unhandled1] TCP.prototype.connect ");
 };
 
 TCP.prototype.bind = function() {
@@ -207,22 +242,52 @@ TCP.prototype.bind6 = function() {
 	return err;
 };
 
-TCP.prototype.connect6 = function() {
-	process._debug("[unhandled1] TCP.prototype.connect6 ");
+TCP.prototype.connect = function(req, address, port) {
+	var self = this;
+	self._port.asyncIO('connect', [ address, port ], function(status, readable, writable) {
+		if (status instanceof IOPortError) {
+			status = -1;
+		}
+		req.oncomplete(status, self, req, readable, writable);
+	});
+	return 0;
 };
 
-TCP.prototype.getsockname = function() {
-	process._debug("[unhandled1] TCP.prototype.getsockname ");
+TCP.prototype.connect6 = function(req, address, port) {
+	var self = this;
+	self._port.asyncIO('connect6', [ address, port ], function(status, readable, writable) {
+		if (status instanceof IOPortError) {
+			status = -1;
+		}
+		req.oncomplete(status, self, req, readable, writable);
+	});
+	return 0;
 };
 
-TCP.prototype.getpeername = function() {
-	process._debug("[unhandled1] TCP.prototype.getpeername ");
+TCP.prototype.getsockname = function(out) {
+	var self = this;
+	var res = self._port.syncIO('getsockname', []);
+	for ( var n in res.out) {
+		out[n] = res.out[n];
+	}
+	return res.err;
+};
+
+TCP.prototype.getpeername = function(out) {
+	var self = this;
+	var res = self._port.syncIO('getpeername', []);
+	for ( var n in res.out) {
+		out[n] = res.out[n];
+	}
+	return res.err;
 };
 
 TCP.prototype.setNoDelay = function() {
-	process._debug("[unhandled1] TCP.prototype.setNoDelay ");
+	var self = this;
+	return self._port.syncIO('setNoDelay', arguments);
 };
 
 TCP.prototype.setKeepAlive = function() {
-	process._debug("[unhandled1] TCP.prototype.setKeepAlive ");
+	var self = this;
+	return self._port.syncIO('setKeepAlive', arguments);
 };
