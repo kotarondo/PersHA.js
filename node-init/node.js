@@ -98,7 +98,7 @@
 
       // If this is a worker in cluster mode, start up the communication
       // channel.
-      if (process.env.NODE_UNIQUE_ID) {
+      if (false) { // modified for PersHA.js
         var cluster = NativeModule.require('cluster');
         cluster._setupWorker();
 

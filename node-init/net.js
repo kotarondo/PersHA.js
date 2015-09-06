@@ -1179,7 +1179,7 @@ Server.prototype._listen2 = function(address, port, addressType, backlog, fd) {
 function listen(self, address, port, addressType, backlog, fd, exclusive) {
   exclusive = !!exclusive;
 
-  if (!cluster) cluster = require('cluster');
+  if (!cluster) cluster = { isMaster : true }; // modified for PersHA.js
 
   if (cluster.isMaster || exclusive) {
     self._listen2(address, port, addressType, backlog, fd);

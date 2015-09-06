@@ -195,7 +195,7 @@ Socket.prototype.bind = function(port /*, address, callback*/) {
     }
 
     if (!cluster)
-      cluster = require('cluster');
+      cluster = {}; // modified for PersHA.js
 
     if (cluster.isWorker && !exclusive) {
       cluster._getServer(self, ip, port, self.type, -1, function(err, handle) {
