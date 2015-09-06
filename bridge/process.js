@@ -39,6 +39,7 @@ process._debug = function() {
 	processPort.syncIO('debug', arguments);
 };
 
+process.execArgv = [];
 process.argv = [ 'node' ];
 process.env = {};
 process._eval = null;
