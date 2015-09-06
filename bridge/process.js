@@ -39,14 +39,19 @@ process._debug = function() {
 	processPort.syncIO('debug', arguments);
 };
 
-process.cwd = function() {
-	return this.__cwd;
-};
 process.argv = [ 'node' ];
 process.env = {};
 process._eval = null;
 process._forceRepl = true;
 process.moduleLoadList = [];
+
+process.cwd = function() {
+	return processPort.syncIO('cwd', arguments);
+};
+
+process.chdir = function() {
+	return processPort.syncIO('chdir', arguments);
+};
 
 process.reallyExit = function() {
 	processPort.syncIO('exit', arguments);

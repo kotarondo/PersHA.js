@@ -219,7 +219,7 @@ fs.link = function() {
 };
 
 fs.mkdir = function() {
-	process._debug("binding[fs] mkdir ");
+	return fsPort.syncIO('mkdir', arguments);
 };
 
 fs.readdir = function() {
@@ -235,7 +235,7 @@ fs.rename = function() {
 };
 
 fs.rmdir = function() {
-	process._debug("binding[fs] rmdir ");
+	return fsPort.syncIO('rmdir', arguments);
 };
 
 fs.symlink = function() {

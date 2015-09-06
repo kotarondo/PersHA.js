@@ -76,6 +76,12 @@ function syncIO(name, args) {
 	if (name === 'fstat') {
 		return fs.fstatSync.apply(fs, args);
 	}
+	if (name === 'mkdir') {
+		return fs.mkdirSync.apply(fs, args);
+	}
+	if (name === 'rmdir') {
+		return fs.rmdirSync.apply(fs, args);
+	}
 
 	console.log("[unhandled] fs syncIO:" + name);
 	console.log(args);

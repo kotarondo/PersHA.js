@@ -45,12 +45,16 @@ function open(name, args, callback) {
 
 function syncIO(name, args) {
 	if (name === 'debug') {
-		console.log("debug: " + args);
-		return;
+		return console.log("debug: " + args);
+	}
+	if (name === 'cwd') {
+		return process.cwd();
+	}
+	if (name === 'chdir') {
+		return process.chdir.apply(process, args);
 	}
 	if (name === 'exit') {
-		process.exit();
-		return;
+		return process.exit();
 	}
 	console.log("[unhandled] process syncIO:" + name + ":" + args);
 }
