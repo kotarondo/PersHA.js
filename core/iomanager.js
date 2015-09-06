@@ -342,6 +342,32 @@ function IOManager_start() {
 	}
 }
 
+var microtaskQueue = [];
+
+function scheduleMicrotask(callback, args) {
+	var task = {
+		callback : callback,
+		args : args
+	};
+	microtaskQueue.push(task);
+}
+
+function runMicrotasks() {
+	while (microtaskQueue.length > 0) {
+		var task = microtaskQueue[0];
+		var callback = task.callback;
+		var args = task.args;
+		assert(IsCallable(callback), callback);
+		assert(args instanceof Array, args);
+		try {
+			callback.Call(undefined, args);
+		} catch (e) {
+			IOManager_handleUncaughtError(e);
+		}
+		microtaskQueue.shift();
+	}
+}
+
 var IOManager_context = (function() {
 	var interruptible = true;
 	var ioCount = 0;
