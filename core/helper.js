@@ -169,6 +169,10 @@ function isHexDigitChar(c) {
 }
 
 function formatNumber(x, witdh) {
+	x = floor(x);
+	if (!(0 <= x)) {
+		return "";
+	}
 	var buffer = [];
 	while (witdh-- > 0) {
 		buffer[witdh] = toDigitChar(x % 10);
