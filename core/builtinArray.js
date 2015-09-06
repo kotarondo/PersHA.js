@@ -430,7 +430,12 @@ function Array_prototype_splice(thisValue, argumentsList) {
 	else {
 		var actualStart = min(relativeStart, len);
 	}
-	var actualDeleteCount = min(max(ToInteger(deleteCount), 0), len - actualStart);
+	if (argumentsList.length === 1) {
+		var actualDeleteCount = len - actualStart; // compatible with ECMA6
+	}
+	else {
+		var actualDeleteCount = min(max(ToInteger(deleteCount), 0), len - actualStart);
+	}
 	var k = 0;
 	while (k < actualDeleteCount) {
 		var from = ToString(actualStart + k);
