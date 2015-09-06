@@ -215,15 +215,7 @@ function IOManager_asyncIO_completion(entry) {
 	try {
 		IOPort_notify(entry, callback);
 	} catch (e) {
-		if (isInternalError(e)) throw e;
-		if (IOManager_state === 'online') {
-			if (Type(e) === TYPE_Object && e.Class === "Error") {
-				console.log("ERROR: " + e.Get('stack'));
-			}
-			else {
-				console.log("ERROR: " + ToString(e));
-			}
-		}
+		IOManager_handleUncaughtError(e);
 	}
 	IOManager_context.stop();
 }
@@ -281,15 +273,7 @@ function IOManager_portEvent(entry) {
 	try {
 		IOPort_notify(entry, port.Get('callback'));
 	} catch (e) {
-		if (isInternalError(e)) throw e;
-		if (IOManager_state === 'online') {
-			if (Type(e) === TYPE_Object && e.Class === "Error") {
-				console.log("ERROR: " + e.Get('stack'));
-			}
-			else {
-				console.log("ERROR: " + ToString(e));
-			}
-		}
+		IOManager_handleUncaughtError(e);
 	}
 	IOManager_context.stop();
 }
@@ -330,15 +314,7 @@ function IOManager_evaluate(text, filename) {
 	try {
 		Global_evaluateProgram(undefined, [ text, filename ]);
 	} catch (e) {
-		if (isInternalError(e)) throw e;
-		if (IOManager_state === 'online') {
-			if (Type(e) === TYPE_Object && e.Class === "Error") {
-				console.log("ERROR: " + e.Get('stack'));
-			}
-			else {
-				console.log("ERROR: " + ToString(e));
-			}
-		}
+		IOManager_handleUncaughtError(e);
 	}
 	IOManager_context.stop();
 }
@@ -433,3 +409,15 @@ var IOManager_context = (function() {
 		getIOCount : getIOCount,
 	};
 })();
+
+function IOManager_handleUncaughtError(e) {
+		if (isInternalError(e)) throw e;
+		if (IOManager_state === 'online') {
+			if (Type(e) === TYPE_Object && e.Class === "Error") {
+				console.log("\nUncaught: " + e.Get('stack'));
+			}
+			else {
+				console.log("\nUncaught: " + ToString(e));
+			}
+		}
+}

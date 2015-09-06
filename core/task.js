@@ -53,8 +53,7 @@ function runMicrotasks() {
 		try {
 			callback.Call(undefined, args);
 		} catch (e) {
-			if (isInternalError(e)) throw e;
-			console.log(e.Get('stack')); //TODO handle uncaught exception
+			IOManager_handleUncaughtError(e);
 		}
 		microtaskQueue.shift();
 	}
