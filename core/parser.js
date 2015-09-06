@@ -1593,11 +1593,9 @@ var theParser = function() {
 		info.columnNumber = pos - lineHeadPos + 1;
 	}
 
-	function locateDebugInfo(stackTraceEntry, info) {
-		var code = stackTraceEntry.code;
+	function locateDebugInfo(code, pos, info) {
 		var sourceObject = code.sourceObject;
 		var source = sourceObject.source;
-		var pos = stackTraceEntry.pos;
 		convertToLineColumn(source, pos, info);
 		info.filename = sourceObject.filename;
 		info.functionName = undefined;

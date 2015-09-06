@@ -208,6 +208,7 @@ var LexicalEnvironment;
 var VariableEnvironment;
 var ThisBinding;
 
+var runningFunction;
 var runningCode;
 var runningSourcePos;
 var outerExecutionContext;
@@ -219,6 +220,7 @@ function initExecutionContext() {
 	LexicalEnvironment = theGlobalEnvironment;
 	VariableEnvironment = theGlobalEnvironment;
 	ThisBinding = theGlobalObject;
+	runningFunction = undefined;
 	runningCode = undefined;
 	runningSourcePos = undefined;
 	outerExecutionContext = undefined;
@@ -234,6 +236,7 @@ function saveExecutionContext() {
 		LexicalEnvironment : LexicalEnvironment,
 		VariableEnvironment : VariableEnvironment,
 		ThisBinding : ThisBinding,
+		runningFunction : runningFunction,
 		runningCode : runningCode,
 		runningSourcePos : runningSourcePos,
 		outerExecutionContext : outerExecutionContext,
@@ -245,6 +248,7 @@ function exitExecutionContext() {
 	LexicalEnvironment = ctx.LexicalEnvironment;
 	VariableEnvironment = ctx.VariableEnvironment;
 	ThisBinding = ctx.ThisBinding;
+	runningFunction = ctx.runningFunction;
 	runningCode = ctx.runningCode;
 	runningSourcePos = ctx.runningSourcePos;
 	outerExecutionContext = ctx.outerExecutionContext;
@@ -260,6 +264,7 @@ function getStackTrace() {
 			return stackTrace;
 		}
 		stackTrace.push({
+			func : runningFunction,
 			code : runningCode,
 			pos : runningSourcePos,
 		});
@@ -269,6 +274,7 @@ function getStackTrace() {
 				return stackTrace;
 			}
 			stackTrace.push({
+				func : ctx.runningFunction,
 				code : ctx.runningCode,
 				pos : ctx.runningSourcePos,
 			});
@@ -283,6 +289,7 @@ function enterExecutionContextForGlobalCode(code) {
 	LexicalEnvironment = theGlobalEnvironment;
 	VariableEnvironment = theGlobalEnvironment;
 	ThisBinding = theGlobalObject;
+	runningFunction = undefined;
 	runningCode = code;
 	runningSourcePos = 0;
 	DeclarationBindingInstantiation(code);
@@ -300,6 +307,7 @@ function enterExecutionContextForEvalCode(code, direct) {
 		LexicalEnvironment = strictVarEnv;
 		VariableEnvironment = strictVarEnv;
 	}
+	runningFunction = undefined;
 	runningCode = code;
 	runningSourcePos = 0;
 	DeclarationBindingInstantiation(code);
@@ -323,6 +331,7 @@ function enterExecutionContextForFunctionCode(F, thisValue, argumentsList) {
 	var localEnv = NewDeclarativeEnvironment(F.Scope);
 	LexicalEnvironment = localEnv;
 	VariableEnvironment = localEnv;
+	runningFunction = F;
 	runningCode = code;
 	runningSourcePos = 0;
 	DeclarationBindingInstantiation(code, argumentsList, F);

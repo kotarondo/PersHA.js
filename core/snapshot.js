@@ -588,6 +588,8 @@ function Error_walkObject(mark) {
 	intrinsic_walkObject(this, mark);
 	var length = this.stackTrace.length;
 	for (var i = 0; i < length; i++) {
+		var func = this.stackTrace[i].func;
+		mark(func);
 		var code = this.stackTrace[i].code;
 		mark(code.sourceObject);
 	}
@@ -598,8 +600,10 @@ function Error_writeObject(ostream) {
 	var length = this.stackTrace.length;
 	ostream.writeInt(length);
 	for (var i = 0; i < length; i++) {
+		var func = this.stackTrace[i].func;
 		var code = this.stackTrace[i].code;
 		var pos = this.stackTrace[i].pos;
+		ostream.writeValue(func);
 		ostream.writeValue(code.sourceObject);
 		ostream.writeInt(code.index);
 		ostream.writeInt(pos);
@@ -611,10 +615,12 @@ function Error_readObject(istream) {
 	var length = istream.readInt();
 	this.stackTrace = [];
 	for (var i = 0; i < length; i++) {
+		var func = istream.readValue();
 		var sourceObject = istream.readValue();
 		var index = istream.readInt();
 		var pos = istream.readInt();
 		this.stackTrace[i] = {
+			func : func,
 			code : sourceObject.subcodes[index],
 			pos : pos,
 		};

@@ -90,28 +90,68 @@ Object.defineProperty(Error, "stackTraceLimit", {
 	configurable : true
 });
 
-Error.captureStackTrace = function(obj) {
-	Error.stackTraceLimit++;
-	var e = new Error();
-	Error.stackTraceLimit--;
-	var A = [];
-	A[0] = "Error";
-	for (var i = 1;; i++) {
-		var info = e.getStackTraceEntry(i);
-		if (!info) {
-			break;
-		}
-		var finfo = info.filename + ":" + info.lineNumber + ":" + info.columnNumber;
-		A[i] = finfo;
-		if (info.functionName) {
-			A[i] = info.functionName + " (" + finfo + ")";
-		}
+Error.captureStackTrace = (function() {
+	function StackTraceEntry(info) {
+		this.info = info;
 	}
-	var stack = A.join("\n    at ");
-	Object.defineProperty(obj, "stack", {
-		value : stack,
-		writable : true,
-		enumerable : false,
-		configurable : true
-	});
-};
+	StackTraceEntry.prototype.getFileName = function() {
+		return this.info.filename;
+	}
+	StackTraceEntry.prototype.getLineNumber = function() {
+		return this.info.lineNumber;
+	}
+	StackTraceEntry.prototype.getColumnNumber = function() {
+		return this.info.columnNumber;
+	}
+	StackTraceEntry.prototype.getFunctionName = function() {
+		return this.info.functionName;
+	}
+	StackTraceEntry.prototype.isEval = function() {
+		return !info.functionObject;
+	}
+
+	function prepareStackTrace(obj, stack) {
+		var A = [];
+		A[0] = "Error";
+		for (var i = 0; i < stack.length; i++) {
+			var info = stack[i].info;
+			var finfo = info.filename + ":" + info.lineNumber + ":" + info.columnNumber;
+			A[i+1] = finfo;
+			if (info.functionName) {
+				A[i+1] = info.functionName + " (" + finfo + ")";
+			}
+		}
+		return A.join("\n    at ");
+	}
+
+	return function(obj, func) {
+		Error.stackTraceLimit++;
+		var e = new Error();
+		Error.stackTraceLimit--;
+		var stack = [];
+		for (var i = 1;; i++) {
+			var info = e.getStackTraceEntry(i);
+			if (!info) {
+				break;
+			}
+			if (info.functionObject === func) {
+				stack = [];
+				continue;
+			}
+			stack.push(new StackTraceEntry(info));
+		}
+		if (Error.prepareStackTrace) {
+			var value = Error.prepareStackTrace(obj, stack);
+		}
+		else {
+			var value = prepareStackTrace(obj, stack);
+		}
+		Object.defineProperty(obj, "stack", {
+			value : value,
+			writable : true,
+			enumerable : false,
+			configurable : true
+		});
+	};
+
+})();
