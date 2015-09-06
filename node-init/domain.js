@@ -146,7 +146,7 @@ Domain.prototype.exit = function() {
   if (this._disposed || index === -1) return;
 
   // exit all domains until this one.
-  stack.splice(index, stack.length); // modified for PersHA.js
+  stack.splice(index);
   _domain_flag[0] = stack.length;
 
   exports.active = stack[stack.length - 1];
