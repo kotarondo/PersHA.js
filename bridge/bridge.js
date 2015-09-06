@@ -107,7 +107,7 @@ Error.captureStackTrace = (function() {
 		return this.info.functionName;
 	}
 	StackTraceEntry.prototype.isEval = function() {
-		return !info.functionObject;
+		return !this.info.functionObject;
 	}
 
 	function prepareStackTrace(obj, stack) {
