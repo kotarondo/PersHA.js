@@ -116,9 +116,9 @@ Error.captureStackTrace = (function() {
 		for (var i = 0; i < stack.length; i++) {
 			var info = stack[i].info;
 			var finfo = info.filename + ":" + info.lineNumber + ":" + info.columnNumber;
-			A[i+1] = finfo;
+			A[i + 1] = finfo;
 			if (info.functionName) {
-				A[i+1] = info.functionName + " (" + finfo + ")";
+				A[i + 1] = info.functionName + " (" + finfo + ")";
 			}
 		}
 		return A.join("\n    at ");

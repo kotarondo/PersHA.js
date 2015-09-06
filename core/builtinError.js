@@ -258,8 +258,8 @@ function get_Error_prototype_stack(thisValue, argumentsList) {
 	var info = {};
 	A[0] = Error_prototype_toString(thisValue, []);
 	for (var i = 0; i < stackTrace.length; i++) {
-		var code =stackTrace[i].code;
-		var pos =stackTrace[i].pos;
+		var code = stackTrace[i].code;
+		var pos = stackTrace[i].pos;
 		theParser.locateDebugInfo(code, pos, info);
 		var finfo = info.filename + ":" + info.lineNumber + ":" + info.columnNumber;
 		A[i + 1] = finfo;
@@ -277,9 +277,9 @@ function Error_prototype_getStackTraceEntry(thisValue, argumentsList) {
 		return undefined;
 	}
 	var info = {};
-	var func =stackTrace[index].func;
-	var code =stackTrace[index].code;
-	var pos =stackTrace[index].pos;
+	var func = stackTrace[index].func;
+	var code = stackTrace[index].code;
+	var pos = stackTrace[index].pos;
 	theParser.locateDebugInfo(code, pos, info);
 	var obj = Object_Construct([]);
 	obj.Put("functionObject", func);

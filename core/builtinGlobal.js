@@ -314,7 +314,8 @@ function Global_escape(thisValue, argumentsList) {
 		if (!isIncluded(Result6, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./")) {
 			var x = toCharCode(Result6);
 			if (x >= 256) {
-				var S = "%u" + toDigitChar(x >> 12) + toDigitChar((x >> 8) & 15) + toDigitChar((x >> 4) & 15) + toDigitChar(x & 15);
+				var S = "%u" + toDigitChar(x >> 12) + toDigitChar((x >> 8) & 15) + toDigitChar((x >> 4) & 15)
+						+ toDigitChar(x & 15);
 			}
 			else {
 				var S = "%" + toDigitChar(x >> 4) + toDigitChar(x & 15);
@@ -338,8 +339,8 @@ function Global_unescape(thisValue, argumentsList) {
 		if (k === Result2) return join(R);
 		var c = Result1[k];
 		if (c === '%') {
-			if ((k <= Result2 - 6) && Result1[k + 1] === 'u' && isHexDigitChar(Result1[k + 2]) && isHexDigitChar(Result1[k + 3])
-					&& isHexDigitChar(Result1[k + 4]) && isHexDigitChar(Result1[k + 5])) {
+			if ((k <= Result2 - 6) && Result1[k + 1] === 'u' && isHexDigitChar(Result1[k + 2])
+					&& isHexDigitChar(Result1[k + 3]) && isHexDigitChar(Result1[k + 4]) && isHexDigitChar(Result1[k + 5])) {
 				var c = fromCharCode((mvDigitChar(Result1[k + 2]) << 12) + (mvDigitChar(Result1[k + 3]) << 8)
 						+ (mvDigitChar(Result1[k + 4]) << 4) + mvDigitChar(Result1[k + 5]));
 				k += 5;
@@ -370,7 +371,7 @@ function Global_setSystemProperty(thisValue, argumentsList) {
 		INSPECT_MAX_BYTES = ToInteger(value);
 	}
 	if (name === "stackDepthLimit") {
-		stackDepthLimit= ToUint32(value);
+		stackDepthLimit = ToUint32(value);
 	}
 }
 
