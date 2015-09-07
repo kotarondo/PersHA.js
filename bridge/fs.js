@@ -33,227 +33,193 @@
 
 'use strict';
 
-var fs = process.binding('fs');
+var binding = process.binding('fs');
 var fsPort = new IOPort('fs');
 var Stats;
 
-fsPort.open("", [], function(event){
-	//TODO
-});
+var maxFD = 10;
+var mapFD = [];
 
-function makeFSmethods(name, reqPos, options) {
-	return function() {
-		var args = Array.prototype.slice.call(arguments);
-		var req = args[reqPos];
-		if (req === undefined) {
-				try {
-					if (options.argsFilter) {
-						var a = options.argsFilter.apply(undefined, args);
-					}
-					else {
-						var a = args.slice(0, reqPos);
-					}
-					var value = fsPort.syncIO(name, a, options.restartPolicy !== 'retry');
-					if (options.valueFilter) {
-						value = options.valueFilter(value, args);
-					}
-					return value;
-				} catch (err) {
-					if (err instanceof IOPortError) {
-						if (err.message === 'restart') {
-							if (options.restartPolicy === 'ignore') {
-								return;
-							}
-						}
-						if (err.message === 'offline') {
-							if (options.offlinePolicy === 'return0') {
-								return 0;
-							}
-						}
-					}
-					throw err;
-				}
+function findPort(fd) {
+	return mapFD[fd];
+}
+
+function bindPort(port) {
+	var fd = maxFD++;
+	mapFD[fd] = port;
+	return fd;
+}
+
+function unbindPort(fd) {
+	delete (mapFD[fd]);
+}
+
+binding.FSInitialize = function(s) {
+	Stats = s;
+};
+
+binding.FSReqWrap = function() {
+};
+
+function onceCall(name, args, req, filter) {
+	return generalCall(fsPort, name, args, req, false, filter);
+}
+
+function retryCall(name, args, req, filter) {
+	return generalCall(fsPort, name, args, req, true, filter);
+}
+
+function fdCall(fd, name, args, req, filter) {
+	return generalCall(findPort(fd), name, args, req, false, filter);
+}
+
+function generalCall(port, name, args, req, retry, filter) {
+	if (req === undefined) {
+		var value = port.syncIO(name, args, !retry);
+		if (filter) {
+			value = filter(value);
 		}
-		else {
-			(function retry() {
-				if (options.argsFilter) {
-					var a = options.argsFilter.apply(undefined, args);
-				}
-				else {
-					var a = args.slice(0, reqPos);
-				}
-				fsPort.asyncIO(name, a, function(err, value) {
-					if (err instanceof IOPortError) {
-						if (err.message === 'restart') {
-							if (options.restartPolicy === 'retry') {
-								retry();
-								return;
-							}
-							if (options.restartPolicy === 'ignore') {
-								req.oncomplete();
-								return;
-							}
-						}
-					}
-					if (options.valueFilter) {
-						value = options.valueFilter(value, args);
-					}
-					req.oncomplete(err, value);
-				});
-			})();
+		return value;
+	}
+	(function async() {
+		port.asyncIO(name, args, function(err, value) {
+			if (retry && err instanceof IOPortError && err.message === 'restart') {
+				async();
+				return;
+			}
+			if (!err && filter) {
+				value = filter(value);
+			}
+			req.oncomplete(err, value);
+		});
+	})();
+}
+
+binding.open = function(path, flags, mode, req) {
+	var port = fsPort.open('open', [], portEventCallback);
+	function portEventCallback(name, args) {
+	}
+	generalCall(port, 'open', [ path, flags, mode ], req, false, function(value) {
+		return bindPort(port);
+	});
+};
+
+binding.close = function(fd, req) {
+	var port = unbindPort(fd);
+	if (!port) {
+		return;
+	}
+	port.close();
+	generalCall(port, 'close', [], req, false);
+};
+
+binding.read = function(fd, buffer, offset, length, position, req) {
+	return fdCall('read', [ length, position ], req, function(value) {
+		if (!(value instanceof Buffer)) {
+			return 0;
 		}
-	};
-}
+		value.copy(buffer, offset, 0, value.length);
+		return value.length;
+	});
+};
 
-function renameFdArgsFilter() {
-	var args = Array.prototype.slice.call(arguments);
-	//TODO renaming
-	return args;
-}
+binding.writeBuffer = function(fd, buffer, offset, length, position, req) {
+	return fdCall('writeBuffer', [ buffer, offset, length, position ], req);
+};
 
-function renameFdValueFilter(value) {
-	//TODO renaming
-	return value;
-}
+binding.writeString = function(fd, string, position, encoding, req) {
+	return fdCall('writeString', [ string, position, encoding ], req);
+};
 
-function statValueFilter(value) {
+function statFilter(value) {
 	value.__proto__ = Stats.prototype;
 	return value;
 }
 
-fs.FSInitialize = function(s) {
-	Stats = s;
+binding.stat = function(path, req) {
+	return retryCall('stat', [ path ], req, statFilter);
 };
 
-fs.FSReqWrap = function() {
+binding.lstat = function(path, req) {
+	return retryCall('lstat', [ path ], req, statFilter);
 };
 
-fs.open = makeFSmethods('open', 3, {
-	restartPolicy : 'retry',
-	valueFilter : renameFdValueFilter,
-});
-
-fs.close = makeFSmethods('close', 1, {
-	restartPolicy : 'ignore',
-	argsFilter : renameFdArgsFilter,
-});
-
-fs.stat = makeFSmethods('stat', 1, {
-	restartPolicy : 'retry',
-	valueFilter : statValueFilter,
-});
-
-fs.lstat = makeFSmethods('lstat', 1, {
-	restartPolicy : 'retry',
-	valueFilter : statValueFilter,
-});
-
-fs.fstat = makeFSmethods('fstat', 1, {
-	restartPolicy : 'retry',
-	argsFilter : renameFdArgsFilter,
-	valueFilter : statValueFilter,
-});
-
-fs.writeBuffer = makeFSmethods('writeBuffer', 5, {
-	restartPolicy : 'retry',
-	offlinePolicy : 'return0',
-	argsFilter : renameFdArgsFilter,
-});
-
-fs.read = makeFSmethods('readBuffer', 5, {
-	restartPolicy : 'retry',
-	offlinePolicy : 'return0',
-	argsFilter : function(fd, buffer, offset, length, position, req) {
-		//TODO renaming
-		return [ fd, length, position ];
-	},
-	valueFilter : function(value, args) {
-		if (!(value instanceof Buffer)) {
-			return 0;
-		}
-		var buffer = args[1];
-		var offset = args[2];
-		value.copy(buffer, offset, 0, value.length);
-		return value.length;
-	},
-});
-
-fs.access = function() {
-	process._debug("binding[fs] access ");
+binding.fstat = function(fd, req) {
+	return fdCall('fstat', [], req, statFilter);
 };
 
-fs.chmod = function() {
-	process._debug("binding[fs] chmod ");
+binding.access = function(path, mode, req) {
+	return retryCall('access', [ path, mode ], req);
 };
 
-fs.chown = function() {
-	process._debug("binding[fs] chown ");
+binding.chmod = function(path, mode, req) {
+	return onceCall('chmod', [ path, mode ], req);
 };
 
-fs.fchmod = function() {
-	process._debug("binding[fs] fchmod ");
+binding.chown = function(path, uid, gid, req) {
+	return onceCall('chown', [ path, uid, gid ], req);
 };
 
-fs.fchown = function() {
-	process._debug("binding[fs] fchown ");
+binding.fchmod = function(fd, mode, req) {
+	return fdCall('fchmod', [ mode ], req);
 };
 
-fs.fdatasync = function() {
-	process._debug("binding[fs] fdatasync ");
+binding.fchown = function(fd, uid, gid, req) {
+	return fdCall('fchown', [ uid, gid ], req);
 };
 
-fs.fsync = function() {
-	process._debug("binding[fs] fsync ");
+binding.fsync = function(fd, req) {
+	return fdCall('fsync', [], req);
 };
 
-fs.ftruncate = function() {
-	process._debug("binding[fs] ftruncate ");
+binding.fdatasync = function(fd, req) {
+	return fdCall('fdatasync', [], req);
 };
 
-fs.futimes = function() {
-	process._debug("binding[fs] futimes ");
+binding.ftruncate = function(fd, len, req) {
+	return fdCall('ftruncate', [ len ], req);
 };
 
-fs.link = function() {
-	process._debug("binding[fs] link ");
+binding.utimes = function(path, atime, mtime, req) {
+	return onceCall('utimes', [ path, atime, mtime ], req);
 };
 
-fs.mkdir = function() {
-	return fsPort.syncIO('mkdir', arguments);
+binding.futimes = function(fd, atime, mtime, req) {
+	return fdCall('futimes', [ atime, mtime ], req);
 };
 
-fs.readdir = function() {
-	process._debug("binding[fs] readdir ");
+binding.link = function(srcpath, dstpath, req) {
+	return onceCall('link', [ srcpath, dstpath ], req);
 };
 
-fs.readlink = function() {
-	process._debug("binding[fs] readlink ");
+binding.symlink = function(destination, path, type, req) {
+	return onceCall('symlink', [ destination, path, type ], req);
 };
 
-fs.rename = function() {
-	process._debug("binding[fs] rename ");
+binding.unlink = function(path, req) {
+	return onceCall('unlink', [ path ], req);
 };
 
-fs.rmdir = function() {
-	return fsPort.syncIO('rmdir', arguments);
+binding.mkdir = function(path, mode, req) {
+	return onceCall('mkdir', [ path, mode ], req);
 };
 
-fs.symlink = function() {
-	process._debug("binding[fs] symlink ");
+binding.readdir = function(path, req) {
+	return retryCall('readdir', [ path ], req);
 };
 
-fs.unlink = function() {
-	process._debug("binding[fs] unlink ");
+binding.readlink = function(path, req) {
+	return retryCall('readlink', [ path ], req);
 };
 
-fs.utimes = function() {
-	process._debug("binding[fs] utimes ");
+binding.rename = function(oldPath, newPath, req) {
+	return onceCall('rename', [ oldPath, newPath ], req);
 };
 
-fs.writeString = function() {
-	process._debug("binding[fs] writeString ");
+binding.rmdir = function(path, req) {
+	return onceCall('rmdir', [ path ], req);
 };
 
-fs.StatWatcher = function() {
-	process._debug("binding[fs] StatWatcher ");
+binding.StatWatcher = function() {
+//TODO
 };
