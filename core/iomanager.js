@@ -437,13 +437,32 @@ var IOManager_context = (function() {
 })();
 
 function IOManager_handleUncaughtError(e) {
-		if (isInternalError(e)) throw e;
-		if (IOManager_state === 'online') {
+	if (isInternalError(e)) throw e;
+	try {
+		var callback = theGlobalObject.Get('_uncaughtErrorCallback');
+		if (IsCallable(callback)) {
+			callback.Call(undefined, [ e ]);
+			return;
+		}
+	} catch (ee) {
+		if (isInternalError(ee)) throw ee;
+		e = ee;
+	}
+	while (true) {
+		try {
 			if (Type(e) === TYPE_Object && e.Class === "Error") {
-				console.log("\nUncaught: " + e.Get('stack'));
+				var err = ToString(e.Get('stack'));
 			}
 			else {
-				console.log("\nUncaught: " + ToString(e));
+				var err = ToString(e);
 			}
+			if (IOManager_state === 'online') {
+				console.log("\nUncaught: " + err);
+			}
+			return;
+		} catch (ee) {
+			if (isInternalError(eee)) throw ee;
+			e = ee;
 		}
+	}
 }

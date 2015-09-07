@@ -66,12 +66,15 @@ process.suspendExit = function() {
 	}
 };
 
+var tickCallback;
+
 process._setupNextTick = function(tickInfo, _tickCallback, _runMicrotasks) {
+	tickCallback = _tickCallback;
 	tickInfo[0] = 0;
 	tickInfo[1] = 0;
 	function callbackNextTick() {
 		if (tickInfo[0] < tickInfo[1]) {
-			_tickCallback();
+			tickCallback();
 		}
 	}
 	_runMicrotasks.runMicrotasks = function() {
@@ -81,7 +84,15 @@ process._setupNextTick = function(tickInfo, _tickCallback, _runMicrotasks) {
 };
 
 process._setupDomainUse = function(_domain, _domain_flag) {
-	//TODO domain support
+	tickCallback = process._tickDomainCallback;
+	Object.defineProperty(global, "_uncaughtErrorCallback", {
+		value : function(e){
+			process._fatalException(e);
+		},
+		writable : true,
+		enumerable : false,
+		configurable : true
+	});
 };
 
 process.binding('contextify').ContextifyScript = function(code, options) {
