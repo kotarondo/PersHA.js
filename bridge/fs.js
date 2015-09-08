@@ -239,6 +239,34 @@ binding.rmdir = function(path, req) {
 	return onceCall('rmdir', [ path ], req);
 };
 
-binding.StatWatcher = function() {
-	//TODO
+binding.StatWatcher = StatWatcher;
+
+function StatWatcher () {
+	var self = this;
+	self._port = fsPort.open('StatWatcher', [], portEventCallback, true);
+
+	function portEventCallback(name, args) {
+		if (name instanceof IOPortError) {
+			if (name.message === 'restart') {
+				self._port.syncIO('restart', [ self._startArgs ]);
+			}
+			return;
+		}
+		self[name].apply(self, args);
+	}
+}
+
+StatWatcher.prototype.start = function() {
+	var self = this;
+	var err = self._port.syncIO('start', arguments);
+	if (!err) {
+		self._startArgs = arguments;
+	}
+	return err;
+};
+
+StatWatcher.prototype.stop = function() {
+	var self = this;
+	self._port.syncIO('stop', []);
+	self._port.close();
 };

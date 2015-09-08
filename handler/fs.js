@@ -45,6 +45,9 @@ function open(name, args, callback) {
 	if (name === 'bind') {
 		return new FilePort(args[0], callback);
 	}
+	if (name === 'StatWatcher') {
+		return new StatWatcherPort(callback);
+	}
 	console.log("[unhandled] fs open:" + name + ": " + args);
 }
 
@@ -243,5 +246,38 @@ function FilePort(fd, callback) {
 			return binding.futimes(fd, args[0], args[1], req);
 		}
 		console.log("[unhandled] FilePort syncIO:" + name + ": " + args);
+	};
+}
+
+function StatWatcherPort(callback) {
+	var handle = new binding.StatWatcher();
+	var restarted;
+
+	handle.onchange = function() {
+		callback('onchange', arguments);
+	};
+	handle.onstop = function() {
+		callback('onstop', arguments);
+	};
+
+	this.syncIO = function(name, args) {
+		if (name === 'start') {
+			return handle.start.apply(handle, args);
+		}
+		if (name === 'stop') {
+			return handle.stop();
+		}
+		if (name === 'restart') {
+			if (restarted) {
+				return;
+			}
+			restarted = true;
+			var startArgs = args[0];
+			if (startArgs >= 0) {
+				handle.start.apply(handle, startArgs);
+			}
+			return;
+		}
+		console.log("[unhandled] StatWatcher syncIO:" + name);
 	};
 }
