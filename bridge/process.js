@@ -54,6 +54,18 @@ process.chdir = function() {
 	return processPort.syncIO('chdir', arguments);
 };
 
+process.getuid = function() {
+	return processPort.syncIO('getuid', arguments);
+};
+
+process.setuid = function() {
+	return processPort.syncIO('setuid', arguments);
+};
+
+process.umask = function() {
+	return processPort.syncIO('umask', arguments);
+};
+
 process.reallyExit = function() {
 	processPort.syncIO('exit', arguments);
 };

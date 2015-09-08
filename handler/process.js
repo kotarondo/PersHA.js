@@ -48,6 +48,15 @@ function syncIO(name, args) {
 	if (name === 'chdir') {
 		return process.chdir.apply(process, args);
 	}
+	if (name === 'getuid') {
+		return process.getuid.apply(process, args);
+	}
+	if (name === 'setuid') {
+		return process.setuid.apply(process, args);
+	}
+	if (name === 'umask') {
+		return process.umask.apply(process, args);
+	}
 	if (name === 'exit') {
 		return process.exit();
 	}
