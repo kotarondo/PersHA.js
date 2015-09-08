@@ -51,7 +51,7 @@ function bindPort(port) {
 }
 
 function unbindPort(fd) {
-	delete (mapFD[fd]);
+	delete mapFD[fd];
 }
 
 binding.FSInitialize = function(s) {
@@ -74,6 +74,19 @@ function fdCall(fd, name, args, req, filter) {
 }
 
 function generalCall(port, name, args, req, retry, filter) {
+	if (!port) {
+		var e = new Error("EBADF, bad file descriptor");
+		e.errno = -9;
+		e.code = 'EBADF';
+		e.syscall = name;
+		if (req === undefined) {
+			throw e;
+		}
+		process.nextTick(function() {
+			req.oncomplete(e);
+		});
+		return;
+	}
 	if (req === undefined) {
 		var value = port.syncIO(name, args, !retry);
 		if (filter) {
@@ -81,10 +94,10 @@ function generalCall(port, name, args, req, retry, filter) {
 		}
 		return value;
 	}
-	(function async() {
+	(function retryf() {
 		port.asyncIO(name, args, function(err, value) {
 			if (retry && err instanceof IOPortError && err.message === 'restart') {
-				async();
+				retryf();
 				return;
 			}
 			if (!err && filter) {
@@ -114,7 +127,7 @@ binding.close = function(fd, req) {
 };
 
 binding.read = function(fd, buffer, offset, length, position, req) {
-	return fdCall('read', [ length, position ], req, function(value) {
+	return fdCall(fd, 'read', [ length, position ], req, function(value) {
 		if (!(value instanceof Buffer)) {
 			return 0;
 		}
@@ -128,7 +141,7 @@ binding.writeBuffer = function(fd, buffer, offset, length, position, req) {
 };
 
 binding.writeString = function(fd, string, position, encoding, req) {
-	return fdCall('writeString', [ string, position, encoding ], req);
+	return fdCall(fd, 'writeString', [ string, position, encoding ], req);
 };
 
 function statFilter(value) {
@@ -145,7 +158,7 @@ binding.lstat = function(path, req) {
 };
 
 binding.fstat = function(fd, req) {
-	return fdCall('fstat', [], req, statFilter);
+	return fdCall(fd, 'fstat', [], req, statFilter);
 };
 
 binding.access = function(path, mode, req) {
@@ -161,23 +174,23 @@ binding.chown = function(path, uid, gid, req) {
 };
 
 binding.fchmod = function(fd, mode, req) {
-	return fdCall('fchmod', [ mode ], req);
+	return fdCall(fd, 'fchmod', [ mode ], req);
 };
 
 binding.fchown = function(fd, uid, gid, req) {
-	return fdCall('fchown', [ uid, gid ], req);
+	return fdCall(fd, 'fchown', [ uid, gid ], req);
 };
 
 binding.fsync = function(fd, req) {
-	return fdCall('fsync', [], req);
+	return fdCall(fd, 'fsync', [], req);
 };
 
 binding.fdatasync = function(fd, req) {
-	return fdCall('fdatasync', [], req);
+	return fdCall(fd, 'fdatasync', [], req);
 };
 
 binding.ftruncate = function(fd, len, req) {
-	return fdCall('ftruncate', [ len ], req);
+	return fdCall(fd, 'ftruncate', [ len ], req);
 };
 
 binding.utimes = function(path, atime, mtime, req) {
@@ -185,7 +198,7 @@ binding.utimes = function(path, atime, mtime, req) {
 };
 
 binding.futimes = function(fd, atime, mtime, req) {
-	return fdCall('futimes', [ atime, mtime ], req);
+	return fdCall(fd, 'futimes', [ atime, mtime ], req);
 };
 
 binding.link = function(srcpath, dstpath, req) {
@@ -221,5 +234,5 @@ binding.rmdir = function(path, req) {
 };
 
 binding.StatWatcher = function() {
-//TODO
+	//TODO
 };
