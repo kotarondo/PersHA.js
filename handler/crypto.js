@@ -35,27 +35,13 @@ Copyright (c) 2015, Kotaro Endo.
 
 module.exports = {
 	open : open,
-	syncIO : syncIO,
-	asyncIO : asyncIO,
 };
 
 function open(name, args, callback) {
 	if (name === 'Hash') {
 		return new Hash(args, callback);
 	}
-	console.log("[unhandled] crypto open:" + name);
-	console.log(args);
-}
-
-function syncIO(name, args) {
-	console.log("[unhandled] crypto syncIO:" + name);
-	console.log(args);
-}
-
-function asyncIO(name, args, callback) {
-	console.log("[unhandled] crypto asyncIO:" + name);
-	console.log(args);
-	callback();
+	console.log("[unhandled] crypto open: " + name);
 }
 
 function Hash(args, callback) {
@@ -70,12 +56,9 @@ function Hash(args, callback) {
 		if (name === 'digest') {
 			return obj.digest.apply(obj, args);
 		}
-		console.log("[unhandled] Hash syncIO:" + name);
-		console.log(args);
+		console.log("[unhandled] Hash syncIO: " + name);
 	};
 	this.asyncIO = function(name, args, callback) {
-		console.log("[unhandled] Hash asyncIO:" + name);
-		console.log(args);
-		callback();
+		console.log("[unhandled] Hash asyncIO: " + name);
 	};
 }

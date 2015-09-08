@@ -35,27 +35,13 @@ Copyright (c) 2015, Kotaro Endo.
 
 module.exports = {
 	open : open,
-	syncIO : syncIO,
-	asyncIO : asyncIO,
 };
 
 function open(name, args, callback) {
 	if (name === 'HTTPParser') {
 		return new HTTPParserPort(args, callback);
 	}
-	console.log("[unhandled] http_parser open:" + name);
-	console.log(args);
-}
-
-function syncIO(name, args) {
-	console.log("[unhandled] http_parser syncIO:" + name);
-	console.log(args);
-}
-
-function asyncIO(name, args, callback) {
-	console.log("[unhandled] http_parser asyncIO:" + name);
-	console.log(args);
-	callback();
+	console.log("[unhandled] http_parser open: " + name);
 }
 
 function HTTPParserPort(args, callback) {
@@ -99,12 +85,6 @@ function HTTPParserPort(args, callback) {
 		if (name === 'resume') {
 			return parser.resume();
 		}
-		console.log("[unhandled] HTTPParser syncIO:" + name);
-		console.log(args);
-	};
-	this.asyncIO = function(name, args, callback) {
-		console.log("[unhandled] HTTPParser asyncIO:" + name);
-		console.log(args);
-		callback();
+		console.log("[unhandled] HTTPParser syncIO: " + name);
 	};
 }

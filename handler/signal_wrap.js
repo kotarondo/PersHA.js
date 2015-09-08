@@ -37,8 +37,6 @@ var signal = process.binding('signal_wrap');
 
 module.exports = {
 	open : open,
-	syncIO : syncIO,
-	asyncIO : asyncIO,
 };
 
 function open(name, args, callback) {
@@ -46,18 +44,6 @@ function open(name, args, callback) {
 		return new SignalPort(callback);
 	}
 	console.log("[unhandled] signal_wrap open:" + name);
-	console.log(args);
-}
-
-function syncIO(name, args) {
-	console.log("[unhandled] signal_wrap syncIO:" + name);
-	console.log(args);
-}
-
-function asyncIO(name, args, callback) {
-	console.log("[unhandled] signal_wrap asyncIO:" + name);
-	console.log(args);
-	callback();
 }
 
 function SignalPort(callback) {
@@ -102,12 +88,5 @@ function SignalPort(callback) {
 			return;
 		}
 		console.log("[unhandled] Signal syncIO:" + name);
-		console.log(args);
-	};
-
-	this.asyncIO = function(name, args, callback) {
-		console.log("[unhandled] Signal asyncIO:" + name);
-		console.log(args);
-		callback();
 	};
 }

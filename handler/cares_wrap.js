@@ -34,7 +34,6 @@ Copyright (c) 2015, Kotaro Endo.
 'use strict'
 
 module.exports = {
-	open : open,
 	syncIO : syncIO,
 	asyncIO : asyncIO,
 };
@@ -43,17 +42,11 @@ var cares = process.binding('cares_wrap');
 var GetAddrInfoReqWrap = cares.GetAddrInfoReqWrap;
 var GetNameInfoReqWrap = cares.GetNameInfoReqWrap;
 
-function open(name, args, callback) {
-	console.log("[unhandled] cares_wrap open:" + name);
-	console.log(args);
-}
-
 function syncIO(name, args) {
 	if (name === 'isIP') {
 		return cares.isIP(args[0]);
 	}
-	console.log("[unhandled] cares_wrap syncIO:" + name);
-	console.log(args);
+	console.log("[unhandled] cares_wrap syncIO: " + name);
 }
 
 function asyncIO(name, args, callback) {
@@ -63,7 +56,5 @@ function asyncIO(name, args, callback) {
 		cares.getaddrinfo(req, args[0], args[1], args[2]);
 		return;
 	}
-	console.log("[unhandled] cares_wrap asyncIO:" + name);
-	console.log(args);
-	callback();
+	console.log("[unhandled] cares_wrap asyncIO: " + name);
 }

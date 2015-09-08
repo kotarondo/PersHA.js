@@ -34,14 +34,9 @@ Copyright (c) 2015, Kotaro Endo.
 'use strict'
 
 module.exports = {
-	open : open,
 	syncIO : syncIO,
 	asyncIO : asyncIO,
 };
-
-function open(name, args, callback) {
-	console.log("[unhandled] process open:" + name + ":" + args);
-}
 
 function syncIO(name, args) {
 	if (name === 'debug') {

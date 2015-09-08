@@ -35,8 +35,6 @@ Copyright (c) 2015, Kotaro Endo.
 
 module.exports = {
 	open : open,
-	syncIO : syncIO,
-	asyncIO : asyncIO,
 };
 
 function open(name, args, callback) {
@@ -44,14 +42,6 @@ function open(name, args, callback) {
 		return new TCPPort(null, callback);
 	}
 	console.log("[unhandled] tcp_wrap open:" + name + ": " + args);
-}
-
-function syncIO(name, args) {
-	console.log("[unhandled] tcp_wrap syncIO:" + name + ": " + args);
-}
-
-function asyncIO(name, args, callback) {
-	console.log("[unhandled] tcp_wrap asyncIO:" + name + ": " + args);
 }
 
 function TCPPort(handle, callback) {

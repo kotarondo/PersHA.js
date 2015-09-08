@@ -57,6 +57,9 @@ function IOManager_bindPort(port, root, name, args) {
 			port.handler = require(HANDLER_SCRIPT_DIR + name);
 		}
 		else {
+			if(!root.handler.open){
+				throw new Error("[unhandled]");
+			}
 			port.handler = root.handler.open(name, args, function() {
 				var value = Array.prototype.slice.call(arguments);
 				var entry = {
@@ -189,6 +192,9 @@ function IOManager_syncIO(port, name, args) {
 		}
 		else {
 			try {
+				if(!port.handler.syncIO){
+					throw new Error("[unhandled]");
+				}
 				var value = port.handler.syncIO(name, args);
 				entry.value = value;
 			} catch (exception) {
@@ -217,6 +223,9 @@ function IOManager_asyncIO(port, name, args, callback) {
 		return txid;
 	}
 	try {
+		if(!port.handler.asyncIO){
+			throw new Error("[unhandled]");
+		}
 		port.handler.asyncIO(name, args, function() {
 			var value = Array.prototype.slice.call(arguments);
 			var entry = {

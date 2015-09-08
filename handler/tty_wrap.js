@@ -38,7 +38,6 @@ var tty = process.binding('tty_wrap');
 module.exports = {
 	open : open,
 	syncIO : syncIO,
-	asyncIO : asyncIO,
 };
 
 function open(name, args, callback) {
@@ -46,7 +45,6 @@ function open(name, args, callback) {
 		return new TTYPort(args, callback);
 	}
 	console.log("[unhandled] tty_wrap open:" + name);
-	console.log(args);
 }
 
 function syncIO(name, args) {
@@ -57,13 +55,6 @@ function syncIO(name, args) {
 		return tty.isTTY(args[0]);
 	}
 	console.log("[unhandled] tty_wrap syncIO:" + name);
-	console.log(args);
-}
-
-function asyncIO(name, args, callback) {
-	console.log("[unhandled] tty_wrap asyncIO:" + name);
-	console.log(args);
-	callback();
 }
 
 function TTYPort(args, callback) {
@@ -121,7 +112,6 @@ function TTYPort(args, callback) {
 			return;
 		}
 		console.log("[unhandled] TTY syncIO:" + name);
-		console.log(args);
 	};
 
 	this.asyncIO = function(name, args, callback) {
@@ -134,7 +124,5 @@ function TTYPort(args, callback) {
 			return;
 		}
 		console.log("[unhandled] TTY asyncIO:" + name);
-		console.log(args);
-		callback();
 	};
 }

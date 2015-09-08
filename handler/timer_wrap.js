@@ -38,7 +38,6 @@ var Timer = process.binding('timer_wrap').Timer;
 module.exports = {
 	open : open,
 	syncIO : syncIO,
-	asyncIO : asyncIO,
 };
 
 function open(name, args, callback) {
@@ -46,7 +45,6 @@ function open(name, args, callback) {
 		return new TimerPort(callback);
 	}
 	console.log("[unhandled] timer_wrap open:" + name);
-	console.log(args);
 }
 
 function syncIO(name, args) {
@@ -54,13 +52,6 @@ function syncIO(name, args) {
 		return Timer.now();
 	}
 	console.log("[unhandled] timer_wrap syncIO:" + name);
-	console.log(args);
-}
-
-function asyncIO(name, args, callback) {
-	console.log("[unhandled] timer_wrap asyncIO:" + name);
-	console.log(args);
-	callback();
 }
 
 function TimerPort(callback) {
@@ -104,12 +95,5 @@ function TimerPort(callback) {
 			return;
 		}
 		console.log("[unhandled] Timer syncIO:" + name);
-		console.log(args);
-	};
-
-	this.asyncIO = function(name, args, callback) {
-		console.log("[unhandled] Timer asyncIO:" + name);
-		console.log(args);
-		callback();
 	};
 }
