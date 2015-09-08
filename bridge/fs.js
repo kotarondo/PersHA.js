@@ -44,7 +44,7 @@ function nop() {
 }
 
 for (var fd = 0; fd < 3; fd++) {
-	var port = fsPort.open('bind', [ fd ], nop);
+	var port = fsPort.open('bind', [ fd ], nop, true);
 	mapFD[fd] = port;
 }
 

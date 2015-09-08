@@ -44,16 +44,14 @@ Timer.now = function() {
 
 function Timer() {
 	var self = this;
-	var port = timerPort.open('Timer', [], portEventCallback);
+	var port = timerPort.open('Timer', [], portEventCallback, true);
+	var unref;
 	var startArgs;
 
 	function portEventCallback(name, args) {
 		if (name instanceof IOPortError) {
 			if (name.message === 'restart') {
-				port = timerPort.open('Timer', [], portEventCallback);
-				if (startArgs) {
-					port.syncIO('start', startArgs);
-				}
+				port.syncIO('restart', [ unref, startArgs ]);
 			}
 			return;
 		}
@@ -61,38 +59,34 @@ function Timer() {
 	}
 
 	this.close = function() {
+		port.syncIO('close', arguments);
 		port.close();
-		return port.syncIO('close', arguments);
 	};
 
 	this.ref = function() {
-		return port.syncIO('ref', arguments);
+		port.syncIO('ref', arguments);
+		unref = false;
 	};
 
 	this.unref = function() {
-		return port.syncIO('unref', arguments);
+		port.syncIO('unref', arguments);
+		unref = true;
 	};
 
 	this.start = function() {
-		startArgs = arguments;
-		return port.syncIO('start', arguments);
+		var err = port.syncIO('start', arguments);
+		if (!err) {
+			startArgs = arguments;
+		}
+		return err;
 	};
 
 	this.stop = function() {
-		startArgs = null;
-		return port.syncIO('stop', arguments);
-	};
-
-	this.setRepeat = function() {
-		return port.syncIO('setRepeat', arguments);
-	};
-
-	this.getRepeat = function() {
-		return port.syncIO('getRepeat', arguments);
-	};
-
-	this.again = function() {
-		return port.syncIO('again', arguments);
+		var err = port.syncIO('stop', arguments);
+		if (!err) {
+			startArgs = null;
+		}
+		return err;
 	};
 
 }

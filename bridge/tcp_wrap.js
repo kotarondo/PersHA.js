@@ -44,22 +44,13 @@ function TCPConnectWrap() {
 
 function TCP() {
 	var self = this;
-	self._port = tcpPort.open('TCP', [], portEventCallback);
+	self._port = tcpPort.open('TCP', [], portEventCallback, true);
 	self.writeQueueSize = 0;
 
 	function portEventCallback(name, args) {
 		if (name instanceof IOPortError) {
 			if (name.message === 'restart') {
-				if (self._listenArgs) {
-					self._port = tcpPort.open('TCP', [], portEventCallback);
-					if (self._bindArgs) {
-						self._port.syncIO('bind', self._bindArgs);
-					}
-					else if (self._bind6Args) {
-						self._port.syncIO('bind6', self._bind6Args);
-					}
-					self._port.syncIO('listen', self._listenArgs);
-				}
+				self._port.syncIO('restart', [ self._unref, self._bindArgs, self._bind6Args, self._listenArgs ]);
 			}
 			return;
 		}
@@ -104,12 +95,14 @@ TCP.prototype.close = function(callback) {
 
 TCP.prototype.ref = function() {
 	var self = this;
-	return self._port.syncIO('ref', []);
+	self._port.syncIO('ref', []);
+	self._unref = false;
 };
 
 TCP.prototype.unref = function() {
 	var self = this;
-	return self._port.syncIO('unref', []);
+	self._port.syncIO('unref', []);
+	self._unref = true;
 };
 
 TCP.prototype.readStart = function() {

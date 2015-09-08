@@ -40,14 +40,14 @@ signal.Signal = Signal;
 
 function Signal() {
 	var self = this;
-	var port = signalPort.open('Signal', [], portEventCallback);
+	var port = signalPort.open('Signal', [], portEventCallback, true);
+	var unref;
 	var signum;
 
 	function portEventCallback(name, args) {
 		if (name instanceof IOPortError) {
-			port = signalPort.open('Signal', [], portEventCallback);
-			if (signum) {
-				port.syncIO('start', [ signum ]);
+			if (name.message === 'restart') {
+				port.syncIO('restart', [ unref, signum ]);
 			}
 			return;
 		}
@@ -55,26 +55,34 @@ function Signal() {
 	}
 
 	this.close = function() {
+		port.syncIO('close', arguments);
 		port.close();
-		return port.syncIO('close', arguments);
 	};
 
 	this.ref = function() {
-		return port.syncIO('ref', arguments);
+		port.syncIO('ref', arguments);
+		unref = false;
 	};
 
 	this.unref = function() {
-		return port.syncIO('unref', arguments);
+		port.syncIO('unref', arguments);
+		unref = true;
 	};
 
 	this.start = function() {
-		signum = arguments[0];
-		return port.syncIO('start', [ signum ]);
+		var err = port.syncIO('start', arguments);
+		if (!err) {
+			signum = arguments[0];
+		}
+		return err;
 	};
 
 	this.stop = function() {
-		signum = undefined;
-		return port.syncIO('stop', arguments);
+		var err = port.syncIO('stop', arguments);
+		if (!err) {
+			signum = undefined;
+		}
+		return err;
 	};
 
 }

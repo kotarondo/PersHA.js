@@ -43,7 +43,7 @@ module.exports = {
 
 function open(name, args, callback) {
 	if (name === 'Timer') {
-		return new TimerPort(null, callback);
+		return new TimerPort(callback);
 	}
 	console.log("[unhandled] timer_wrap open:" + name);
 	console.log(args);
@@ -63,8 +63,9 @@ function asyncIO(name, args, callback) {
 	callback();
 }
 
-function TimerPort(handle, callback) {
+function TimerPort(callback) {
 	var handle = new Timer();
+	var restarted;
 	var kOnTimeout = Timer.kOnTimeout;
 
 	handle[kOnTimeout] = function() {
@@ -86,6 +87,21 @@ function TimerPort(handle, callback) {
 		}
 		if (name === 'stop') {
 			return handle.stop.apply(handle, args);
+		}
+		if (name === 'restart') {
+			if (restarted) {
+				return;
+			}
+			restarted = true;
+			var unref = args[0];
+			var startArgs = args[1];
+			if (startArgs) {
+				handle.start.apply(handle, startArgs);
+			}
+			if (unref) {
+				handle.unref();
+			}
+			return;
 		}
 		console.log("[unhandled] Timer syncIO:" + name);
 		console.log(args);

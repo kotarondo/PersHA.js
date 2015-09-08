@@ -46,7 +46,7 @@ crypto.Connection = function() {
 
 crypto.CipherBase = function() {
 	var self = this;
-	self._port = cryptoPort.open('CipherBase', arguments, portEventCallback);
+	self._port = cryptoPort.open('CipherBase', arguments, portEventCallback, true);
 
 	function portEventCallback(name, args) {
 		process._debug("binding[crypto] port event " + name);
@@ -91,7 +91,7 @@ crypto.CipherBase.prototype.setAAD = function() {
 
 crypto.DiffieHellman = function() {
 	var self = this;
-	self._port = cryptoPort.open('DiffieHellman', arguments, portEventCallback);
+	self._port = cryptoPort.open('DiffieHellman', arguments, portEventCallback, true);
 
 	function portEventCallback(name, args) {
 		process._debug("binding[crypto] port event " + name);
@@ -136,7 +136,7 @@ crypto.DiffieHellman.prototype.setPrivateKey = function() {
 
 crypto.DiffieHellmanGroup = function() {
 	var self = this;
-	self._port = cryptoPort.open('DiffieHellmanGroup', arguments, portEventCallback);
+	self._port = cryptoPort.open('DiffieHellmanGroup', arguments, portEventCallback, true);
 
 	function portEventCallback(name, args) {
 		process._debug("binding[crypto] port event " + name);
@@ -173,7 +173,7 @@ crypto.DiffieHellmanGroup.prototype.getPrivateKey = function() {
 
 crypto.ECDH = function() {
 	var self = this;
-	self._port = cryptoPort.open('ECDH', arguments, portEventCallback);
+	self._port = cryptoPort.open('ECDH', arguments, portEventCallback, true);
 
 	function portEventCallback(name, args) {
 		process._debug("binding[crypto] port event " + name);
@@ -187,7 +187,7 @@ crypto.ECDH = function() {
 
 crypto.Hmac = function() {
 	var self = this;
-	self._port = cryptoPort.open('Hmac', arguments, portEventCallback);
+	self._port = cryptoPort.open('Hmac', arguments, portEventCallback, true);
 
 	function portEventCallback(name, args) {
 		process._debug("binding[crypto] port event " + name);
@@ -201,7 +201,7 @@ crypto.Hmac = function() {
 
 crypto.Hash = function() {
 	var self = this;
-	self._port = cryptoPort.open('Hash', arguments, portEventCallback);
+	self._port = cryptoPort.open('Hash', arguments, portEventCallback, true);
 
 	function portEventCallback(name, args) {
 		process._debug("binding[crypto] port event " + name);
@@ -222,7 +222,7 @@ crypto.Hash.prototype.digest = function() {
 
 crypto.Sign = function() {
 	var self = this;
-	self._port = cryptoPort.open('Sign', arguments, portEventCallback);
+	self._port = cryptoPort.open('Sign', arguments, portEventCallback, true);
 
 	function portEventCallback(name, args) {
 		process._debug("binding[crypto] port event " + name);
@@ -236,7 +236,7 @@ crypto.Sign = function() {
 
 crypto.Verify = function() {
 	var self = this;
-	self._port = cryptoPort.open('Verify', arguments, portEventCallback);
+	self._port = cryptoPort.open('Verify', arguments, portEventCallback, true);
 
 	function portEventCallback(name, args) {
 		process._debug("binding[crypto] port event " + name);
@@ -250,7 +250,7 @@ crypto.Verify = function() {
 
 crypto.Certificate = function() {
 	var self = this;
-	self._port = cryptoPort.open('Certificate', arguments, portEventCallback);
+	self._port = cryptoPort.open('Certificate', arguments, portEventCallback, true);
 
 	function portEventCallback(name, args) {
 		process._debug("binding[crypto] port event " + name);

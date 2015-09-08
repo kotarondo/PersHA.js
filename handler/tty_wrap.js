@@ -71,6 +71,7 @@ function TTYPort(args, callback) {
 	var WriteWrap = process.binding('stream_wrap').WriteWrap;
 
 	var handle = new TTY(args[0], args[1]);
+	var restarted;
 
 	handle.onread = function() {
 		callback('onread', arguments);
@@ -99,6 +100,25 @@ function TTYPort(args, callback) {
 		}
 		if (name === 'setRawMode') {
 			return handle.setRawMode(args[0]);
+		}
+		if (name === 'restart') {
+			if (restarted) {
+				return;
+			}
+			restarted = true;
+			var unref = args[0];
+			var reading = args[1];
+			var rawMode = args[2];
+			if (rawMode) {
+                handle.setRawMode(rawMode);
+			}
+			if (reading) {
+                handle.readStart();
+			}
+			if (unref) {
+				handle.unref();
+			}
+			return;
 		}
 		console.log("[unhandled] TTY syncIO:" + name);
 		console.log(args);

@@ -43,7 +43,7 @@ module.exports = {
 
 function open(name, args, callback) {
 	if (name === 'Signal') {
-		return new SignalPort(null, callback);
+		return new SignalPort(callback);
 	}
 	console.log("[unhandled] signal_wrap open:" + name);
 	console.log(args);
@@ -60,10 +60,11 @@ function asyncIO(name, args, callback) {
 	callback();
 }
 
-function SignalPort(handle, callback) {
+function SignalPort(callback) {
 	var Signal = process.binding('signal_wrap').Signal;
 
 	var handle = new Signal();
+	var restarted;
 
 	handle.onsignal = function() {
 		callback('onsignal', arguments);
@@ -84,6 +85,21 @@ function SignalPort(handle, callback) {
 		}
 		if (name === 'stop') {
 			return handle.stop();
+		}
+		if (name === 'restart') {
+			if (restarted) {
+				return;
+			}
+			restarted = true;
+			var unref = args[0];
+			var signum = args[1];
+			if (signum >= 0) {
+				handle.start(signum);
+			}
+			if (unref) {
+				handle.unref();
+			}
+			return;
 		}
 		console.log("[unhandled] Signal syncIO:" + name);
 		console.log(args);

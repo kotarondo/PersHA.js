@@ -48,22 +48,15 @@ tty.TTY = TTY;
 
 function TTY(fd, flag) {
 	var self = this;
-	var port = ttyPort.open('TTY', arguments, portEventCallback);
+	var port = ttyPort.open('TTY', arguments, portEventCallback, true);
+	var unref;
 	var reading;
 	var rawMode;
 
 	function portEventCallback(name, args) {
 		if (name instanceof IOPortError) {
 			if (name.message === 'restart') {
-				if (0 <= fd && fd <= 2) {
-					port = ttyPort.open('TTY', [ fd, flag ], portEventCallback);
-					if (reading) {
-						port.syncIO('readStart', []);
-					}
-					if (rawMode) {
-						port.syncIO('setRawMode', [ rawMode ]);
-					}
-				}
+				port.syncIO('restart', [ unref, reading, rawMode ]);
 			}
 			return;
 		}
@@ -71,27 +64,33 @@ function TTY(fd, flag) {
 	}
 
 	this.setRawMode = function() {
+		port.syncIO('setRawMode', [ rawMode ]);
 		rawMode = arguments[0] ? true : false;
-		return port.syncIO('setRawMode', [ rawMode ]);
 	};
 
 	this.close = function() {
+		port.syncIO('close', arguments);
 		port.close();
-		return port.syncIO('close', arguments);
+	};
+
+	this.ref = function() {
+		port.syncIO('ref', arguments);
+		unref = false;
 	};
 
 	this.unref = function() {
-		return port.syncIO('unref', arguments);
+		port.syncIO('unref', arguments);
+		unref = true;
 	};
 
 	this.readStart = function() {
+		port.syncIO('readStart', arguments);
 		reading = true;
-		return port.syncIO('readStart', arguments);
 	};
 
 	this.readStop = function() {
+		port.syncIO('readStop', arguments);
 		reading = false;
-		return port.syncIO('readStop', arguments);
 	};
 
 	this.writeBuffer = function() {
