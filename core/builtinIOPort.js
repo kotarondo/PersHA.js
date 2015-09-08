@@ -186,24 +186,20 @@ function IOPort_unwrap(A, stack) {
 	stack.push(A);
 	if (A.Class === 'Array' || A.Class === 'Arguments') {
 		var a = [];
-		var length = A.Get('length');
-		for (var i = 0; i < length; i++) {
-			a[i] = IOPort_unwrap(A.Get(ToString(i)), stack);
-		}
 	}
 	else if (A.Class === 'Object') {
 		var a = {};
-		var next = A.enumerator(false, true);
-		var P;
-		while ((P = next()) !== undefined) {
-			if (P === 'caller' || P === 'callee' || P === 'arguments') {
-				continue;
-			}
-			a[P] = IOPort_unwrap(A.Get(P), stack);
-		}
 	}
 	else {
 		throw VMTypeError();
+	}
+	var next = A.enumerator(false, true);
+	var P;
+	while ((P = next()) !== undefined) {
+		if (P === 'caller' || P === 'callee' || P === 'arguments') {
+			continue;
+		}
+		a[P] = IOPort_unwrap(A.Get(P), stack);
 	}
 	stack.pop();
 	return a;
@@ -214,6 +210,9 @@ function IOPort_wrap(a, stack) {
 	// i.e. IOPort_wrap == IOPort_wrap ○ readAny ○ writeAny
 	if (isPrimitiveValue(a)) {
 		return a;
+	}
+	if (a instanceof Function) {
+		return undefined;
 	}
 	if (a instanceof Buffer) {
 		var A = VMObject(CLASSID_Buffer);
@@ -227,44 +226,40 @@ function IOPort_wrap(a, stack) {
 	if (a instanceof Date) {
 		return Date_Construct([ a.getTime() ]);
 	}
-	if (a instanceof Error) {
-		if (a instanceof TypeError) {
-			return TypeError_Construct([ a.message ]);
-		}
-		if (a instanceof ReferenceError) {
-			return ReferenceError_Construct([ a.message ]);
-		}
-		if (a instanceof RangeError) {
-			return RangeError_Construct([ a.message ]);
-		}
-		return Error_Construct([ a.message ]);
-	}
-	if (a instanceof Function) {
-		return undefined;
-	}
 	if (stack === undefined) stack = [];
 	if (isIncluded(a, stack)) {
 		return null;
 	}
 	stack.push(a);
+	if (a instanceof Error) {
+		if (a instanceof TypeError) {
+			var A = TypeError_Construct([ a.message ]);
+		}
+		else if (a instanceof ReferenceError) {
+			var A = ReferenceError_Construct([ a.message ]);
+		}
+		else if (a instanceof RangeError) {
+			var A = RangeError_Construct([ a.message ]);
+		}
+		else {
+			var A = Error_Construct([ a.message ]);
+		}
+	}
 	if (a instanceof Array) {
 		var length = a.length;
 		var A = Array_Construct([ length ]);
-		for (var i = 0; i < length; i++) {
-			A.Put(ToString(i), IOPort_wrap(a[i], stack), false);
-		}
 	}
 	else {
 		var A = Object_Construct([]);
-		var keys = Object.getOwnPropertyNames(a);
-		var length = keys.length;
-		for (var i = 0; i < length; i++) {
-			var P = keys[i];
-			if (P === 'caller' || P === 'callee' || P === 'arguments') {
-				continue;
-			}
-			A.Put(P, IOPort_wrap(a[P], stack), false);
+	}
+	var keys = Object.getOwnPropertyNames(a);
+	var length = keys.length;
+	for (var i = 0; i < length; i++) {
+		var P = keys[i];
+		if (P === 'caller' || P === 'callee' || P === 'arguments') {
+			continue;
 		}
+		A.Put(P, IOPort_wrap(a[P], stack), false);
 	}
 	stack.pop();
 	return A;
