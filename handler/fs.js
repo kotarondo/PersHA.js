@@ -42,8 +42,8 @@ module.exports = {
 var binding = process.binding('fs');
 
 function open(name, args, callback) {
-	if (name === 'open') {
-		return new FilePort(callback);
+	if (name === 'bind') {
+		return new FilePort(args[0], callback);
 	}
 	console.log("[unhandled] fs open:" + name + ": " + args);
 }
@@ -142,9 +142,7 @@ function asyncIO(name, args, callback) {
 	console.log("[unhandled] fs asyncIO:" + name + ": " + args);
 }
 
-function FilePort(callback) {
-	var fd;
-
+function FilePort(fd, callback) {
 	this.syncIO = function(name, args) {
 		if (name === 'open') {
 			fd = binding.open(args[0], args[1], args[2]);

@@ -40,6 +40,14 @@ var Stats;
 var maxFD = 10;
 var mapFD = [];
 
+function nop() {
+}
+
+for (var fd = 0; fd < 3; fd++) {
+	var port = fsPort.open('bind', [ fd ], nop);
+	mapFD[fd] = port;
+}
+
 function findPort(fd) {
 	return mapFD[fd];
 }
@@ -109,10 +117,8 @@ function generalCall(port, name, args, req, retry, filter) {
 }
 
 binding.open = function(path, flags, mode, req) {
-	var port = fsPort.open('open', [], portEventCallback);
-	function portEventCallback(name, args) {
-	}
-	generalCall(port, 'open', [ path, flags, mode ], req, false, function(value) {
+	var port = fsPort.open('bind', [], nop);
+	return generalCall(port, 'open', [ path, flags, mode ], req, false, function(value) {
 		return bindPort(port);
 	});
 };
@@ -123,7 +129,7 @@ binding.close = function(fd, req) {
 		return;
 	}
 	port.close();
-	generalCall(port, 'close', [], req, false);
+	return generalCall(port, 'close', [], req, false);
 };
 
 binding.read = function(fd, buffer, offset, length, position, req) {
