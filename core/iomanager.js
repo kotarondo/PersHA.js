@@ -57,7 +57,7 @@ function IOManager_bindPort(port, root, name, args) {
 			port.handler = require(HANDLER_SCRIPT_DIR + name);
 		}
 		else {
-			if(!root.handler.open){
+			if (!root.handler.open) {
 				throw new Error("[unhandled]");
 			}
 			port.handler = root.handler.open(name, args, function() {
@@ -76,7 +76,7 @@ function IOManager_bindPort(port, root, name, args) {
 			});
 		}
 	} catch (e) {
-		console.log("IOManager: bind error " + e); // debug
+		console.log("IOManager: bind: " + IOPort_longname(port) + "\n" + e); // debug
 	}
 	if (port.handler === undefined) {
 		port.handler = null;
@@ -97,7 +97,7 @@ function IOManager_autoRebind(port) {
 			IOManager_bindPort(port, root, name, args);
 		}
 	} catch (e) {
-		console.log("IOManager: auto rebind: " + e); // debug
+		console.log("IOManager: auto rebind: " + IOPort_longname(port) + "\n" + e); // debug
 	}
 	if (port.handler === undefined) {
 		port.handler = null;
@@ -192,7 +192,7 @@ function IOManager_syncIO(port, name, args) {
 		}
 		else {
 			try {
-				if(!port.handler.syncIO){
+				if (!port.handler.syncIO) {
 					throw new Error("[unhandled]");
 				}
 				var value = port.handler.syncIO(name, args);
@@ -223,7 +223,7 @@ function IOManager_asyncIO(port, name, args, callback) {
 		return txid;
 	}
 	try {
-		if(!port.handler.asyncIO){
+		if (!port.handler.asyncIO) {
 			throw new Error("[unhandled]");
 		}
 		port.handler.asyncIO(name, args, function() {
@@ -236,7 +236,7 @@ function IOManager_asyncIO(port, name, args, callback) {
 			setImmediate(IOManager_asyncIO_completion, entry);
 		});
 	} catch (e) {
-		console.log("IOManager: asyncIO: " + e);
+		console.log("IOManager: asyncIO: " + IOPort_longname(port) + "\n" + e); // debug
 		var entry = {
 			type : 'asyncIO',
 			txid : txid,

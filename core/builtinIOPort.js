@@ -109,7 +109,7 @@ function IOPort_prototype_open(thisValue, argumentsList) {
 	defineFinal(port, 'root', root);
 	defineFinal(port, 'name', name);
 	defineFinal(port, 'callback', callback);
-	if(autoRebind){
+	if (autoRebind) {
 		defineFinal(port, 'args', plainArgs);
 		defineFinal(port, 'autoRebind', autoRebind);
 	}
@@ -124,11 +124,11 @@ function IOPort_prototype_rebind(thisValue, argumentsList) {
 	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== 'IOPort') throw VMTypeError();
 	var port = thisValue;
 	var root = port.Get('root');
-	if(!root){
+	if (!root) {
 		return;
 	}
 	var name = port.Get('name');
-	var plainArgs =  port.Get('args');
+	var plainArgs = port.Get('args');
 	var args = IOPort_unwrapArgs(plainArgs);
 	IOManager_context.pause(false);
 	IOManager_bindPort(port, root, name, args);
@@ -139,6 +139,15 @@ function IOPort_prototype_close(thisValue, argumentsList) {
 	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== 'IOPort') throw VMTypeError();
 	var port = thisValue;
 	IOManager_closePort(port);
+}
+
+function IOPort_longname(port) {
+	var root = port.Get('root');
+	var name = port.Get('name');
+	if (!root) {
+		return name;
+	}
+	return IOPort_longname(port) + "." + name;
 }
 
 function IOPort_unwrapArgs(A) {
