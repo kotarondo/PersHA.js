@@ -41,13 +41,37 @@ var IOManager_uniqueID = 0;
 var IOManager_asyncCallbacks = {};
 var IOManager_openPorts = {};
 
-function IOManager_bindPort(port, name) {
+function IOManager_bindPort(port, root, name, args) {
 	if (IOManager_state !== 'online') {
 		return;
 	}
+	if (root) {
+		IOManager_autoRebind(root);
+		if (!root.handler) {
+			return;
+		}
+	}
 	port.handler = undefined;
 	try {
-		port.handler = require(HANDLER_SCRIPT_DIR + name);
+		if (!root) {
+			port.handler = require(HANDLER_SCRIPT_DIR + name);
+		}
+		else {
+			port.handler = root.handler.open(name, args, function() {
+				var value = Array.prototype.slice.call(arguments);
+				var entry = {
+					type : 'portEvent',
+					txid : port.txid,
+					value : value,
+				};
+				if (IOManager_context.isInterruptible()) {
+					IOManager_portEvent(entry);
+				}
+				else {
+					setImmediate(IOManager_portEvent, entry);
+				}
+			});
+		}
 	} catch (e) {
 		console.log("IOManager: bind error " + e); // debug
 	}
@@ -56,14 +80,31 @@ function IOManager_bindPort(port, name) {
 	}
 }
 
-function IOManager_rebindPort(port) {
-	var name = port.Get('name');
-	if (Type(name) === TYPE_String) {
-		IOManager_bindPort(port, name);
+function IOManager_autoRebind(port) {
+	if (port.handler !== undefined) {
+		return;
 	}
-	else {
+	try {
+		var root = port.Get('root');
+		var name = port.Get('name');
+		var plainArgs = port.Get('args');
+		var autoRebind = port.Get('autoRebind');
+		if (autoRebind || !root) {
+			var args = IOPort_unwrapArgs(plainArgs);
+			IOManager_bindPort(port, root, name, args);
+		}
+	} catch (e) {
+		console.log("IOManager: auto rebind: " + e); // debug
+	}
+	if (port.handler === undefined) {
 		port.handler = null;
 	}
+}
+
+function IOManager_openPort(port) {
+	var txid = ++IOManager_uniqueID;
+	IOManager_openPorts[txid] = port;
+	port.txid = txid;
 }
 
 function IOManager_closePort(port) {
@@ -71,7 +112,7 @@ function IOManager_closePort(port) {
 	var p = IOManager_openPorts[txid];
 	if (p) {
 		assert(p === port);
-		delete (IOManager_openPorts[txid]);
+		delete IOManager_openPorts[txid];
 	}
 }
 
@@ -142,10 +183,8 @@ function IOManager_syncIO(port, name, args) {
 		entry.error = 'restart';
 	}
 	else {
-		if (port.handler === undefined) {
-			IOManager_rebindPort(port);
-		}
-		if (port.handler === null) {
+		IOManager_autoRebind(port);
+		if (!port.handler) {
 			entry.error = 'stale';
 		}
 		else {
@@ -167,10 +206,8 @@ function IOManager_asyncIO(port, name, args, callback) {
 	if (IOManager_state !== 'online') {
 		return txid;
 	}
-	if (port.handler === undefined) {
-		IOManager_rebindPort(port);
-	}
-	if (port.handler === null) {
+	IOManager_autoRebind(port);
+	if (!port.handler) {
 		var entry = {
 			type : 'asyncIO',
 			txid : txid,
@@ -207,7 +244,7 @@ function IOManager_asyncIO_completion(entry) {
 	if (callback === undefined) {
 		return;
 	}
-	delete (IOManager_asyncCallbacks[txid]);
+	delete IOManager_asyncCallbacks[txid];
 	if (IOManager_state === 'online') {
 		Journal_write(entry);
 	}
@@ -220,51 +257,14 @@ function IOManager_asyncIO_completion(entry) {
 	IOManager_context.stop();
 }
 
-function IOManager_openPort(port, root, name, args) {
-	var txid = ++IOManager_uniqueID;
-	IOManager_openPorts[txid] = port;
-	port.txid = txid;
-	if (IOManager_state !== 'online') {
-		return;
-	}
-	if (root.handler === undefined) {
-		IOManager_rebindPort(root);
-	}
-	if (root.handler === null) {
-		return;
-	}
-	port.handler = undefined;
-	try {
-		port.handler = root.handler.open(name, args, function() {
-			var value = Array.prototype.slice.call(arguments);
-			var entry = {
-				type : 'portEvent',
-				txid : txid,
-				value : value,
-			};
-			if (IOManager_context.isInterruptible()) {
-				IOManager_portEvent(entry);
-			}
-			else {
-				setImmediate(IOManager_portEvent, entry);
-			}
-		});
-	} catch (e) {
-		console.log("IOManager: open error " + e); // debug
-	}
-	if (port.handler === undefined) {
-		port.handler = null;
-	}
-}
-
 function IOManager_portEvent(entry) {
 	var txid = entry.txid;
 	var port = IOManager_openPorts[txid];
 	if (port === undefined) {
 		return;
 	}
-	if (entry.error) {
-		delete (IOManager_openPorts[txid]);
+	if (entry.error && !port.Get('autoRebind')) {
+		delete IOManager_openPorts[txid];
 	}
 	if (IOManager_state === 'online') {
 		Journal_write(entry);

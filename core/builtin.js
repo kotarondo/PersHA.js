@@ -695,6 +695,7 @@ function initializeIOPort() {
 	defineFinal(builtin_IOPort, "prototype", builtin_IOPort_prototype);
 	define(builtin_IOPort_prototype, "constructor", builtin_IOPort);
 	defineFunction(builtin_IOPort_prototype, "open", 0, IOPort_prototype_open);
+	defineFunction(builtin_IOPort_prototype, "rebind", 0, IOPort_prototype_rebind);
 	defineFunction(builtin_IOPort_prototype, "close", 0, IOPort_prototype_close);
 	defineFunction(builtin_IOPort_prototype, "syncIO", 1, IOPort_prototype_syncIO);
 	defineFunction(builtin_IOPort_prototype, "asyncIO", 2, IOPort_prototype_asyncIO);

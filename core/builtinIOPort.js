@@ -42,9 +42,10 @@ function IOPort_Construct(argumentsList) {
 	var port = VMObject(CLASSID_IOPort);
 	port.Prototype = builtin_IOPort_prototype;
 	port.Extensible = true;
+	defineFinal(port, 'root', null);
 	defineFinal(port, 'name', name);
 	IOManager_context.pause(false);
-	IOManager_bindPort(port, name);
+	IOManager_bindPort(port, null, name);
 	IOManager_context.resume();
 	return port;
 }
@@ -96,18 +97,42 @@ function IOPort_notify(entry, callback) {
 function IOPort_prototype_open(thisValue, argumentsList) {
 	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== 'IOPort') throw VMTypeError();
 	var name = ToString(argumentsList[0]);
-	var args = IOPort_unwrapArgs(argumentsList[1]);
+	var plainArgs = argumentsList[1];
+	var args = IOPort_unwrapArgs(plainArgs);
 	var callback = argumentsList[2];
+	var autoRebind = ToBoolean(argumentsList[3]);
 	if (IsCallable(callback) === false) throw VMTypeError();
 	var root = thisValue;
 	var port = VMObject(CLASSID_IOPort);
 	port.Prototype = builtin_IOPort_prototype;
 	port.Extensible = true;
+	defineFinal(port, 'root', root);
+	defineFinal(port, 'name', name);
 	defineFinal(port, 'callback', callback);
+	if(autoRebind){
+		defineFinal(port, 'args', plainArgs);
+		defineFinal(port, 'autoRebind', autoRebind);
+	}
 	IOManager_context.pause(false);
-	IOManager_openPort(port, root, name, args);
+	IOManager_openPort(port);
+	IOManager_bindPort(port, root, name, args);
 	IOManager_context.resume();
 	return port;
+}
+
+function IOPort_prototype_rebind(thisValue, argumentsList) {
+	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== 'IOPort') throw VMTypeError();
+	var port = thisValue;
+	var root = port.Get('root');
+	if(!root){
+		return;
+	}
+	var name = port.Get('name');
+	var plainArgs =  port.Get('args');
+	var args = IOPort_unwrapArgs(plainArgs);
+	IOManager_context.pause(false);
+	IOManager_bindPort(port, root, name, args);
+	IOManager_context.resume();
 }
 
 function IOPort_prototype_close(thisValue, argumentsList) {
