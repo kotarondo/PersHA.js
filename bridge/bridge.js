@@ -53,6 +53,7 @@ process.binding = (function() {
 		udp_wrap : {},
 		stream_wrap : {},
 		signal_wrap : {},
+		fs_event_wrap : {},
 	};
 	return function(name) {
 		return bindings[name];
