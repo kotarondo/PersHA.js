@@ -64,7 +64,7 @@ function TTY() {
 TTY.prototype.setRawMode = function(mode) {
 	var self = this;
 	self._port.syncIO('setRawMode', [ mode ]);
-	rawMode = mode;
+	self._rawMode = mode;
 };
 
 TTY.prototype.close = function() {

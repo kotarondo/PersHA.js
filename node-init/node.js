@@ -241,6 +241,7 @@
       // If someone handled it, then great.  otherwise, die in C++ land
       // since that means that we'll exit the process, emit the 'exit' event
       if (!caught) {
+        process._debug("FATAL: "+er.stack);
         try {
           if (!process._exiting) {
             process._exiting = true;

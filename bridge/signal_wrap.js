@@ -45,7 +45,7 @@ function Signal() {
 	function portEventCallback(name, args) {
 		if (name instanceof IOPortError) {
 			if (name.message === 'restart') {
-				port.syncIO('restart', [ self._unref, self._signum ]);
+				self._port.syncIO('restart', [ self._unref, self._signum ]);
 			}
 			return;
 		}
