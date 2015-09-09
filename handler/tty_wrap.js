@@ -33,7 +33,7 @@ Copyright (c) 2015, Kotaro Endo.
 
 'use strict'
 
-var tty = process.binding('tty_wrap');
+var binding = process.binding('tty_wrap');
 
 module.exports = {
 	open : open,
@@ -49,10 +49,10 @@ function open(name, args, callback) {
 
 function syncIO(name, args) {
 	if (name === 'guessHandleType') {
-		return tty.guessHandleType(args[0]);
+		return binding.guessHandleType(args[0]);
 	}
 	if (name === 'isTTY') {
-		return tty.isTTY(args[0]);
+		return binding.isTTY(args[0]);
 	}
 	console.log("[unhandled] tty_wrap syncIO:" + name);
 }
@@ -116,13 +116,25 @@ function TTYPort(args, callback) {
 	};
 
 	this.asyncIO = function(name, args, callback) {
-		if (name === 'writeUtf8String') {
+		if (name === 'write') {
 			var req = new WriteWrap();
 			req.oncomplete = function(status, self, err) {
 				callback(status, err);
 			};
-			handle.writeUtf8String(req, args[0]);
-			return;
+			switch (args[0]) {
+			case 'writeUtf8String':
+				return handle.writeUtf8String(req, args[1]);
+			case 'writeBinaryString':
+				return handle.writeBinaryString(req, args[1]);
+			case 'writeBuffer':
+				return handle.writeBuffer(req, args[1]);
+			case 'writeAsciiString':
+				return handle.writeAsciiString(req, args[1]);
+			case 'writeUcs2String':
+				return handle.writeUcs2String(req, args[1]);
+			case 'writev':
+				return handle.writev(req, args[1]);
+			}
 		}
 		console.log("[unhandled] TTY asyncIO:" + name);
 	};

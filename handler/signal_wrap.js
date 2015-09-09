@@ -33,8 +33,6 @@ Copyright (c) 2015, Kotaro Endo.
 
 'use strict'
 
-var signal = process.binding('signal_wrap');
-
 module.exports = {
 	open : open,
 };

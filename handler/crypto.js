@@ -33,21 +33,90 @@ Copyright (c) 2015, Kotaro Endo.
 
 'use strict'
 
+	var binding  = process.binding('crypto');
 module.exports = {
 	open : open,
 };
 
 function open(name, args, callback) {
+	if (name === 'CipherBase') {
+		return new CipherBase(args, callback);
+	}
+	if (name === 'DiffieHellman') {
+		return new DiffieHellman(args, callback);
+	}
 	if (name === 'Hash') {
 		return new Hash(args, callback);
 	}
 	console.log("[unhandled] crypto open: " + name);
 }
 
-function Hash(args, callback) {
-	var Hash = process.binding('crypto').Hash;
+function CipherBase(args, callback) {
+	var obj = new binding.CipherBase(args[0]);
 
-	var obj = new Hash(args[0]);
+	this.syncIO = function(name, args) {
+		if (name === 'init') {
+			return obj.init.apply(obj, args);
+		}
+		if (name === 'initv') {
+			return obj.initv.apply(obj, args);
+		}
+		if (name === 'update') {
+			return obj.update.apply(obj, args);
+		}
+		if (name === 'final') {
+			return obj.final.apply(obj, args);
+		}
+		if (name === 'setAutoPadding') {
+			return obj.setAutoPadding.apply(obj, args);
+		}
+		if (name === 'getAuthTag') {
+			return obj.getAuthTag.apply(obj, args);
+		}
+		if (name === 'setAuthTag') {
+			return obj.setAuthTag.apply(obj, args);
+		}
+		if (name === 'setAAD') {
+			return obj.setAAD.apply(obj, args);
+		}
+		console.log("[unhandled] CipherBase syncIO: " + name);
+	};
+}
+
+function DiffieHellman(args, callback) {
+	var obj = new binding.DiffieHellman(args[0], args[1]);
+
+	this.syncIO = function(name, args) {
+		if (name === 'generateKeys') {
+			return obj.generateKeys.apply(obj, args);
+		}
+		if (name === 'computeSecret') {
+			return obj.computeSecret.apply(obj, args);
+		}
+		if (name === 'getPrime') {
+			return obj.getPrime.apply(obj, args);
+		}
+		if (name === 'getGenerator') {
+			return obj.getGenerator.apply(obj, args);
+		}
+		if (name === 'getPublicKey') {
+			return obj.getPublicKey.apply(obj, args);
+		}
+		if (name === 'getPrivateKey') {
+			return obj.getPrivateKey.apply(obj, args);
+		}
+		if (name === 'setPublicKey') {
+			return obj.setPublicKey.apply(obj, args);
+		}
+		if (name === 'setPrivateKey') {
+			return obj.setPrivateKey.apply(obj, args);
+		}
+		console.log("[unhandled] CipherBase syncIO: " + name);
+	};
+}
+
+function Hash(args, callback) {
+	var obj = new binding.Hash(args[0]);
 
 	this.syncIO = function(name, args) {
 		if (name === 'update') {

@@ -33,12 +33,12 @@
 
 'use strict';
 
-var stream = process.binding('stream_wrap');
+var binding = process.binding('stream_wrap');
 
-stream.ShutdownWrap = function() {
+binding.ShutdownWrap = function() {
 	this.domain = process.domain;
 };
 
-stream.WriteWrap = function() {
+binding.WriteWrap = function() {
 	this.domain = process.domain;
 };

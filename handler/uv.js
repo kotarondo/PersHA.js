@@ -35,47 +35,13 @@ Copyright (c) 2015, Kotaro Endo.
 
 module.exports = {
 	syncIO : syncIO,
-	asyncIO : asyncIO,
 };
 
-var binding = process.binding('cares_wrap');
-var GetAddrInfoReqWrap = binding.GetAddrInfoReqWrap;
-var GetNameInfoReqWrap = binding.GetNameInfoReqWrap;
+var binding = process.binding('uv');
 
 function syncIO(name, args) {
-	if (name === 'isIP') {
-		return binding.isIP.apply(binding, args);
+	if (name === 'errname') {
+		return binding.errname.apply(binding, args);
 	}
-	if (name === 'strerror') {
-		return binding.strerror.apply(binding, args);
-	}
-	if (name === 'getServers') {
-		return binding.getServers.apply(binding, args);
-	}
-	if (name === 'setServers') {
-		return binding.setServers.apply(binding, args);
-	}
-	console.log("[unhandled] cares_wrap syncIO: " + name);
-}
-
-function asyncIO(name, args, callback) {
-	if (name === 'query') {
-		var req = {};
-		req.oncomplete = callback;
-		binding[args[0]](req, args[1]);
-		return;
-	}
-	if (name === 'getaddrinfo') {
-		var req = new GetAddrInfoReqWrap();
-		req.oncomplete = callback;
-		binding.getaddrinfo(req, args[0], args[1], args[2]);
-		return;
-	}
-	if (name === 'getnameinfo') {
-		var req = new GetNameInfoReqWrap();
-		req.oncomplete = callback;
-		binding.getaddrinfo(req, args[0], args[1]);
-		return;
-	}
-	console.log("[unhandled] cares_wrap asyncIO: " + name);
+	console.log("[unhandled] uv syncIO: " + name);
 }

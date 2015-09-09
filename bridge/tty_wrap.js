@@ -33,97 +33,133 @@
 
 'use strict';
 
-var tty = process.binding('tty_wrap');
+var binding = process.binding('tty_wrap');
 var ttyPort = new IOPort('tty_wrap');
 
-tty.guessHandleType = function(fd) {
+binding.guessHandleType = function(fd) {
 	return ttyPort.syncIO('guessHandleType', arguments);
 };
 
-tty.isTTY = function(fd) {
+binding.isTTY = function(fd) {
 	return ttyPort.syncIO('isTTY', arguments);
 };
 
-tty.TTY = TTY;
+binding.TTY = TTY;
 
 function TTY(fd, flag) {
 	var self = this;
-	var port = ttyPort.open('TTY', arguments, portEventCallback, true);
-	var unref;
-	var reading;
-	var rawMode;
+	self._port = ttyPort.open('TTY', arguments, portEventCallback, true);
 
 	function portEventCallback(name, args) {
 		if (name instanceof IOPortError) {
 			if (name.message === 'restart') {
-				port.syncIO('restart', [ unref, reading, rawMode ]);
+				self._port.syncIO('restart', [ self._unref, self._reading, self._rawMode ]);
 			}
 			return;
 		}
 		self[name].apply(self, args);
 	}
-
-	this.setRawMode = function(mode) {
-		port.syncIO('setRawMode', [ mode ]);
-		rawMode = mode;
-	};
-
-	this.close = function() {
-		port.syncIO('close', arguments);
-		port.close();
-	};
-
-	this.ref = function() {
-		port.syncIO('ref', arguments);
-		unref = false;
-	};
-
-	this.unref = function() {
-		port.syncIO('unref', arguments);
-		unref = true;
-	};
-
-	this.readStart = function() {
-		port.syncIO('readStart', arguments);
-		reading = true;
-	};
-
-	this.readStop = function() {
-		port.syncIO('readStop', arguments);
-		reading = false;
-	};
-
-	this.writeBuffer = function() {
-		process._debug("[unhandled] tty.writeBuffer " + new Error().stack);
-	};
-
-	this.writeAsciiString = function() {
-		process._debug("[unhandled] tty.writeAsciiString " + new Error().stack);
-	};
-
-	this.writeUtf8String = function(req, data) {
-		port.asyncIO('writeUtf8String', [ data ], function(status, err) {
-			if (status instanceof IOPortError) {
-				//TODO
-			}
-			process._MakeCallback(req.domain, function() {
-				req.oncomplete(status, self, req, err);
-			});
-		});
-	};
-
-	this.writeUcs2String = function() {
-		process._debug("[unhandled] tty.writeUcs2String " + new Error().stack);
-	};
-
-	this.writeBinaryString = function() {
-		process._debug("[unhandled] tty.writeBinaryString " + new Error().stack);
-	};
-
-	this.getWindowSize = function(winSize) {
-		var ws = port.syncIO('getWindowSize');
-		winSize[0] = ws[0];
-		winSize[1] = ws[1];
-	};
-
 }
+
+TTY.prototype.setRawMode = function(mode) {
+	var self = this;
+	self._port.syncIO('setRawMode', [ mode ]);
+	rawMode = mode;
+};
+
+TTY.prototype.close = function() {
+	var self = this;
+	self._port.syncIO('close', arguments);
+	self._port.close();
+};
+
+TTY.prototype.ref = function() {
+	var self = this;
+	self._port.syncIO('ref', arguments);
+	self._unref = false;
+};
+
+TTY.prototype.unref = function() {
+	var self = this;
+	self._port.syncIO('unref', arguments);
+	self._unref = true;
+};
+
+TTY.prototype.readStart = function() {
+	var self = this;
+	self._port.syncIO('readStart', arguments);
+	self._reading = true;
+};
+
+TTY.prototype.readStop = function() {
+	var self = this;
+	self._port.syncIO('readStop', arguments);
+	self._reading = false;
+};
+
+TTY.prototype.writeBuffer = function() {
+	var self = this;
+	self._port.asyncIO('write', [ 'writeBuffer', data ], function(status, err) {
+		if (status instanceof IOPortError) {
+			status = 0;
+		}
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req, err);
+		});
+	});
+};
+
+TTY.prototype.writeAsciiString = function() {
+	var self = this;
+	self._port.asyncIO('write', [ 'writeAsciiString', data ], function(status, err) {
+		if (status instanceof IOPortError) {
+			status = 0;
+		}
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req, err);
+		});
+	});
+};
+
+TTY.prototype.writeUtf8String = function(req, data) {
+	var self = this;
+	self._port.asyncIO('write', [ 'writeUtf8String', data ], function(status, err) {
+		if (status instanceof IOPortError) {
+			status = 0;
+		}
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req, err);
+		});
+	});
+};
+
+TTY.prototype.writeUcs2String = function() {
+	var self = this;
+	self._port.asyncIO('write', [ 'writeUcs2String', data ], function(status, err) {
+		if (status instanceof IOPortError) {
+			status = 0;
+		}
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req, err);
+		});
+	});
+};
+
+TTY.prototype.writeBinaryString = function() {
+	var self = this;
+	self._port.asyncIO('write', [ 'writeBinaryString', data ], function(status, err) {
+		if (status instanceof IOPortError) {
+			status = 0;
+		}
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req, err);
+		});
+	});
+};
+
+TTY.prototype.getWindowSize = function(winSize) {
+	var self = this;
+	var ws = self._port.syncIO('getWindowSize');
+	winSize[0] = ws[0];
+	winSize[1] = ws[1];
+};

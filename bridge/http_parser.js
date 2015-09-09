@@ -33,12 +33,14 @@
 
 'use strict';
 
-var parser = process.binding('http_parser');
+var binding = process.binding('http_parser');
 var parserPort = new IOPort('http_parser');
 
-parser.HTTPParser = function() {
+binding.HTTPParser = HTTPParser;
+
+function HTTPParser() {
 	var self = this;
-	var port = parserPort.open('HTTPParser', arguments, portEventCallback);
+	self._port = parserPort.open('HTTPParser', arguments, portEventCallback);
 
 	function portEventCallback(name, args) {
 		if (name instanceof IOPortError) {
@@ -46,35 +48,41 @@ parser.HTTPParser = function() {
 		}
 		self[name].apply(self, args);
 	}
+}
 
-	this.close = function() {
-		port.close();
-		return port.syncIO('close', arguments);
-	};
-
-	this.execute = function() {
-		return port.syncIO('execute', arguments);
-	};
-
-	this.finish = function() {
-		return port.syncIO('finish', arguments);
-	};
-
-	this.reinitialize = function() {
-		try {
-			return port.syncIO('reinitialize', arguments);
-		} catch (e) {
-			port = parserPort.open('HTTPParser', arguments, portEventCallback);
-		}
-	};
-
-	this.pause = function() {
-		return port.syncIO('pause', arguments);
-	};
-
-	this.resume = function() {
-		return port.syncIO('resume', arguments);
-	};
+HTTPParser.prototype.close = function() {
+	var self = this;
+	self._port.syncIO('close', arguments);
+	self._port.close();
 };
 
-parser.HTTPParser.methods = [];
+HTTPParser.prototype.execute = function() {
+	var self = this;
+	return self._port.syncIO('execute', arguments);
+};
+
+HTTPParser.prototype.finish = function() {
+	var self = this;
+	return self._port.syncIO('finish', arguments);
+};
+
+HTTPParser.prototype.reinitialize = function() {
+	var self = this;
+	try {
+		return self._port.syncIO('reinitialize', arguments);
+	} catch (e) {
+		self._port.rebind();
+	}
+};
+
+HTTPParser.prototype.pause = function() {
+	var self = this;
+	return self._port.syncIO('pause', arguments);
+};
+
+HTTPParser.prototype.resume = function() {
+	var self = this;
+	return self._port.syncIO('resume', arguments);
+};
+
+HTTPParser.methods = [];

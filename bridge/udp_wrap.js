@@ -33,5 +33,5 @@
 
 'use strict';
 
-var udp = process.binding('udp_wrap');
+var binding = process.binding('udp_wrap');
 //var udpPort = new IOPort('udp_wrap');

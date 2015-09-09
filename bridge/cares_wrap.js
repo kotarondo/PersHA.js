@@ -33,16 +33,12 @@
 
 'use strict';
 
-var cares = process.binding('cares_wrap');
+var binding = process.binding('cares_wrap');
 var caresPort = new IOPort('cares_wrap');
 
-cares.getHostByAddr = function() {
-	process._debug("cares.getHostByAddr TODO");
-};
-
-cares.getaddrinfo = function(req, hostname, family, hints) {
+function asyncCall(req, name, args) {
 	(function retry() {
-		caresPort.asyncIO('getaddrinfo', [ hostname, family, hints ], function(err, value) {
+		caresPort.asyncIO(name, args, function(err, value) {
 			if (err instanceof IOPortError) {
 				if (err.message === 'restart') {
 					retry();
@@ -56,30 +52,90 @@ cares.getaddrinfo = function(req, hostname, family, hints) {
 	})();
 };
 
-cares.getnameinfo = function() {
-	process._debug("cares.getnameinfo TODO");
+binding.queryA = function(req, name) {
+	req.domain = process.domain;
+	asyncCall(req, 'query', [ 'queryA', name ]);
 };
 
-cares.isIP = function() {
+binding.queryAaaa = function(req, name) {
+	req.domain = process.domain;
+	asyncCall(req, 'query', [ 'queryAaaa', name ]);
+};
+
+binding.queryCname = function(req, name) {
+	req.domain = process.domain;
+	asyncCall(req, 'query', [ 'queryCname', name ]);
+};
+
+binding.queryMx = function(req, name) {
+	req.domain = process.domain;
+	asyncCall(req, 'query', [ 'queryMx', name ]);
+};
+
+binding.queryNs = function(req, name) {
+	req.domain = process.domain;
+	asyncCall(req, 'query', [ 'queryNs', name ]);
+};
+
+binding.queryTxt = function(req, name) {
+	req.domain = process.domain;
+	asyncCall(req, 'query', [ 'queryTxt', name ]);
+};
+
+binding.querySrv = function(req, name) {
+	req.domain = process.domain;
+	asyncCall(req, 'query', [ 'querySrv', name ]);
+};
+
+binding.queryNaptr = function(req, name) {
+	req.domain = process.domain;
+	asyncCall(req, 'query', [ 'queryNaptr', name ]);
+};
+
+binding.querySoa = function(req, name) {
+	req.domain = process.domain;
+	asyncCall(req, 'query', [ 'querySoa', name ]);
+};
+
+binding.getHostByAddr = function(req, name) {
+	req.domain = process.domain;
+	asyncCall(req, 'query', [ 'getHostByAddr', name ]);
+};
+
+binding.GetAddrInfoReqWrap = function() {
+	this.domain = process.domain;
+};
+
+binding.getaddrinfo = function(req, hostname, family, hints) {
+	asyncCall(req, 'getaddrinfo', [ hostname, family, hints ]);
+};
+
+binding.GetNameInfoReqWrap = function() {
+	this.domain = process.domain;
+};
+
+binding.getnameinfo = function(req, host, port) {
+	asyncCall(req, 'getnameinfo', [ host, port ]);
+};
+
+binding.isIP = function() {
 	return caresPort.syncIO('isIP', arguments);
 };
 
-cares.strerror = function() {
-	process._debug("cares.strerror TODO");
+binding.strerror = function() {
+	return caresPort.syncIO('strerror', arguments);
 };
 
-cares.getServers = function() {
-	process._debug("cares.getServers TODO");
+binding.getServers = function() {
+	return caresPort.syncIO('getServers', arguments);
 };
 
-cares.setServers = function() {
-	process._debug("cares.setServers TODO");
+binding.setServers = function() {
+	return caresPort.syncIO('setServers', arguments);
 };
 
-cares.GetAddrInfoReqWrap = function() {
-	this.domain = process.domain;
-};
-
-cares.GetNameInfoReqWrap = function() {
-	this.domain = process.domain;
-};
+binding.AF_INET = 2;
+binding.AF_INET6 = 30;
+binding.AF_UNSPEC = 0;
+binding.AI_ADDRCONFIG = 1024;
+binding.AI_V4MAPPED = 2048;

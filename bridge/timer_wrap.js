@@ -33,10 +33,10 @@
 
 'use strict';
 
-var timer = process.binding('timer_wrap');
+var binding = process.binding('timer_wrap');
 var timerPort = new IOPort('timer_wrap');
 
-timer.Timer = Timer;
+binding.Timer = Timer;
 
 Timer.now = function() {
 	return timerPort.syncIO('now', arguments);
@@ -44,14 +44,12 @@ Timer.now = function() {
 
 function Timer() {
 	var self = this;
-	var port = timerPort.open('Timer', [], portEventCallback, true);
-	var unref;
-	var startArgs;
+	self._port = timerPort.open('Timer', [], portEventCallback, true);
 
 	function portEventCallback(name, args) {
 		if (name instanceof IOPortError) {
 			if (name.message === 'restart') {
-				port.syncIO('restart', [ unref, startArgs ]);
+				self._port.syncIO('restart', [ self._unref, self._startArgs ]);
 			}
 			return;
 		}
@@ -59,36 +57,40 @@ function Timer() {
 			self[name].apply(self, args);
 		});
 	}
-
-	this.close = function() {
-		port.syncIO('close', arguments);
-		port.close();
-	};
-
-	this.ref = function() {
-		port.syncIO('ref', arguments);
-		unref = false;
-	};
-
-	this.unref = function() {
-		port.syncIO('unref', arguments);
-		unref = true;
-	};
-
-	this.start = function() {
-		var err = port.syncIO('start', arguments);
-		if (!err) {
-			startArgs = arguments;
-		}
-		return err;
-	};
-
-	this.stop = function() {
-		var err = port.syncIO('stop', arguments);
-		if (!err) {
-			startArgs = null;
-		}
-		return err;
-	};
-
 }
+
+Timer.prototype.close = function() {
+	var self = this;
+	self._port.syncIO('close', arguments);
+	self._port.close();
+};
+
+Timer.prototype.ref = function() {
+	var self = this;
+	self._port.syncIO('ref', arguments);
+	self._unref = false;
+};
+
+Timer.prototype.unref = function() {
+	var self = this;
+	self._port.syncIO('unref', arguments);
+	self._unref = true;
+};
+
+Timer.prototype.start = function() {
+	var self = this;
+	var err = self._port.syncIO('start', arguments);
+	if (!err) {
+		self._startArgs = arguments;
+	}
+	return err;
+};
+
+Timer.prototype.stop = function() {
+	var self = this;
+	var err = self._port.syncIO('stop', arguments);
+	if (!err) {
+		self._startArgs = null;
+	}
+	return err;
+};

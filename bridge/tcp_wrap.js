@@ -33,14 +33,14 @@
 
 'use strict';
 
-var tcp = process.binding('tcp_wrap');
+var binding = process.binding('tcp_wrap');
 var tcpPort = new IOPort('tcp_wrap');
 
-tcp.TCPConnectWrap = function() {
+binding.TCPConnectWrap = function() {
 	this.domain = process.domain;
 };
 
-tcp.TCP = TCP;
+binding.TCP = TCP;
 
 function TCP() {
 	var self = this;
