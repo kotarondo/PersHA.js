@@ -67,6 +67,7 @@ binding.FSInitialize = function(s) {
 };
 
 binding.FSReqWrap = function() {
+	this.domain = process.domain;
 };
 
 function onceCall(name, args, req, filter) {
@@ -90,8 +91,10 @@ function generalCall(port, name, args, req, retry, filter) {
 		if (req === undefined) {
 			throw e;
 		}
-		process.nextTick(function() {
-			req.oncomplete(e);
+		setImmediate(function() {
+			process._MakeCallback(req.domain, function() {
+				req.oncomplete(e);
+			});
 		});
 		return;
 	}
@@ -111,7 +114,9 @@ function generalCall(port, name, args, req, retry, filter) {
 			if (!err && filter) {
 				value = filter(value);
 			}
-			req.oncomplete(err, value);
+			process._MakeCallback(req.domain, function() {
+				req.oncomplete(err, value);
+			});
 		});
 	})();
 }
@@ -241,7 +246,7 @@ binding.rmdir = function(path, req) {
 
 binding.StatWatcher = StatWatcher;
 
-function StatWatcher () {
+function StatWatcher() {
 	var self = this;
 	self._port = fsPort.open('StatWatcher', [], portEventCallback, true);
 

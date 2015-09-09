@@ -36,7 +36,9 @@
 var stream = process.binding('stream_wrap');
 
 stream.ShutdownWrap = function() {
+	this.domain = process.domain;
 };
 
 stream.WriteWrap = function() {
+	this.domain = process.domain;
 };

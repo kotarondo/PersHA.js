@@ -106,7 +106,9 @@ function TTY(fd, flag) {
 			if (status instanceof IOPortError) {
 				//TODO
 			}
-			req.oncomplete(status, self, req, err);
+			process._MakeCallback(req.domain, function() {
+				req.oncomplete(status, self, req, err);
+			});
 		});
 	};
 

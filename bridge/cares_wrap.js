@@ -49,7 +49,9 @@ cares.getaddrinfo = function(req, hostname, family, hints) {
 					return;
 				}
 			}
-			req.oncomplete(err, value);
+			process._MakeCallback(req.domain, function() {
+				req.oncomplete(err, value);
+			});
 		});
 	})();
 };
@@ -75,7 +77,9 @@ cares.setServers = function() {
 };
 
 cares.GetAddrInfoReqWrap = function() {
+	this.domain = process.domain;
 };
 
 cares.GetNameInfoReqWrap = function() {
+	this.domain = process.domain;
 };

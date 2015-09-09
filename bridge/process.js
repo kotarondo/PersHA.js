@@ -97,14 +97,14 @@ process._setupNextTick = function(tickInfo, _tickCallback, _runMicrotasks) {
 
 process._setupDomainUse = function(_domain, _domain_flag) {
 	tickCallback = process._tickDomainCallback;
-	Object.defineProperty(global, "_uncaughtErrorCallback", {
-		value : function(e){
-			process._fatalException(e);
-		},
-		writable : true,
-		enumerable : false,
-		configurable : true
-	});
+	process._tickCallback = tickCallback;
+};
+
+process._MakeCallback = function(domain, f) {
+	if (domain) {
+		return domain.run(f);
+	}
+	return f();
 };
 
 process.binding('contextify').ContextifyScript = function(code, options) {

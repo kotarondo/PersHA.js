@@ -37,9 +37,8 @@ var pipe = process.binding('pipe_wrap');
 var pipePort = new IOPort('pipe_wrap');
 
 pipe.PipeConnectWrap = function() {
-	process._debug("pipe.PipeConnectWrap TODO");
+	this.domain = process.domain;
 };
 
 pipe.Pipe = function() {
-	process._debug("pipe.Pipe TODO");
 };

@@ -55,7 +55,9 @@ function Timer() {
 			}
 			return;
 		}
-		self[name].apply(self, args);
+		process._MakeCallback(self.domain, function() {
+			self[name].apply(self, args);
+		});
 	}
 
 	this.close = function() {

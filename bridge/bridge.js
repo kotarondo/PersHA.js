@@ -59,6 +59,15 @@ process.binding = (function() {
 	}
 })();
 
+Object.defineProperty(this, "_uncaughtErrorCallback", {
+	value : function(e) {
+		process._fatalException(e);
+	},
+	writable : true,
+	enumerable : false,
+	configurable : true
+});
+
 Object.defineProperty(Object.prototype, "__defineGetter__", {
 	value : function(n, getter) {
 		Object.defineProperty(this, n, {

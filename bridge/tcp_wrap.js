@@ -36,11 +36,11 @@
 var tcp = process.binding('tcp_wrap');
 var tcpPort = new IOPort('tcp_wrap');
 
-tcp.TCPConnectWrap = TCPConnectWrap;
-tcp.TCP = TCP;
-
-function TCPConnectWrap() {
+tcp.TCPConnectWrap = function() {
+	this.domain = process.domain;
 };
+
+tcp.TCP = TCP;
 
 function TCP() {
 	var self = this;
@@ -121,7 +121,9 @@ TCP.prototype.shutdown = function(req) {
 		if (status instanceof IOPortError) {
 			status = -1;
 		}
-		req.oncomplete(status, self, req);
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req);
+		});
 	});
 	return 0;
 };
@@ -134,7 +136,9 @@ TCP.prototype.writeBuffer = function(req, data) {
 			err = status.message;
 			status = -1;
 		}
-		req.oncomplete(status, self, req, err);
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req, err);
+		});
 	});
 	return 0;
 };
@@ -147,7 +151,9 @@ TCP.prototype.writeAsciiString = function(req, data) {
 			err = status.message;
 			status = -1;
 		}
-		req.oncomplete(status, self, req, err);
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req, err);
+		});
 	});
 	return 0;
 };
@@ -160,7 +166,9 @@ TCP.prototype.writeUtf8String = function(req, data) {
 			err = status.message;
 			status = -1;
 		}
-		req.oncomplete(status, self, req, err);
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req, err);
+		});
 	});
 	return 0;
 };
@@ -173,7 +181,9 @@ TCP.prototype.writeUcs2String = function() {
 			err = status.message;
 			status = -1;
 		}
-		req.oncomplete(status, self, req, err);
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req, err);
+		});
 	});
 	return 0;
 };
@@ -186,7 +196,9 @@ TCP.prototype.writev = function(req, chunks) {
 			err = status.message;
 			status = -1;
 		}
-		req.oncomplete(status, self, req, err);
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req, err);
+		});
 	});
 	return 0;
 };
@@ -199,7 +211,9 @@ TCP.prototype.writeBinaryString = function(req, data) {
 			err = status.message;
 			status = -1;
 		}
-		req.oncomplete(status, self, req, err);
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req, err);
+		});
 	});
 	return 0;
 };
@@ -241,7 +255,9 @@ TCP.prototype.connect = function(req, address, port) {
 		if (status instanceof IOPortError) {
 			status = -1;
 		}
-		req.oncomplete(status, self, req, readable, writable);
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req, readable, writable);
+		});
 	});
 	return 0;
 };
@@ -252,7 +268,9 @@ TCP.prototype.connect6 = function(req, address, port) {
 		if (status instanceof IOPortError) {
 			status = -1;
 		}
-		req.oncomplete(status, self, req, readable, writable);
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(status, self, req, readable, writable);
+		});
 	});
 	return 0;
 };
