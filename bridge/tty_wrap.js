@@ -46,7 +46,7 @@ binding.isTTY = function(fd) {
 
 binding.TTY = TTY;
 
-function TTY(fd, flag) {
+function TTY() {
 	var self = this;
 	self._port = ttyPort.open('TTY', arguments, portEventCallback, true);
 
@@ -97,7 +97,7 @@ TTY.prototype.readStop = function() {
 	self._reading = false;
 };
 
-TTY.prototype.writeBuffer = function() {
+TTY.prototype.writeBuffer = function(req, data) {
 	var self = this;
 	self._port.asyncIO('write', [ 'writeBuffer', data ], function(status, err) {
 		if (status instanceof IOPortError) {
@@ -109,7 +109,7 @@ TTY.prototype.writeBuffer = function() {
 	});
 };
 
-TTY.prototype.writeAsciiString = function() {
+TTY.prototype.writeAsciiString = function(req, data) {
 	var self = this;
 	self._port.asyncIO('write', [ 'writeAsciiString', data ], function(status, err) {
 		if (status instanceof IOPortError) {
@@ -133,7 +133,7 @@ TTY.prototype.writeUtf8String = function(req, data) {
 	});
 };
 
-TTY.prototype.writeUcs2String = function() {
+TTY.prototype.writeUcs2String = function(req, data) {
 	var self = this;
 	self._port.asyncIO('write', [ 'writeUcs2String', data ], function(status, err) {
 		if (status instanceof IOPortError) {
@@ -145,7 +145,7 @@ TTY.prototype.writeUcs2String = function() {
 	});
 };
 
-TTY.prototype.writeBinaryString = function() {
+TTY.prototype.writeBinaryString = function(req, data) {
 	var self = this;
 	self._port.asyncIO('write', [ 'writeBinaryString', data ], function(status, err) {
 		if (status instanceof IOPortError) {

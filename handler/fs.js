@@ -275,7 +275,7 @@ function StatWatcherPort(callback) {
 			}
 			restarted = true;
 			var startArgs = args[0];
-			if (startArgs >= 0) {
+			if (startArgs) {
 				handle.start.apply(handle, startArgs);
 			}
 			return;

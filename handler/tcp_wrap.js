@@ -176,7 +176,7 @@ function TCPPort(handle, callback) {
 				callback(0);
 			}
 			else {
-				req.oncomplete = function(status, self, err) {
+				req.oncomplete = function(status, self, req, err) {
 					callback(status, err);
 				};
 			}

@@ -61,7 +61,10 @@ function TTYPort(args, callback) {
 	var TTY = process.binding('tty_wrap').TTY;
 	var WriteWrap = process.binding('stream_wrap').WriteWrap;
 
-	var handle = new TTY(args[0], args[1]);
+	var fd=args[0];
+	var flag=args[1];
+
+	var handle = new TTY(fd, flag);
 	var restarted;
 
 	handle.onread = function() {
@@ -118,7 +121,7 @@ function TTYPort(args, callback) {
 	this.asyncIO = function(name, args, callback) {
 		if (name === 'write') {
 			var req = new WriteWrap();
-			req.oncomplete = function(status, self, err) {
+			req.oncomplete = function(status, self, req, err) {
 				callback(status, err);
 			};
 			switch (args[0]) {
