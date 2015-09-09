@@ -58,7 +58,7 @@ function syncIO(name, args) {
 		return process.umask.apply(process, args);
 	}
 	if (name === 'exit') {
-		return process.exit();
+		return process.exit(args[0]);
 	}
 	console.log("[unhandled] process syncIO:" + name + ":" + args);
 }

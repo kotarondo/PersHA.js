@@ -63,9 +63,9 @@ function TTY(fd, flag) {
 		self[name].apply(self, args);
 	}
 
-	this.setRawMode = function() {
-		port.syncIO('setRawMode', [ rawMode ]);
-		rawMode = arguments[0] ? true : false;
+	this.setRawMode = function(mode) {
+		port.syncIO('setRawMode', [ mode ]);
+		rawMode = mode;
 	};
 
 	this.close = function() {

@@ -6,7 +6,7 @@ popd > /dev/null
 
 TARGET=${SRCPATH}/../bin/persha.js
 
-echo "// This is a generated file." >${TARGET}
+echo "// This is a generated file by make.sh" >${TARGET}
 
 for file in ${SRCPATH}/../core/*.js
 do

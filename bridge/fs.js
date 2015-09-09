@@ -59,7 +59,9 @@ function bindPort(port) {
 }
 
 function unbindPort(fd) {
+	var port = mapFD[fd];
 	delete mapFD[fd];
+	return port;
 }
 
 binding.FSInitialize = function(s) {
@@ -148,7 +150,7 @@ binding.read = function(fd, buffer, offset, length, position, req) {
 };
 
 binding.writeBuffer = function(fd, buffer, offset, length, position, req) {
-	return fdCall('writeBuffer', [ buffer, offset, length, position ], req);
+	return fdCall(fd, 'writeBuffer', [ buffer, offset, length, position ], req);
 };
 
 binding.writeString = function(fd, string, position, encoding, req) {

@@ -47,11 +47,12 @@ try {
 		var n = bridge_list[i];
 		var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + n + '.js').toString();
 		text = "(function(){" + text + "})();";
-		Global_evaluateProgram(undefined, [ text, n + '.js' ]);
+		Global_evaluateProgram(undefined, [ text, 'bridge/' + n + '.js' ]);
 	}
 
 	var process_binding = Global_eval(undefined, [ "process" ]);
 	process_binding.Put('execPath', process.execPath, false);
+	process_binding.Put('platform', process.platform, false);
 
 	var argv_binding = Global_eval(undefined, [ "process.argv" ]);
 	for (var i = 3; i < process.argv.length; i++) {

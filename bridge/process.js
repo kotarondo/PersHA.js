@@ -45,6 +45,7 @@ process.env = {};
 process._eval = null;
 process._forceRepl = true;
 process.moduleLoadList = [];
+process.features = {};
 
 process.cwd = function() {
 	return processPort.syncIO('cwd', arguments);

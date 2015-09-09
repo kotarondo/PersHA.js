@@ -54,16 +54,20 @@ function HTTPParserPort(args, callback) {
 	var parser = new HTTPParser(args[0]);
 
 	parser[kOnHeaders] = function() {
-		callback(kOnHeaders, arguments);
+		var args = Array.prototype.slice.call(arguments);
+		callback(kOnHeaders, args);
 	};
 	parser[kOnHeadersComplete] = function() {
-		callback(kOnHeadersComplete, arguments);
+		var args = Array.prototype.slice.call(arguments);
+		callback(kOnHeadersComplete, args);
 	};
 	parser[kOnBody] = function() {
-		callback(kOnBody, arguments);
+		var args = Array.prototype.slice.call(arguments);
+		callback(kOnBody, args);
 	};
 	parser[kOnMessageComplete] = function() {
-		callback(kOnMessageComplete, arguments);
+		var args = Array.prototype.slice.call(arguments);
+		callback(kOnMessageComplete, args);
 	};
 
 	this.syncIO = function(name, args) {

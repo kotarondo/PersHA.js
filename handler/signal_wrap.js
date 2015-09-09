@@ -53,7 +53,8 @@ function SignalPort(callback) {
 	var restarted;
 
 	handle.onsignal = function() {
-		callback('onsignal', arguments);
+		var args = Array.prototype.slice.call(arguments);
+		callback('onsignal', args);
 	};
 
 	this.syncIO = function(name, args) {

@@ -58,7 +58,4 @@ function Hash(args, callback) {
 		}
 		console.log("[unhandled] Hash syncIO: " + name);
 	};
-	this.asyncIO = function(name, args, callback) {
-		console.log("[unhandled] Hash asyncIO: " + name);
-	};
 }

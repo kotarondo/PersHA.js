@@ -58,7 +58,8 @@ function TCPPort(handle, callback) {
 	var queue = [];
 
 	handle.onread = function() {
-		callback('onread', arguments);
+		var args = Array.prototype.slice.call(arguments);
+		callback('onread', args);
 	};
 
 	handle.onconnection = function(err, h) {

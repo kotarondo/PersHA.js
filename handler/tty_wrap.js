@@ -65,7 +65,8 @@ function TTYPort(args, callback) {
 	var restarted;
 
 	handle.onread = function() {
-		callback('onread', arguments);
+		var args = Array.prototype.slice.call(arguments);
+		callback('onread', args);
 	};
 
 	this.syncIO = function(name, args) {
@@ -101,10 +102,10 @@ function TTYPort(args, callback) {
 			var reading = args[1];
 			var rawMode = args[2];
 			if (rawMode) {
-                handle.setRawMode(rawMode);
+				handle.setRawMode(rawMode);
 			}
 			if (reading) {
-                handle.readStart();
+				handle.readStart();
 			}
 			if (unref) {
 				handle.unref();

@@ -60,7 +60,8 @@ function TimerPort(callback) {
 	var kOnTimeout = Timer.kOnTimeout;
 
 	handle[kOnTimeout] = function() {
-		callback(kOnTimeout, arguments);
+		var args = Array.prototype.slice.call(arguments);
+		callback(kOnTimeout, args);
 	};
 
 	this.syncIO = function(name, args) {

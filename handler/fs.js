@@ -254,10 +254,12 @@ function StatWatcherPort(callback) {
 	var restarted;
 
 	handle.onchange = function() {
-		callback('onchange', arguments);
+		var args = Array.prototype.slice.call(arguments);
+		callback('onchange', args);
 	};
 	handle.onstop = function() {
-		callback('onstop', arguments);
+		var args = Array.prototype.slice.call(arguments);
+		callback('onstop', args);
 	};
 
 	this.syncIO = function(name, args) {

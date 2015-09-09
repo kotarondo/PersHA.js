@@ -233,21 +233,20 @@ function IOPort_wrap(a, stack) {
 	stack.push(a);
 	if (a instanceof Error) {
 		if (a instanceof TypeError) {
-			var A = TypeError_Construct([ a.message ]);
+			var A = TypeError_Construct([]);
 		}
 		else if (a instanceof ReferenceError) {
-			var A = ReferenceError_Construct([ a.message ]);
+			var A = ReferenceError_Construct([]);
 		}
 		else if (a instanceof RangeError) {
-			var A = RangeError_Construct([ a.message ]);
+			var A = RangeError_Construct([]);
 		}
 		else {
-			var A = Error_Construct([ a.message ]);
+			var A = Error_Construct([]);
 		}
 	}
-	if (a instanceof Array) {
-		var length = a.length;
-		var A = Array_Construct([ length ]);
+	else if (a instanceof Array) {
+		var A = Array_Construct([]);
 	}
 	else {
 		var A = Object_Construct([]);
