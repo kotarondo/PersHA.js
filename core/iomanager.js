@@ -42,7 +42,7 @@ var IOManager_asyncCallbacks = {};
 var IOManager_openPorts = {};
 
 function IOManager_openPort(port, callback) {
-	if(!callback) return;
+	if (!callback) return;
 	var txid = ++IOManager_uniqueID;
 	IOManager_openPorts[txid] = port;
 	port.txid = txid;
@@ -52,7 +52,7 @@ function IOManager_openPort(port, callback) {
 
 function IOManager_closePort(port) {
 	var txid = port.txid;
-	if(txid){
+	if (txid) {
 		assert(IOManager_openPorts[txid] === port);
 		delete IOManager_openPorts[txid];
 		port.txid = undefined;
@@ -90,11 +90,11 @@ function IOManager_bindPort(port) {
 				txid : port.txid,
 				value : value,
 			};
-			if (IOManager_context.isInterruptible()) {
+			if (task_isInterruptible()) {
 				IOManager_portEvent(entry);
 			}
 			else {
-				setImmediate(IOManager_portEvent, entry);
+				scheduleTask(IOManager_portEvent, entry);
 			}
 		});
 	} catch (e) {
@@ -111,20 +111,20 @@ function IOManager_portEvent(entry) {
 	if (IOManager_state === 'online') {
 		Journal_write(entry);
 	}
-	IOManager_context.start();
+	task_enter();
 	try {
 		IOPort_callback(entry, port.callback);
 	} catch (e) {
 		var err = IOPort_callbackUncaughtError(e);
-		if(err){
-			console.error("Uncaught: "+err);
+		if (err) {
+			console.error("Uncaught: " + err);
 		}
 	}
-	IOManager_context.stop();
+	task_leave();
 }
 
 function IOManager_asyncIO(port, name, args, callback) {
-	if(callback){
+	if (callback) {
 		var txid = ++IOManager_uniqueID;
 		IOManager_asyncCallbacks[txid] = callback;
 	}
@@ -138,16 +138,16 @@ function IOManager_asyncIO(port, name, args, callback) {
 	IOManager_bindPort(port);
 	try {
 		if (!port.handler) {
-			entry .error = 'stale';
+			entry.error = 'stale';
 		}
 		else if (!port.handler.asyncIO) {
-			entry .error = 'no handler';
+			entry.error = 'no handler';
 		}
-		else if(!callback){
+		else if (!callback) {
 			port.handler.asyncIO(name, args);
 			return;
 		}
-		else{
+		else {
 			port.handler.asyncIO(name, args, function() {
 				var value = Array.prototype.slice.call(arguments);
 				var entry = {
@@ -155,21 +155,21 @@ function IOManager_asyncIO(port, name, args, callback) {
 					txid : txid,
 					value : value
 				};
-				setImmediate(IOManager_completionEvent, entry);
+				scheduleTask(IOManager_completionEvent, entry);
 			});
 			return;
 		}
 	} catch (e) {
 		console.error("IOManager: asyncIO: " + IOPort_longname(port) + "," + name + ": " + e);
-		entry .error = 'exception';
+		entry.error = 'exception';
 	}
-	if(callback){
-		setImmediate(IOManager_completionEvent, entry);
+	if (callback) {
+		scheduleTask(IOManager_completionEvent, entry);
 	}
 }
 
 function IOManager_syncIO(port, name, args, callback) {
-	if(callback){
+	if (callback) {
 		var txid = ++IOManager_uniqueID;
 	}
 	if (IOManager_state !== 'online') {
@@ -192,7 +192,7 @@ function IOManager_syncIO(port, name, args, callback) {
 			}
 			if (entry.type === 'syncIO') {
 				assert(entry.name === name);
-				if(entry.success){
+				if (entry.success) {
 					IOManager_asyncCallbacks[txid] = callback;
 				}
 				return entry;
@@ -208,16 +208,16 @@ function IOManager_syncIO(port, name, args, callback) {
 	IOManager_bindPort(port);
 	try {
 		if (!port.handler) {
-			entry .error = 'stale';
+			entry.error = 'stale';
 		}
 		else if (!port.handler.asyncIO) {
-			entry .error = 'no handler';
+			entry.error = 'no handler';
 		}
-		else if(!callback){
+		else if (!callback) {
 			entry.value = port.handler.syncIO(name, args);
 			entry.success = true;
 		}
-		else{
+		else {
 			entry.value = port.handler.syncIO(name, args, function() {
 				var value = Array.prototype.slice.call(arguments);
 				var entry = {
@@ -225,14 +225,14 @@ function IOManager_syncIO(port, name, args, callback) {
 					txid : txid,
 					value : value
 				};
-				setImmediate(IOManager_completionEvent, entry);
+				scheduleTask(IOManager_completionEvent, entry);
 			});
 			entry.success = true;
 		}
-	}catch (exception) {
+	} catch (exception) {
 		entry.exception = exception;
 	}
-	if(entry.success){
+	if (entry.success) {
 		IOManager_asyncCallbacks[txid] = callback;
 	}
 	Journal_write(entry);
@@ -249,16 +249,16 @@ function IOManager_completionEvent(entry) {
 	if (IOManager_state === 'online') {
 		Journal_write(entry);
 	}
-	IOManager_context.start();
+	task_enter();
 	try {
 		IOPort_callback(entry, callback);
 	} catch (e) {
 		var err = IOPort_callbackUncaughtError(e);
-		if(err){
-			console.error("Uncaught: "+err);
+		if (err) {
+			console.error("Uncaught: " + err);
 		}
 	}
-	IOManager_context.stop();
+	task_leave();
 }
 
 function IOManager_date_now() {
@@ -307,7 +307,7 @@ function IOManager_online() {
 			txid : Number(txid),
 			error : 'restart'
 		};
-		assert(IOManager_context.isInterruptible());
+		assert(task_isInterruptible());
 		IOManager_portEvent(entry);
 	}
 	for ( var txid in IOManager_asyncCallbacks) {
@@ -317,7 +317,7 @@ function IOManager_online() {
 			txid : Number(txid),
 			error : 'restart'
 		};
-		setImmediate(IOManager_completionEvent, entry);
+		scheduleTask(IOManager_completionEvent, entry);
 	}
 }
 
@@ -329,16 +329,16 @@ function IOManager_evaluate(text, filename) {
 			filename : filename,
 		});
 	}
-	IOManager_context.start();
+	task_enter();
 	try {
 		Global_evaluateProgram(undefined, [ text, filename ]);
 	} catch (e) {
 		var err = IOPort_callbackUncaughtError(e);
-		if(err){
-			console.error("Uncaught: "+err);
+		if (err) {
+			console.error("Uncaught: " + err);
 		}
 	}
-	IOManager_context.stop();
+	task_leave();
 }
 
 function IOManager_start() {
@@ -363,100 +363,3 @@ function IOManager_start() {
 		}
 	}
 }
-
-var microtaskQueue = [];
-
-function scheduleMicrotask(callback, args) {
-	var task = {
-		callback : callback,
-		args : args
-	};
-	microtaskQueue.push(task);
-}
-
-function runMicrotasks() {
-	while (microtaskQueue.length > 0) {
-		var task = microtaskQueue[0];
-		var callback = task.callback;
-		var args = task.args;
-		assert(IsCallable(callback), callback);
-		assert(args instanceof Array, args);
-		try {
-			callback.Call(undefined, args);
-		} catch (e) {
-			var err = IOPort_callbackUncaughtError(e);
-			if(err){
-				console.error("Uncaught: "+err);
-			}
-		}
-		microtaskQueue.shift();
-	}
-}
-
-var IOManager_context = (function() {
-	var interruptible = true;
-	var ioCount = 0;
-	var startCount = 0;
-	var pauseCount = 0;
-	var estimate = 0;
-	var startTime = 0;
-	function resumeTimer() {
-		assert(startTime === 0);
-		startTime = Date.now();
-	}
-	function pauseTimer() {
-		assert(startTime !== 0);
-		estimate += Date.now() - startTime + 1;
-		startTime = 0;
-	}
-	function isInterruptible() {
-		return interruptible;
-	}
-	function getIOCount() {
-		return ioCount;
-	}
-	function start() {
-		assert(pauseCount === startCount && interruptible);
-		ioCount++;
-		startCount++;
-		interruptible = false;
-		resumeTimer();
-	}
-	function stop() {
-		assert(pauseCount + 1 === startCount && !interruptible);
-		if (startCount === 1) {
-			runMicrotasks();
-		}
-		assert(pauseCount + 1 === startCount && !interruptible);
-		startCount--;
-		interruptible = true;
-		pauseTimer();
-		if (startCount === 0 && IOManager_state === 'online' && estimate >= RECOVERY_TARGET) {
-			estimate = 0;
-			Journal_checkpoint();
-		}
-	}
-	function pause(intr) {
-		if (IOManager_state === 'offline') return;
-		assert(pauseCount + 1 === startCount && !interruptible);
-		pauseCount++;
-		interruptible = intr;
-		pauseTimer();
-	}
-	function resume() {
-		if (IOManager_state === 'offline') return;
-		assert(pauseCount === startCount);
-		pauseCount--;
-		interruptible = false;
-		resumeTimer();
-	}
-
-	return {
-		start : start,
-		stop : stop,
-		pause : pause,
-		resume : resume,
-		isInterruptible : isInterruptible,
-		getIOCount : getIOCount,
-	};
-})();

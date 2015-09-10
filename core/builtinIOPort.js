@@ -51,7 +51,7 @@ function IOPort_prototype_open(thisValue, argumentsList) {
 	var root = thisValue;
 	if (Type(root) !== TYPE_Object || root.Class !== 'IOPort') throw VMTypeError();
 	var name = ToString(argumentsList[0]);
-	if(argumentsList.length >= 2){
+	if (argumentsList.length >= 2) {
 		var callback = argumentsList[1];
 		if (IsCallable(callback) === false) throw VMTypeError();
 	}
@@ -61,14 +61,18 @@ function IOPort_prototype_open(thisValue, argumentsList) {
 	port.Extensible = true;
 	defineFinal(port, 'root', root);
 	defineFinal(port, 'name', name);
+	task_pause();
 	IOManager_openPort(port, callback);
+	task_resume();
 	return port;
 }
 
 function IOPort_prototype_close(thisValue, argumentsList) {
 	var port = thisValue;
 	if (Type(port) !== TYPE_Object || port.Class !== 'IOPort') throw VMTypeError();
+	task_pause();
 	IOManager_closePort(port);
+	task_resume();
 }
 
 function IOPort_prototype_asyncIO(thisValue, argumentsList) {
@@ -76,11 +80,13 @@ function IOPort_prototype_asyncIO(thisValue, argumentsList) {
 	if (Type(port) !== TYPE_Object || port.Class !== 'IOPort') throw VMTypeError();
 	var name = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList[1]);
-	if(argumentsList.length >= 3){
+	if (argumentsList.length >= 3) {
 		var callback = argumentsList[2];
 		if (IsCallable(callback) === false) throw VMTypeError();
 	}
+	task_pause();
 	IOManager_asyncIO(port, name, args, callback);
+	task_resume();
 }
 
 function IOPort_prototype_syncIO(thisValue, argumentsList) {
@@ -89,11 +95,13 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	var name = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList[1]);
 	var noRetry = ToBoolean(argumentsList[2]);
-	if (IsCallable(argumentsList[2]) ) {
+	if (IsCallable(argumentsList[2])) {
 		var callback = argumentsList[2];
 	}
 	do {
+		task_pause();
 		var entry = IOManager_syncIO(port, name, args, callback);
+		task_resume();
 	} while (!noRetry && entry.error === 'restart');
 	if (entry.success) {
 		return IOPort_wrap(entry.value);
@@ -177,7 +185,7 @@ function IOPort_unwrap(A, stack) {
 	else if (A.Class === 'Array' || A.Class === 'Arguments') {
 		var a = [];
 	}
-	else if (A.Class === 'Error' ){
+	else if (A.Class === 'Error') {
 		var a = new Error();
 	}
 	else {

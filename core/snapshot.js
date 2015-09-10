@@ -168,6 +168,7 @@ function writeSnapshot(l_ostream) {
 	for ( var txid in IOManager_openPorts) {
 		var port = IOManager_openPorts[txid];
 		mark(port);
+		mark(port.callback);
 	}
 
 	for (var i = 10; i < allObjs.length; i++) {
@@ -225,6 +226,7 @@ function writeSnapshot(l_ostream) {
 			var port = IOManager_openPorts[txid];
 			ostream.writeInt(ToNumber(txid));
 			ostream.writeInt(port.ID);
+			ostream.writeInt(port.callback.ID);
 			assert(ToNumber(txid) === port.txid);
 		}
 		ostream.writeInt(0);
@@ -376,9 +378,11 @@ function readSnapshot(l_istream) {
 					break;
 				}
 				var port = allObjs[istream.readInt()];
+				var callback = allObjs[istream.readInt()];
 				istream.assert(txid <= IOManager_uniqueID);
 				IOManager_openPorts[txid] = port;
 				port.txid = txid;
+				port.callback = callback;
 			}
 			break;
 		default:
