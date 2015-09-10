@@ -160,6 +160,10 @@ function FileOutputStream(filename, openExists) {
 			writeInt(6);
 			return;
 		}
+		if (x instanceof Function) {
+			writeInt(1);
+			return;
+		}
 		if (x instanceof Buffer) {
 			writeInt(7);
 			writeBuffer(x);
@@ -170,6 +174,12 @@ function FileOutputStream(filename, openExists) {
 			writeNumber(x.getTime());
 			return;
 		}
+		if (stack === undefined) stack = [];
+		if (isIncluded(x, stack)) {
+			writeInt(6);
+			return;
+		}
+		stack.push(x);
 		if (x instanceof Error) {
 			if (x instanceof TypeError) {
 				writeInt(91);
@@ -183,40 +193,23 @@ function FileOutputStream(filename, openExists) {
 			else {
 				writeInt(9);
 			}
-			writeString(x.message);
-			return;
 		}
-		if (x instanceof Function) {
-			writeInt(1);
-			return;
-		}
-		if (stack === undefined) stack = [];
-		if (isIncluded(x, stack)) {
-			writeInt(6);
-			return;
-		}
-		stack.push(x);
-		if (x instanceof Array) {
+		else if (x instanceof Array) {
 			writeInt(10);
-			var length = x.length;
-			writeInt(length);
-			for (var i = 0; i < length; i++) {
-				writeAny(x[i], stack);
-			}
 		}
 		else {
 			writeInt(11);
-			var keys = Object.getOwnPropertyNames(x);
-			var length = keys.length;
-			writeInt(length);
-			for (var i = 0; i < length; i++) {
-				var P = keys[i];
-				writeString(P);
-				if (P === 'caller' || P === 'callee' || P === 'arguments') {
-					continue;
-				}
-				writeAny(x[P], stack);
+		}
+		var keys = Object.getOwnPropertyNames(x);
+		var length = keys.length;
+		writeInt(length);
+		for (var i = 0; i < length; i++) {
+			var P = keys[i];
+			writeString(P);
+			if (P === 'caller' || P === 'callee' || P === 'arguments') {
+				continue;
 			}
+			writeAny(x[P], stack);
 		}
 		stack.pop();
 	}
@@ -374,33 +367,35 @@ function FileInputStream(filename) {
 		case 8:
 			return new Date(readNumber());
 		case 91:
-			return new TypeError(readString());
+			var a = new TypeError(readString());
+			break;
 		case 92:
-			return new ReferenceError(readString());
+			var a = new ReferenceError(readString());
+			break;
 		case 93:
-			return new RangeError(readString());
+			var a = new RangeError(readString());
+			break;
 		case 9:
-			return new Error(readString());
+			var a = new Error(readString());
+			break;
 		case 10:
-			var length = readInt();
 			var a = [];
-			for (var i = 0; i < length; i++) {
-				a[i] = readAny();
-			}
-			return a;
+			break;
 		case 11:
-			var length = readInt();
 			var a = {};
-			for (var i = 0; i < length; i++) {
-				var P = readString();
-				if (P === 'caller' || P === 'callee' || P === 'arguments') {
-					continue;
-				}
-				a[P] = readAny();
-			}
-			return a;
+			break;
+		default:
+			throw Error("file broken: type=" + type);
 		}
-		throw Error("file broken: type=" + type);
+		var length = readInt();
+		for (var i = 0; i < length; i++) {
+			var P = readString();
+			if (P === 'caller' || P === 'callee' || P === 'arguments') {
+				continue;
+			}
+			a[P] = readAny();
+		}
+		return a;
 	}
 
 	function readFully(fd, buffer, startPos, minPos, capacity) {

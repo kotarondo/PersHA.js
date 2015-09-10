@@ -324,6 +324,7 @@ function VMObject(ClassID) {
 		var obj = Object.create(VMIOPortClass);
 		obj.handler = undefined;
 		obj.txid = undefined;
+		obj.callback = undefined;
 		break;
 	default:
 		assert(false, ClassID);
