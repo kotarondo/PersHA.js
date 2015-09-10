@@ -110,18 +110,18 @@ function rmdirSync(path) {
 		process.exit(1);
 	}
 
-	var prevIOCount;
+	var prevTaskCount;
 	process.on('beforeExit', function() {
 		if (IOManager_state !== 'online') {
 			return;
 		}
-		if (prevIOCount === IOManager_context.getIOCount()) {
+		if (prevTaskCount === taskCount) {
 			IOManager_evaluate("process.exit()", "");
 			process.exit();
 			return;
 		}
 		IOManager_evaluate("process.emit('beforeExit')", "");
-		prevIOCount = IOManager_context.getIOCount();
+		prevTaskCount = taskCount;
 		setTimeout(function() {
 		}, 1);
 	});

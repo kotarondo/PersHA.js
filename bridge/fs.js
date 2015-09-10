@@ -40,11 +40,16 @@ var Stats;
 var maxFD = 10;
 var mapFD = [];
 
-function nop() {
-}
-
 for (var fd = 0; fd < 3; fd++) {
-	var port = fsPort.open('bind', [ fd ], nop, true);
+	var port = fsPort.open('general', function (err) {
+		if (err instanceof IOPortError) {
+			if (err.message === 'restart') {
+				port.asyncIO('stdio', [ fd ]);
+			}
+			return;
+		}
+	});
+	port.asyncIO('stdio', [ fd ]);
 	mapFD[fd] = port;
 }
 
@@ -124,7 +129,7 @@ function generalCall(port, name, args, req, retry, filter) {
 }
 
 binding.open = function(path, flags, mode, req) {
-	var port = fsPort.open('bind', [], nop);
+	var port = fsPort.open('general');
 	return generalCall(port, 'open', [ path, flags, mode ], req, false, function(value) {
 		return bindPort(port);
 	});
@@ -250,17 +255,15 @@ binding.StatWatcher = StatWatcher;
 
 function StatWatcher() {
 	var self = this;
-	self._port = fsPort.open('StatWatcher', [], portEventCallback, true);
-
-	function portEventCallback(name, args) {
+	self._port = fsPort.open('StatWatcher', function (name, args) {
 		if (name instanceof IOPortError) {
 			if (name.message === 'restart') {
-				self._port.syncIO('restart', [ self._startArgs ]);
+				self._port.asyncIO('restart', [ self._startArgs ]);
 			}
 			return;
 		}
 		self[name].apply(self, args);
-	}
+	});
 }
 
 StatWatcher.prototype.start = function() {

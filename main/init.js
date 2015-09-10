@@ -39,7 +39,9 @@ try {
 	initializeVM();
 
 	var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + 'bridge.js').toString();
+	task_enter();
 	Global_evaluateProgram(undefined, [ text, 'bridge.js' ]);
+	task_leave();
 
 	var bridge_list = [ 'process', 'fs', 'uv', 'http_parser', 'crypto', 'tcp_wrap', 'udp_wrap', 'tty_wrap', 'timer_wrap',
 			'pipe_wrap', 'cares_wrap', 'stream_wrap', 'signal_wrap', ];
@@ -47,7 +49,9 @@ try {
 		var n = bridge_list[i];
 		var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + n + '.js').toString();
 		text = "(function(){" + text + "})();";
+		task_enter();
 		Global_evaluateProgram(undefined, [ text, 'bridge/' + n + '.js' ]);
+		task_leave();
 	}
 
 	var process_binding = Global_eval(undefined, [ "process" ]);

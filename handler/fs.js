@@ -33,22 +33,22 @@ Copyright (c) 2015, Kotaro Endo.
 
 'use strict'
 
+var binding = process.binding('fs');
+
 module.exports = {
 	open : open,
 	syncIO : syncIO,
 	asyncIO : asyncIO,
 };
 
-var binding = process.binding('fs');
-
-function open(name, args, callback) {
-	if (name === 'bind') {
-		return new FilePort(args[0], callback);
+function open(name, callback) {
+	if (name === 'general') {
+		return new FilePort(callback);
 	}
 	if (name === 'StatWatcher') {
 		return new StatWatcherPort(callback);
 	}
-	console.log("[unhandled] fs open:" + name + ": " + args);
+	console.log("[unhandled] fs open:" + name);
 }
 
 function syncIO(name, args) {
@@ -94,7 +94,7 @@ function syncIO(name, args) {
 	if (name === 'rmdir') {
 		return binding.rmdir(args[0]);
 	}
-	console.log("[unhandled] fs syncIO:" + name + ": " + args);
+	console.log("[unhandled] fs syncIO:" + name);
 }
 
 function asyncIO(name, args, callback) {
@@ -142,10 +142,12 @@ function asyncIO(name, args, callback) {
 	if (name === 'rmdir') {
 		return binding.rmdir(args[0], req);
 	}
-	console.log("[unhandled] fs asyncIO:" + name + ": " + args);
+	console.log("[unhandled] fs asyncIO:" + name);
 }
 
-function FilePort(fd, callback) {
+function FilePort(callback) {
+	var fd;
+
 	this.syncIO = function(name, args) {
 		if (name === 'open') {
 			fd = binding.open(args[0], args[1], args[2]);
@@ -194,6 +196,10 @@ function FilePort(fd, callback) {
 	this.asyncIO = function(name, args, callback) {
 		var req = new binding.FSReqWrap();
 		req.oncomplete = callback;
+		if (name === 'stdio') {
+			fd = args[0];
+			return;
+		}
 		if (name === 'open') {
 			req.oncomplete = function(err, value) {
 				fd = value;
