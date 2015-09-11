@@ -34,23 +34,23 @@
 'use strict';
 
 var binding = process.binding('fs');
-var fsPort = new IOPort('fs');
+var basePort = new IOPort('fs');
 var Stats;
 
 var maxFD = 10;
 var mapFD = [];
 
 for (var fd = 0; fd < 3; fd++) {
-	var port = fsPort.open('general', function (err) {
-		if (err instanceof IOPortError) {
-			if (err.message === 'restart') {
-				port.asyncIO('stdio', [ fd ]);
+	(function(fd) {
+		mapFD[fd] = basePort.open('general', function(err, port) {
+			if (err instanceof IOPortError) {
+				if (err.message === 'restart') {
+					port.asyncIO('stdio', [ fd ]);
+				}
+				return;
 			}
-			return;
-		}
-	});
-	port.asyncIO('stdio', [ fd ]);
-	mapFD[fd] = port;
+		});
+	})(fd);
 }
 
 function findPort(fd) {
@@ -78,11 +78,11 @@ binding.FSReqWrap = function() {
 };
 
 function onceCall(name, args, req, filter) {
-	return generalCall(fsPort, name, args, req, false, filter);
+	return generalCall(basePort, name, args, req, false, filter);
 }
 
 function retryCall(name, args, req, filter) {
-	return generalCall(fsPort, name, args, req, true, filter);
+	return generalCall(basePort, name, args, req, true, filter);
 }
 
 function fdCall(fd, name, args, req, filter) {
@@ -129,7 +129,7 @@ function generalCall(port, name, args, req, retry, filter) {
 }
 
 binding.open = function(path, flags, mode, req) {
-	var port = fsPort.open('general');
+	var port = basePort.open('general');
 	return generalCall(port, 'open', [ path, flags, mode ], req, false, function(value) {
 		return bindPort(port);
 	});
@@ -255,28 +255,26 @@ binding.StatWatcher = StatWatcher;
 
 function StatWatcher() {
 	var self = this;
-	self._port = fsPort.open('StatWatcher', function (name, args) {
-		if (name instanceof IOPortError) {
-			if (name.message === 'restart') {
-				self._port.asyncIO('restart', [ self._startArgs ]);
+	self._port = basePort.open('StatWatcher', function(event, args) {
+		if (event instanceof IOPortError) {
+			if (event.message === 'restart') {
+				args.asyncIO('restart', [ self._startArgs ]);
 			}
 			return;
 		}
-		self[name].apply(self, args);
+		self[event].apply(self, args);
 	});
 }
 
 StatWatcher.prototype.start = function() {
-	var self = this;
-	var err = self._port.syncIO('start', arguments);
+	var err = this._port.syncIO('start', arguments);
 	if (!err) {
-		self._startArgs = arguments;
+		this._startArgs = arguments;
 	}
 	return err;
 };
 
 StatWatcher.prototype.stop = function() {
-	var self = this;
-	self._port.syncIO('stop', []);
-	self._port.close();
+	this._port.close();
+	this._port.asyncIO('stop', []);
 };

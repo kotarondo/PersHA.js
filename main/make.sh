@@ -13,7 +13,7 @@ do
 	cat ${file} >>${TARGET}
 done
 
-echo "function persha_init(){" >>${TARGET}
+echo "function node_init(){" >>${TARGET}
 cat ${SRCPATH}/init.js >>${TARGET}
 echo "}" >>${TARGET}
 

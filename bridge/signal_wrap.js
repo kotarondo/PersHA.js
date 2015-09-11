@@ -34,57 +34,51 @@
 'use strict';
 
 var binding = process.binding('signal_wrap');
-var signalPort = new IOPort('signal_wrap');
+var basePort = new IOPort('signal_wrap');
 
 binding.Signal = Signal;
 
 function Signal() {
 	var self = this;
-	self._port = signalPort.open('Signal', [], portEventCallback, true);
-
-	function portEventCallback(name, args) {
-		if (name instanceof IOPortError) {
-			if (name.message === 'restart') {
-				self._port.syncIO('restart', [ self._unref, self._signum ]);
+	self._state = {};
+	self._port = basePort.open('Signal', function(event, args) {
+		if (event instanceof IOPortError) {
+			if (event.message === 'restart') {
+				args.asyncIO('restart', [ self._state ]);
 			}
 			return;
 		}
-		self[name].apply(self, args);
-	}
+		self[event].apply(self, args);
+	});
 }
 
 Signal.prototype.close = function() {
-	var self = this;
-	self._port.syncIO('close', arguments);
-	self._port.close();
+	this._port.close();
+	this._port.asyncIO('close', []);
 };
 
 Signal.prototype.ref = function() {
-	var self = this;
-	self._port.syncIO('ref', arguments);
-	self._unref = false;
+	this._port.asyncIO('ref', []);
+	this._state.unref = false;
 };
 
 Signal.prototype.unref = function() {
-	var self = this;
-	self._port.syncIO('unref', arguments);
-	self._unref = true;
+	this._port.asyncIO('unref', []);
+	this._state.unref = true;
 };
 
-Signal.prototype.start = function() {
-	var self = this;
-	var err = self._port.syncIO('start', arguments);
+Signal.prototype.start = function(signum) {
+	var err = this._port.syncIO('start', [ signum ]);
 	if (!err) {
-		self._signum = arguments[0];
+		this._state.signum = signum;
 	}
 	return err;
 };
 
 Signal.prototype.stop = function() {
-	var self = this;
-	var err = self._port.syncIO('stop', arguments);
+	var err = this._port.syncIO('stop', []);
 	if (!err) {
-		self._signum = undefined;
+		this._state.signum = undefined;
 	}
 	return err;
 };

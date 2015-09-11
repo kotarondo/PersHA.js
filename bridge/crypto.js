@@ -34,7 +34,7 @@
 'use strict';
 
 var binding = process.binding('crypto');
-var cryptoPort = new IOPort('crypto');
+var basePort = new IOPort('crypto');
 
 binding.CipherBase = CipherBase;
 binding.DiffieHellman = DiffieHellman;
@@ -59,15 +59,8 @@ binding.SSL3_ENABLE = 0;
 binding.SSL2_ENABLE = 0;
 
 function CipherBase() {
-	var self = this;
-	self._port = cryptoPort.open('CipherBase', arguments, portEventCallback);
-
-	function portEventCallback(name, args) {
-		if (name instanceof IOPortError) {
-			return;
-		}
-		self[name].apply(self, args);
-	}
+	this._port = basePort.open('CipherBase');
+	this._port.asyncIO('restart', arguments);
 }
 
 CipherBase.prototype.init = function() {
@@ -75,7 +68,7 @@ CipherBase.prototype.init = function() {
 };
 
 CipherBase.prototype.initiv = function() {
-	return this._port.syncIO('initv', arguments);
+	return this._port.syncIO('initiv', arguments);
 };
 
 CipherBase.prototype.update = function() {
@@ -103,15 +96,8 @@ CipherBase.prototype.setAAD = function() {
 };
 
 function DiffieHellman() {
-	var self = this;
-	self._port = cryptoPort.open('DiffieHellman', arguments, portEventCallback);
-
-	function portEventCallback(name, args) {
-		if (name instanceof IOPortError) {
-			return;
-		}
-		self[name].apply(self, args);
-	}
+	this._port = basePort.open('DiffieHellman');
+	this._port.asyncIO('restart', arguments);
 }
 
 DiffieHellman.prototype.generateKeys = function() {
@@ -147,15 +133,8 @@ DiffieHellman.prototype.setPrivateKey = function() {
 };
 
 function DiffieHellmanGroup() {
-	var self = this;
-	self._port = cryptoPort.open('DiffieHellmanGroup', arguments, portEventCallback);
-
-	function portEventCallback(name, args) {
-		if (name instanceof IOPortError) {
-			return;
-		}
-		self[name].apply(self, args);
-	}
+	this._port = basePort.open('DiffieHellmanGroup');
+	this._port.asyncIO('restart', arguments);
 }
 
 DiffieHellmanGroup.prototype.generateKeys = function() {
@@ -183,15 +162,8 @@ DiffieHellmanGroup.prototype.getPrivateKey = function() {
 };
 
 function Hash() {
-	var self = this;
-	self._port = cryptoPort.open('Hash', arguments, portEventCallback);
-
-	function portEventCallback(name, args) {
-		if (name instanceof IOPortError) {
-			return;
-		}
-		self[name].apply(self, args);
-	}
+	this._port = basePort.open('Hash');
+	this._port.asyncIO('restart', arguments);
 }
 
 Hash.prototype.update = function() {
@@ -203,107 +175,72 @@ Hash.prototype.digest = function() {
 };
 
 function ECDH() {
-	var self = this;
-	self._port = cryptoPort.open('ECDH', arguments, portEventCallback);
-
-	function portEventCallback(name, args) {
-		if (name instanceof IOPortError) {
-			return;
-		}
-		self[name].apply(self, args);
-	}
+	this._port = basePort.open('ECDH');
+	this._port.asyncIO('restart', arguments);
 }
 
 //TODO ECDH.prototype
 
 function Hmac() {
-	var self = this;
-	self._port = cryptoPort.open('Hmac', arguments, portEventCallback);
-
-	function portEventCallback(name, args) {
-		if (name instanceof IOPortError) {
-			return;
-		}
-		self[name].apply(self, args);
-	}
+	this._port = basePort.open('Hmac');
+	this._port.asyncIO('restart', arguments);
 }
 
 //TODO Hmac.prototype
 
 function Sign() {
-	var self = this;
-	self._port = cryptoPort.open('Sign', arguments, portEventCallback);
-
-	function portEventCallback(name, args) {
-		if (name instanceof IOPortError) {
-			return;
-		}
-		self[name].apply(self, args);
-	}
+	this._port = basePort.open('Sign');
+	this._port.asyncIO('restart', arguments);
 }
 
 //TODO Sign.prototype
 
 function Verify() {
-	var self = this;
-	self._port = cryptoPort.open('Verify', arguments, portEventCallback);
-
-	function portEventCallback(name, args) {
-		if (name instanceof IOPortError) {
-			return;
-		}
-		self[name].apply(self, args);
-	}
+	this._port = basePort.open('Verify');
+	this._port.asyncIO('restart', arguments);
 }
 
 //TODO Verify.prototype
 
 function Certificate() {
-	var self = this;
-	self._port = cryptoPort.open('Certificate', arguments, portEventCallback);
-
-	function portEventCallback(name, args) {
-		if (name instanceof IOPortError) {
-			return;
-		}
-		self[name].apply(self, args);
-	}
+	this._port = basePort.open('Certificate');
+	this._port.asyncIO('restart', arguments);
 }
 
 //TODO Certificate.prototype
 
 function setEngine() {
-	return cryptoPort.syncIO('setEngine', arguments);
+	return basePort.syncIO('setEngine', arguments);
 }
 
 function PBKDF2() {
-	return cryptoPort.syncIO('PBKDF2', arguments);
+	return basePort.syncIO('PBKDF2', arguments);
 }
 
 function randomBytes() {
-	return cryptoPort.syncIO('randomBytes', arguments);
+	return basePort.syncIO('randomBytes', arguments);
 }
 
 function pseudoRandomBytes() {
-	return cryptoPort.syncIO('pseudoRandomBytes', arguments);
+	return basePort.syncIO('pseudoRandomBytes', arguments);
 }
 
 function getSSLCiphers() {
-	return cryptoPort.syncIO('getSSLCiphers', arguments);
+	return basePort.syncIO('getSSLCiphers', arguments);
 }
 
 function getCiphers() {
-	return cryptoPort.syncIO('getCiphers', arguments);
+	return basePort.syncIO('getCiphers', arguments);
 }
 
 function getHashes() {
-	return cryptoPort.syncIO('getHashes', arguments);
+	return basePort.syncIO('getHashes', arguments);
 }
 
 function publicEncrypt() {
-	return cryptoPort.syncIO('publicEncrypt', arguments);
+	return basePort.syncIO('publicEncrypt', arguments);
 }
 
 function privateDecrypt() {
-	return cryptoPort.syncIO('privateDecrypt', arguments);
+	return basePort.syncIO('privateDecrypt', arguments);
 }

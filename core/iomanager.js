@@ -42,7 +42,6 @@ var IOManager_asyncCallbacks = {};
 var IOManager_openPorts = {};
 
 function IOManager_openPort(port, callback) {
-	if (!callback) return;
 	var txid = ++IOManager_uniqueID;
 	IOManager_openPorts[txid] = port;
 	port.txid = txid;
@@ -80,17 +79,18 @@ function IOManager_bindPort(port) {
 			return;
 		}
 		if (!root.handler.open) {
-			console.error("IOManager: no open handler: " + IOPort_longname(root));
+			console.error("IOManager: no handler: " + IOPort_longname(root) + ".open");
 			return;
 		}
 		port.handler = root.handler.open(name, function() {
+			if (!port.txid) return;
 			var value = Array.prototype.slice.call(arguments);
 			var entry = {
 				type : 'portEvent',
 				txid : port.txid,
 				value : value,
 			};
-			if (task_isInterruptible()) {
+			if (taskDepth > 0 && taskInterruptible) {
 				IOManager_portEvent(entry);
 			}
 			else {
@@ -98,11 +98,12 @@ function IOManager_bindPort(port) {
 			}
 		});
 	} catch (e) {
-		console.error("IOManager: bind: " + IOPort_longname(port) + "," + name + ": " + e);
+		console.error("IOManager: bind: " + IOPort_longname(port) + ": " + e.stack);
 	}
 }
 
 function IOManager_portEvent(entry) {
+	assert(entry.type === 'portEvent');
 	var txid = entry.txid;
 	var port = IOManager_openPorts[txid];
 	if (port === undefined) {
@@ -113,17 +114,17 @@ function IOManager_portEvent(entry) {
 	}
 	task_enter();
 	try {
-		IOPort_callback(entry, port.callback);
+		IOPort_portEvent(entry, port.callback, port);
 	} catch (e) {
 		var err = IOPort_callbackUncaughtError(e);
-		if (err) {
+		if (err && IOManager_state !== 'recovery') {
 			console.error("Uncaught: " + err);
 		}
 	}
 	task_leave();
 }
 
-function IOManager_asyncIO(port, name, args, callback) {
+function IOManager_asyncIO(port, func, args, callback) {
 	if (callback) {
 		var txid = ++IOManager_uniqueID;
 		IOManager_asyncCallbacks[txid] = callback;
@@ -132,7 +133,7 @@ function IOManager_asyncIO(port, name, args, callback) {
 		return;
 	}
 	var entry = {
-		type : 'asyncIO',
+		type : 'completionEvent',
 		txid : txid,
 	};
 	IOManager_bindPort(port);
@@ -140,18 +141,20 @@ function IOManager_asyncIO(port, name, args, callback) {
 		if (!port.handler) {
 			entry.error = 'stale';
 		}
+		else if (!callback) {
+			if (port.handler.syncIO) {
+				port.handler.syncIO(func, args);
+			}
+			return;
+		}
 		else if (!port.handler.asyncIO) {
 			entry.error = 'no handler';
 		}
-		else if (!callback) {
-			port.handler.asyncIO(name, args);
-			return;
-		}
 		else {
-			port.handler.asyncIO(name, args, function() {
+			port.handler.asyncIO(func, args, function() {
 				var value = Array.prototype.slice.call(arguments);
 				var entry = {
-					type : 'asyncIO',
+					type : 'completionEvent',
 					txid : txid,
 					value : value
 				};
@@ -160,7 +163,7 @@ function IOManager_asyncIO(port, name, args, callback) {
 			return;
 		}
 	} catch (e) {
-		console.error("IOManager: asyncIO: " + IOPort_longname(port) + "," + name + ": " + e);
+		console.error("IOManager: asyncIO: " + IOPort_longname(port) + "." + func + ": " + e.stack);
 		entry.error = 'exception';
 	}
 	if (callback) {
@@ -168,7 +171,8 @@ function IOManager_asyncIO(port, name, args, callback) {
 	}
 }
 
-function IOManager_syncIO(port, name, args, callback) {
+function IOManager_syncIO(port, func, args, callback) {
+	taskInterruptible = true;
 	if (callback) {
 		var txid = ++IOManager_uniqueID;
 	}
@@ -183,45 +187,49 @@ function IOManager_syncIO(port, name, args, callback) {
 			if (entry === undefined) {
 				IOManager_online();
 				var entry = {
-					type : 'syncIO',
-					name : name,
+					type : 'return',
+					func : func,
 					error : 'restart'
 				};
 				Journal_write(entry);
 				return entry;
 			}
-			if (entry.type === 'syncIO') {
-				assert(entry.name === name);
+			if (entry.type === 'return') {
+				assert(entry.func === func, entry.func + " === " + func);
 				if (entry.success) {
 					IOManager_asyncCallbacks[txid] = callback;
 				}
 				return entry;
 			}
-			assert(entry.type === 'portEvent');
 			IOManager_portEvent(entry);
 		}
 	}
 	var entry = {
-		type : 'syncIO',
-		name : name
+		type : 'return',
+		func : func
 	};
 	IOManager_bindPort(port);
 	try {
 		if (!port.handler) {
 			entry.error = 'stale';
 		}
+		else if (!callback) {
+			if (!port.handler.syncIO) {
+				entry.error = 'no handler';
+			}
+			else {
+				entry.value = port.handler.syncIO(func, args);
+				entry.success = true;
+			}
+		}
 		else if (!port.handler.asyncIO) {
 			entry.error = 'no handler';
 		}
-		else if (!callback) {
-			entry.value = port.handler.syncIO(name, args);
-			entry.success = true;
-		}
 		else {
-			entry.value = port.handler.syncIO(name, args, function() {
+			entry.value = port.handler.asyncIO(func, args, function() {
 				var value = Array.prototype.slice.call(arguments);
 				var entry = {
-					type : 'asyncIO',
+					type : 'completionEvent',
 					txid : txid,
 					value : value
 				};
@@ -240,6 +248,7 @@ function IOManager_syncIO(port, name, args, callback) {
 }
 
 function IOManager_completionEvent(entry) {
+	assert(entry.type === 'completionEvent');
 	var txid = entry.txid;
 	var callback = IOManager_asyncCallbacks[txid];
 	if (callback === undefined) {
@@ -251,10 +260,10 @@ function IOManager_completionEvent(entry) {
 	}
 	task_enter();
 	try {
-		IOPort_callback(entry, callback);
+		IOPort_completionEvent(entry, callback);
 	} catch (e) {
 		var err = IOPort_callbackUncaughtError(e);
-		if (err) {
+		if (err && IOManager_state !== 'recovery') {
 			console.error("Uncaught: " + err);
 		}
 	}
@@ -298,8 +307,9 @@ function IOManager_math_random() {
 }
 
 function IOManager_online() {
-	assert(IOManager_state === 'recovery');
-	console.log('READY');
+	if (IOManager_state === 'recovery') {
+		console.log('READY');
+	}
 	IOManager_state = 'online';
 	for ( var txid in IOManager_openPorts) {
 		var entry = {
@@ -307,13 +317,12 @@ function IOManager_online() {
 			txid : Number(txid),
 			error : 'restart'
 		};
-		assert(task_isInterruptible());
 		IOManager_portEvent(entry);
 	}
 	for ( var txid in IOManager_asyncCallbacks) {
 		txid = Number(txid);
 		var entry = {
-			type : 'asyncIO',
+			type : 'completionEvent',
 			txid : Number(txid),
 			error : 'restart'
 		};
@@ -334,7 +343,7 @@ function IOManager_evaluate(text, filename) {
 		Global_evaluateProgram(undefined, [ text, filename ]);
 	} catch (e) {
 		var err = IOPort_callbackUncaughtError(e);
-		if (err) {
+		if (err && IOManager_state !== 'recovery') {
 			console.error("Uncaught: " + err);
 		}
 	}
@@ -354,11 +363,10 @@ function IOManager_start() {
 		if (entry.type === 'evaluate') {
 			IOManager_evaluate(entry.text, entry.filename);
 		}
-		else if (entry.type === 'asyncIO') {
+		else if (entry.type === 'completionEvent') {
 			IOManager_completionEvent(entry);
 		}
 		else {
-			assert(entry.type === 'portEvent');
 			IOManager_portEvent(entry);
 		}
 	}

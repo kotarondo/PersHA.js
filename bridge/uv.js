@@ -34,8 +34,8 @@
 'use strict';
 
 var binding = process.binding('uv');
-var uvPort = new IOPort('uv');
+var basePort = new IOPort('uv');
 
 binding.errname = function() {
-	return binding.syncIO('errname', arguments);
+	return basePort.syncIO('errname', arguments);
 };

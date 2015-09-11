@@ -48,169 +48,169 @@ function open(name, callback) {
 	if (name === 'StatWatcher') {
 		return new StatWatcherPort(callback);
 	}
-	console.log("[unhandled] fs open:" + name);
+	console.log("[unhandled] fs open: " + name);
 }
 
-function syncIO(name, args) {
-	if (name === 'stat') {
+function syncIO(func, args) {
+	if (func === 'stat') {
 		return binding.stat(args[0]);
 	}
-	if (name === 'lstat') {
+	if (func === 'lstat') {
 		return binding.lstat(args[0]);
 	}
-	if (name === 'access') {
+	if (func === 'access') {
 		return binding.access(args[0], args[1]);
 	}
-	if (name === 'chmod') {
+	if (func === 'chmod') {
 		return binding.chmod(args[0], args[1]);
 	}
-	if (name === 'chown') {
+	if (func === 'chown') {
 		return binding.chown(args[0], args[1], args[2]);
 	}
-	if (name === 'utimes') {
+	if (func === 'utimes') {
 		return binding.utimes(args[0], args[1], args[2]);
 	}
-	if (name === 'link') {
+	if (func === 'link') {
 		return binding.link(args[0], args[1]);
 	}
-	if (name === 'symlink') {
+	if (func === 'symlink') {
 		return binding.symlink(args[0], args[1], args[2]);
 	}
-	if (name === 'unlink') {
+	if (func === 'unlink') {
 		return binding.unlink(args[0]);
 	}
-	if (name === 'mkdir') {
+	if (func === 'mkdir') {
 		return binding.mkdir(args[0], args[1]);
 	}
-	if (name === 'readdir') {
+	if (func === 'readdir') {
 		return binding.readdir(args[0]);
 	}
-	if (name === 'readlink') {
+	if (func === 'readlink') {
 		return binding.readlink(args[0]);
 	}
-	if (name === 'rename') {
+	if (func === 'rename') {
 		return binding.rename(args[0], args[1]);
 	}
-	if (name === 'rmdir') {
+	if (func === 'rmdir') {
 		return binding.rmdir(args[0]);
 	}
-	console.log("[unhandled] fs syncIO:" + name);
+	console.log("[unhandled] fs syncIO: " + func);
 }
 
-function asyncIO(name, args, callback) {
+function asyncIO(func, args, callback) {
 	var req = new binding.FSReqWrap();
 	req.oncomplete = callback;
-	if (name === 'stat') {
+	if (func === 'stat') {
 		return binding.stat(args[0], req);
 	}
-	if (name === 'lstat') {
+	if (func === 'lstat') {
 		return binding.lstat(args[0], req);
 	}
-	if (name === 'access') {
+	if (func === 'access') {
 		return binding.access(args[0], args[1], req);
 	}
-	if (name === 'chmod') {
+	if (func === 'chmod') {
 		return binding.chmod(args[0], args[1], req);
 	}
-	if (name === 'chown') {
+	if (func === 'chown') {
 		return binding.chown(args[0], args[1], args[2], req);
 	}
-	if (name === 'utimes') {
+	if (func === 'utimes') {
 		return binding.utimes(args[0], args[1], args[2], req);
 	}
-	if (name === 'link') {
+	if (func === 'link') {
 		return binding.link(args[0], args[1], req);
 	}
-	if (name === 'symlink') {
+	if (func === 'symlink') {
 		return binding.symlink(args[0], args[1], args[2], req);
 	}
-	if (name === 'unlink') {
+	if (func === 'unlink') {
 		return binding.unlink(args[0], req);
 	}
-	if (name === 'mkdir') {
+	if (func === 'mkdir') {
 		return binding.mkdir(args[0], args[1], req);
 	}
-	if (name === 'readdir') {
+	if (func === 'readdir') {
 		return binding.readdir(args[0], req);
 	}
-	if (name === 'readlink') {
+	if (func === 'readlink') {
 		return binding.readlink(args[0], req);
 	}
-	if (name === 'rename') {
+	if (func === 'rename') {
 		return binding.rename(args[0], args[1], req);
 	}
-	if (name === 'rmdir') {
+	if (func === 'rmdir') {
 		return binding.rmdir(args[0], req);
 	}
-	console.log("[unhandled] fs asyncIO:" + name);
+	console.log("[unhandled] fs asyncIO: " + func);
 }
 
 function FilePort(callback) {
 	var fd;
 
-	this.syncIO = function(name, args) {
-		if (name === 'open') {
+	this.syncIO = function(func, args) {
+		if (func === 'stdio') {
+			fd = args[0];
+			return;
+		}
+		if (func === 'open') {
 			fd = binding.open(args[0], args[1], args[2]);
 			return;
 		}
-		if (name === 'close') {
+		if (func === 'close') {
 			return binding.close(fd);
 		}
-		if (name === 'read') {
+		if (func === 'read') {
 			var length = args[0];
 			var position = args[1];
 			var buffer = new Buffer(length);
 			var transferred = binding.read(fd, buffer, 0, length, position);
 			return buffer.slice(0, transferred);
 		}
-		if (name === 'writeBuffer') {
+		if (func === 'writeBuffer') {
 			return binding.writeBuffer(fd, args[0], args[1], args[2], args[3]);
 		}
-		if (name === 'writeString') {
+		if (func === 'writeString') {
 			return binding.writeString(fd, args[0], args[1], args[2]);
 		}
-		if (name === 'fstat') {
+		if (func === 'fstat') {
 			return binding.fstat(fd);
 		}
-		if (name === 'fchmod') {
+		if (func === 'fchmod') {
 			return binding.fchmod(fd, args[0]);
 		}
-		if (name === 'fchown') {
+		if (func === 'fchown') {
 			return binding.fchown(fd, args[0], args[1]);
 		}
-		if (name === 'fsync') {
+		if (func === 'fsync') {
 			return binding.fsync(fd);
 		}
-		if (name === 'fdatasync') {
+		if (func === 'fdatasync') {
 			return binding.fdatasync(fd);
 		}
-		if (name === 'ftruncate') {
+		if (func === 'ftruncate') {
 			return binding.ftruncate(fd, args[0]);
 		}
-		if (name === 'futimes') {
+		if (func === 'futimes') {
 			return binding.futimes(fd, args[0], args[1]);
 		}
-		console.log("[unhandled] FilePort syncIO:" + name + ": " + args);
+		console.log("[unhandled] FilePort syncIO: " + func);
 	};
 
-	this.asyncIO = function(name, args, callback) {
+	this.asyncIO = function(func, args, callback) {
 		var req = new binding.FSReqWrap();
 		req.oncomplete = callback;
-		if (name === 'stdio') {
-			fd = args[0];
-			return;
-		}
-		if (name === 'open') {
+		if (func === 'open') {
 			req.oncomplete = function(err, value) {
 				fd = value;
 				callback(err);
 			};
 			return binding.open(args[0], args[1], args[2], req);
 		}
-		if (name === 'close') {
+		if (func === 'close') {
 			return binding.close(fd, req);
 		}
-		if (name === 'read') {
+		if (func === 'read') {
 			var length = args[0];
 			var position = args[1];
 			var buffer = new Buffer(length);
@@ -224,40 +224,39 @@ function FilePort(callback) {
 			};
 			return binding.read(fd, buffer, 0, length, position, req);
 		}
-		if (name === 'writeBuffer') {
+		if (func === 'writeBuffer') {
 			return binding.writeBuffer(fd, args[0], args[1], args[2], args[3], req);
 		}
-		if (name === 'writeString') {
+		if (func === 'writeString') {
 			return binding.writeString(fd, args[0], args[1], args[2], req);
 		}
-		if (name === 'fstat') {
+		if (func === 'fstat') {
 			return binding.fstat(fd, req);
 		}
-		if (name === 'fchmod') {
+		if (func === 'fchmod') {
 			return binding.fchmod(fd, args[0], req);
 		}
-		if (name === 'fchown') {
+		if (func === 'fchown') {
 			return binding.fchown(fd, args[0], args[1], req);
 		}
-		if (name === 'fsync') {
+		if (func === 'fsync') {
 			return binding.fsync(fd, req);
 		}
-		if (name === 'fdatasync') {
+		if (func === 'fdatasync') {
 			return binding.fdatasync(fd, req);
 		}
-		if (name === 'ftruncate') {
+		if (func === 'ftruncate') {
 			return binding.ftruncate(fd, args[0], req);
 		}
-		if (name === 'futimes') {
+		if (func === 'futimes') {
 			return binding.futimes(fd, args[0], args[1], req);
 		}
-		console.log("[unhandled] FilePort syncIO:" + name + ": " + args);
+		console.log("[unhandled] FilePort syncIO: " + func);
 	};
 }
 
 function StatWatcherPort(callback) {
 	var handle = new binding.StatWatcher();
-	var restarted;
 
 	handle.onchange = function() {
 		var args = Array.prototype.slice.call(arguments);
@@ -268,24 +267,20 @@ function StatWatcherPort(callback) {
 		callback('onstop', args);
 	};
 
-	this.syncIO = function(name, args) {
-		if (name === 'start') {
-			return handle.start.apply(handle, args);
-		}
-		if (name === 'stop') {
-			return handle.stop();
-		}
-		if (name === 'restart') {
-			if (restarted) {
-				return;
-			}
-			restarted = true;
+	this.syncIO = function(func, args) {
+		if (func === 'restart') {
 			var startArgs = args[0];
 			if (startArgs) {
 				handle.start.apply(handle, startArgs);
 			}
 			return;
 		}
-		console.log("[unhandled] StatWatcher syncIO:" + name);
+		if (func === 'start') {
+			return handle.start.apply(handle, args);
+		}
+		if (func === 'stop') {
+			return handle.stop();
+		}
+		console.log("[unhandled] StatWatcher syncIO: " + func);
 	};
 }

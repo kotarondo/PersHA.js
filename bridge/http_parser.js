@@ -38,51 +38,40 @@ var parserPort = new IOPort('http_parser');
 
 binding.HTTPParser = HTTPParser;
 
-function HTTPParser() {
+function HTTPParser(type) {
 	var self = this;
-	self._port = parserPort.open('HTTPParser', arguments, portEventCallback);
-
-	function portEventCallback(name, args) {
-		if (name instanceof IOPortError) {
+	self._port = parserPort.open('HTTPParser', function(event, args) {
+		if (event instanceof IOPortError) {
 			return;
 		}
-		self[name].apply(self, args);
-	}
+		self[event].apply(self, args);
+	});
+	self._port.asyncIO('restart', [ type ]);
 }
 
 HTTPParser.prototype.close = function() {
-	var self = this;
-	self._port.syncIO('close', arguments);
-	self._port.close();
+	this._port.asyncIO('close', []);
+	this._port.close();
 };
 
-HTTPParser.prototype.execute = function() {
-	var self = this;
-	return self._port.syncIO('execute', arguments);
+HTTPParser.prototype.execute = function(data) {
+	return this._port.syncIO('execute', [ data ]);
 };
 
 HTTPParser.prototype.finish = function() {
-	var self = this;
-	return self._port.syncIO('finish', arguments);
+	return this._port.syncIO('finish', []);
 };
 
-HTTPParser.prototype.reinitialize = function() {
-	var self = this;
-	try {
-		return self._port.syncIO('reinitialize', arguments);
-	} catch (e) {
-		self._port.rebind();
-	}
+HTTPParser.prototype.reinitialize = function(type) {
+	this._port.asyncIO('reinitialize', [ type ]);
 };
 
 HTTPParser.prototype.pause = function() {
-	var self = this;
-	return self._port.syncIO('pause', arguments);
+	return this._port.syncIO('pause', []);
 };
 
 HTTPParser.prototype.resume = function() {
-	var self = this;
-	return self._port.syncIO('resume', arguments);
+	return this._port.syncIO('resume', []);
 };
 
 HTTPParser.methods = [];

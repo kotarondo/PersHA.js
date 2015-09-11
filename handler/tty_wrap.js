@@ -34,46 +34,70 @@ Copyright (c) 2015, Kotaro Endo.
 'use strict'
 
 var binding = process.binding('tty_wrap');
+var WriteWrap = process.binding('stream_wrap').WriteWrap;
 
 module.exports = {
 	open : open,
 	syncIO : syncIO,
 };
 
-function open(name, args, callback) {
+function open(name, callback) {
 	if (name === 'TTY') {
-		return new TTYPort(args, callback);
+		return new TTYPort(callback);
 	}
-	console.log("[unhandled] tty_wrap open:" + name);
+	console.log("[unhandled] tty_wrap open: " + name);
 }
 
-function syncIO(name, args) {
-	if (name === 'guessHandleType') {
+function syncIO(func, args) {
+	if (func === 'guessHandleType') {
 		return binding.guessHandleType(args[0]);
 	}
-	if (name === 'isTTY') {
+	if (func === 'isTTY') {
 		return binding.isTTY(args[0]);
 	}
-	console.log("[unhandled] tty_wrap syncIO:" + name);
+	console.log("[unhandled] tty_wrap syncIO: " + func);
 }
 
-function TTYPort(args, callback) {
-	var TTY = process.binding('tty_wrap').TTY;
-	var WriteWrap = process.binding('stream_wrap').WriteWrap;
+function TTYPort(callback) {
+	var handle;
 
-	var fd=args[0];
-	var flag=args[1];
+	function restart(state){
+		handle = new binding.TTY(state.fd, state.flag);
+		if (state.rawMode) {
+			handle.setRawMode(state.rawMode);
+		}
+		if (state.reading) {
+			handle.readStart();
+		}
+		if (state.unref) {
+			handle.unref();
+		}
+		handle.onread = function() {
+			var args = Array.prototype.slice.call(arguments);
+			callback('onread', args);
+		};
+	}
 
-	var handle = new TTY(fd, flag);
-	var restarted;
-
-	handle.onread = function() {
-		var args = Array.prototype.slice.call(arguments);
-		callback('onread', args);
-	};
-
-	this.syncIO = function(name, args) {
-		if (name === 'getWindowSize') {
+	this.syncIO = function(func, args) {
+		if (func === 'restart') {
+			return restart(args[0]);
+		}
+		if (func === 'close') {
+			return handle.close();
+		}
+		if (func === 'unref') {
+			return handle.unref();
+		}
+		if (func === 'readStart') {
+			return handle.readStart();
+		}
+		if (func === 'readStop') {
+			return handle.readStop();
+		}
+		if (func === 'setRawMode') {
+			return handle.setRawMode(args[0]);
+		}
+		if (func === 'getWindowSize') {
 			var winSize = [];
 			var err = handle.getWindowSize(winSize);
 			if (err) {
@@ -81,45 +105,11 @@ function TTYPort(args, callback) {
 			}
 			return winSize;
 		}
-		if (name === 'close') {
-			return handle.close();
-		}
-		if (name === 'unref') {
-			return handle.unref();
-		}
-		if (name === 'readStart') {
-			return handle.readStart();
-		}
-		if (name === 'readStop') {
-			return handle.readStop();
-		}
-		if (name === 'setRawMode') {
-			return handle.setRawMode(args[0]);
-		}
-		if (name === 'restart') {
-			if (restarted) {
-				return;
-			}
-			restarted = true;
-			var unref = args[0];
-			var reading = args[1];
-			var rawMode = args[2];
-			if (rawMode) {
-				handle.setRawMode(rawMode);
-			}
-			if (reading) {
-				handle.readStart();
-			}
-			if (unref) {
-				handle.unref();
-			}
-			return;
-		}
-		console.log("[unhandled] TTY syncIO:" + name);
+		console.log("[unhandled] TTY syncIO:" + func);
 	};
 
-	this.asyncIO = function(name, args, callback) {
-		if (name === 'write') {
+	this.asyncIO = function(func, args, callback) {
+		if (func === 'write') {
 			var req = new WriteWrap();
 			req.oncomplete = function(status, self, req, err) {
 				callback(status, err);
@@ -139,6 +129,6 @@ function TTYPort(args, callback) {
 				return handle.writev(req, args[1]);
 			}
 		}
-		console.log("[unhandled] TTY asyncIO:" + name);
+		console.log("[unhandled] TTY asyncIO:" + func);
 	};
 }

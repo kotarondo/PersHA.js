@@ -62,6 +62,9 @@ process.binding = (function() {
 
 Object.defineProperty(this, "_uncaughtErrorCallback", {
 	value : function(e) {
+		if (!process._fatalException) {
+			throw e;
+		}
 		process._fatalException(e);
 	},
 	writable : true,

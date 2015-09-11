@@ -33,28 +33,27 @@ Copyright (c) 2015, Kotaro Endo.
 
 'use strict'
 
+var binding = process.binding('tcp_wrap');
+var TCPConnectWrap = binding.TCPConnectWrap;
+var PipeConnectWrap = process.binding('pipe_wrap').PipeConnectWrap;
+var ShutdownWrap = process.binding('stream_wrap').ShutdownWrap;
+var WriteWrap = process.binding('stream_wrap').WriteWrap;
+
 module.exports = {
 	open : open,
 };
 
-function open(name, args, callback) {
+function open(name, callback) {
 	if (name === 'TCP') {
 		return new TCPPort(null, callback);
 	}
-	console.log("[unhandled] tcp_wrap open:" + name + ": " + args);
+	console.log("[unhandled] tcp_wrap open: " + name);
 }
 
 function TCPPort(handle, callback) {
-	var TCP = process.binding('tcp_wrap').TCP;
-	var TCPConnectWrap = process.binding('tcp_wrap').TCPConnectWrap;
-	var PipeConnectWrap = process.binding('pipe_wrap').PipeConnectWrap;
-	var ShutdownWrap = process.binding('stream_wrap').ShutdownWrap;
-	var WriteWrap = process.binding('stream_wrap').WriteWrap;
-
 	if (!handle) {
-		var handle = new TCP();
+		handle = new TCP();
 	}
-	var restarted;
 	var queue = [];
 
 	handle.onread = function() {
@@ -69,87 +68,80 @@ function TCPPort(handle, callback) {
 		callback('onconnection', err);
 	};
 
-	this.open = function(name, args, callback) {
+	this.open = function(name, callback) {
 		if (name === 'accept') {
 			var h = queue.shift();
 			return new TCPPort(h, callback);
 		}
-		console.log("[unhandled] TCPPort open:" + name + ": " + args);
+		console.log("[unhandled] TCPPort open:" + name);
 	}
 
-	this.syncIO = function(name, args) {
-		if (name === 'readStart') {
-			return handle.readStart();
-		}
-		if (name === 'readStop') {
-			return handle.readStop();
-		}
-		if (name === 'ref') {
-			return handle.ref();
-		}
-		if (name === 'unref') {
-			return handle.unref();
-		}
-		if (name === 'close') {
-			return handle.close();
-		}
-		if (name === 'bind6') {
-			return handle.bind6.apply(handle, args);
-		}
-		if (name === 'bind') {
-			return handle.bind.apply(handle, args);
-		}
-		if (name === 'listen') {
-			return handle.listen.apply(handle, args);
-		}
-		if (name === 'getsockname') {
-			var res = {
-				out : {}
-			};
-			res.err = handle.getsockname(res.out);
-			return res;
-		}
-		if (name === 'getpeername') {
-			var res = {
-				out : {}
-			};
-			res.err = handle.getsockname(res.out);
-			return res;
-		}
-		if (name === 'setNoDelay') {
-			return handle.setNoDelay.apply(handle, args);
-		}
-		if (name === 'setKeepAlive') {
-			return handle.setKeepAlive.apply(handle, args);
-		}
-		if (name === 'restarted') {
-			if (restarted) {
-				return;
+	this.syncIO = function(func, args) {
+		if (func === 'restart') {
+			var state = args[0];
+			if (state.bindArgs) {
+				handle.bind.apply(handle, state.bindArgs);
 			}
-			restarted = true;
-			var unref = args[0];
-			var bindArgs = args[1];
-			var bind6Args = args[2];
-			var listenArgs = args[3];
-			if (bindArgs) {
-				handle.bind.apply(handle, bindArgs);
+			if (state.bind6Args) {
+				handle.bind6.apply(handle, state.bind6Args);
 			}
-			if (bind6Args) {
-				handle.bind6.apply(handle, bind6Args);
+			if (state.listenArgs) {
+				handle.listen.apply(handle, state.listenArgs);
 			}
-			if (listenArgs) {
-				handle.listen.apply(handle, listenArgs);
-			}
-			if (unref) {
+			if (state.unref) {
 				handle.unref();
 			}
 			return;
 		}
-		console.log("[unhandled] TCP syncIO:" + name + ": " + args);
+		if (func === 'readStart') {
+			return handle.readStart();
+		}
+		if (func === 'readStop') {
+			return handle.readStop();
+		}
+		if (func === 'ref') {
+			return handle.ref();
+		}
+		if (func === 'unref') {
+			return handle.unref();
+		}
+		if (func === 'close') {
+			return handle.close();
+		}
+		if (func === 'bind6') {
+			return handle.bind6.apply(handle, args);
+		}
+		if (func === 'bind') {
+			return handle.bind.apply(handle, args);
+		}
+		if (func === 'listen') {
+			return handle.listen.apply(handle, args);
+		}
+		if (func === 'getsockname') {
+			var res = {
+				out : {}
+			};
+			res.err = handle.getsockname(res.out);
+			return res;
+		}
+		if (func === 'getpeername') {
+			var res = {
+				out : {}
+			};
+			res.err = handle.getsockname(res.out);
+			return res;
+		}
+		if (func === 'setNoDelay') {
+			return handle.setNoDelay.apply(handle, args);
+		}
+		if (func === 'setKeepAlive') {
+			return handle.setKeepAlive.apply(handle, args);
+		}
+		console.log("[unhandled] TCP syncIO: " + func);
 	};
 
-	this.asyncIO = function(name, args, callback) {
-		if (name === 'write') {
+	this.asyncIO = function(func, args, callback) {
+		if (func === 'write') {
 			var req = new WriteWrap();
 			req.async = false;
 			switch (args[0]) {
@@ -182,7 +174,7 @@ function TCPPort(handle, callback) {
 			}
 			return;
 		}
-		if (name === 'connect') {
+		if (func === 'connect') {
 			var req = new TCPConnectWrap();
 			req.oncomplete = function(status, self, req, readable, writable) {
 				callback(status, readable, writable);
@@ -190,7 +182,7 @@ function TCPPort(handle, callback) {
 			handle.connect(req, args[0], args[1]);
 			return;
 		}
-		if (name === 'connect6') {
+		if (func === 'connect6') {
 			var req = new TCPConnectWrap();
 			req.oncomplete = function(status, self, req, readable, writable) {
 				callback(status, readable, writable);
@@ -198,11 +190,11 @@ function TCPPort(handle, callback) {
 			handle.connect6(req, args[0], args[1]);
 			return;
 		}
-		if (name === 'close') {
+		if (func === 'close') {
 			handle.close(callback);
 			return;
 		}
-		if (name === 'shutdown') {
+		if (func === 'shutdown') {
 			var req = new ShutdownWrap();
 			req.oncomplete = function(status, self, req) {
 				callback(status);
@@ -210,6 +202,6 @@ function TCPPort(handle, callback) {
 			handle.shutdown(req);
 			return;
 		}
-		console.log("[unhandled] TCP asyncIO:" + name + ": " + args);
+		console.log("[unhandled] TCP asyncIO: " + func);
 	};
 }

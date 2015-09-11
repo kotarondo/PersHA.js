@@ -33,44 +33,50 @@ Copyright (c) 2015, Kotaro Endo.
 
 'use strict'
 
+var binding = process.binding('http_parser');
+var kOnBody = binding.HTTPParser.kOnBody;
+var kOnHeaders = binding.HTTPParser.kOnHeaders;
+var kOnHeadersComplete = binding.HTTPParser.kOnHeadersComplete;
+var kOnMessageComplete = binding.HTTPParser.kOnMessageComplete;
+
 module.exports = {
 	open : open,
 };
 
-function open(name, args, callback) {
+function open(name, callback) {
 	if (name === 'HTTPParser') {
-		return new HTTPParserPort(args, callback);
+		return new HTTPParserPort(callback);
 	}
 	console.log("[unhandled] http_parser open: " + name);
 }
 
-function HTTPParserPort(args, callback) {
-	var HTTPParser = process.binding('http_parser').HTTPParser;
-	var kOnHeaders = HTTPParser.kOnHeaders;
-	var kOnHeadersComplete = HTTPParser.kOnHeadersComplete;
-	var kOnBody = HTTPParser.kOnBody;
-	var kOnMessageComplete = HTTPParser.kOnMessageComplete;
+function HTTPParserPort(callback) {
+	var parser;
 
-	var parser = new HTTPParser(args[0]);
-
-	parser[kOnHeaders] = function() {
-		var args = Array.prototype.slice.call(arguments);
-		callback(kOnHeaders, args);
-	};
-	parser[kOnHeadersComplete] = function() {
-		var args = Array.prototype.slice.call(arguments);
-		callback(kOnHeadersComplete, args);
-	};
-	parser[kOnBody] = function() {
-		var args = Array.prototype.slice.call(arguments);
-		callback(kOnBody, args);
-	};
-	parser[kOnMessageComplete] = function() {
-		var args = Array.prototype.slice.call(arguments);
-		callback(kOnMessageComplete, args);
-	};
+	function restart(type) {
+		parser = new binding.HTTPParser(type);
+		parser[kOnHeaders] = function() {
+			var args = Array.prototype.slice.call(arguments);
+			callback(kOnHeaders, args);
+		};
+		parser[kOnHeadersComplete] = function() {
+			var args = Array.prototype.slice.call(arguments);
+			callback(kOnHeadersComplete, args);
+		};
+		parser[kOnBody] = function() {
+			var args = Array.prototype.slice.call(arguments);
+			callback(kOnBody, args);
+		};
+		parser[kOnMessageComplete] = function() {
+			var args = Array.prototype.slice.call(arguments);
+			callback(kOnMessageComplete, args);
+		};
+	}
 
 	this.syncIO = function(name, args) {
+		if (name === 'restart') {
+			return restart(args[0]);
+		}
 		if (name === 'close') {
 			return parser.close();
 		}

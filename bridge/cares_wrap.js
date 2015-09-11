@@ -34,11 +34,11 @@
 'use strict';
 
 var binding = process.binding('cares_wrap');
-var caresPort = new IOPort('cares_wrap');
+var basePort = new IOPort('cares_wrap');
 
-function asyncCall(req, name, args) {
+function asyncCall(req, func, args) {
 	(function retry() {
-		caresPort.asyncIO(name, args, function(err, value) {
+		basePort.asyncIO(func, args, function(err, value) {
 			if (err instanceof IOPortError) {
 				if (err.message === 'restart') {
 					retry();
@@ -119,19 +119,19 @@ binding.getnameinfo = function(req, host, port) {
 };
 
 binding.isIP = function() {
-	return caresPort.syncIO('isIP', arguments);
+	return basePort.syncIO('isIP', arguments);
 };
 
 binding.strerror = function() {
-	return caresPort.syncIO('strerror', arguments);
+	return basePort.syncIO('strerror', arguments);
 };
 
 binding.getServers = function() {
-	return caresPort.syncIO('getServers', arguments);
+	return basePort.syncIO('getServers', arguments);
 };
 
 binding.setServers = function() {
-	return caresPort.syncIO('setServers', arguments);
+	return basePort.syncIO('setServers', arguments);
 };
 
 binding.AF_INET = 2;

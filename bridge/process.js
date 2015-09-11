@@ -33,10 +33,10 @@
 
 'use strict';
 
-var processPort = new IOPort('process');
+var basePort = new IOPort('process');
 
 process._debug = function() {
-	processPort.syncIO('debug', arguments);
+	basePort.asyncIO('debug', arguments);
 };
 
 process.execArgv = [];
@@ -48,35 +48,31 @@ process.moduleLoadList = [];
 process.features = {};
 
 process.cwd = function() {
-	return processPort.syncIO('cwd', arguments);
+	return basePort.syncIO('cwd', arguments);
 };
 
 process.chdir = function() {
-	return processPort.syncIO('chdir', arguments);
+	return basePort.syncIO('chdir', arguments);
 };
 
 process.getuid = function() {
-	return processPort.syncIO('getuid', arguments);
+	return basePort.syncIO('getuid', arguments);
 };
 
 process.setuid = function() {
-	return processPort.syncIO('setuid', arguments);
+	return basePort.syncIO('setuid', arguments);
 };
 
 process.umask = function() {
-	return processPort.syncIO('umask', arguments);
+	return basePort.syncIO('umask', arguments);
 };
 
 process.reallyExit = function() {
-	processPort.syncIO('exit', arguments);
+	basePort.syncIO('exit', arguments);
 };
 
 process.suspendExit = function() {
-	try {
-		processPort.syncIO('exit', arguments, true);
-	} catch (e) {
-		// ignore restart error
-	}
+	basePort.asyncIO('exit', arguments);
 };
 
 var tickCallback;
@@ -128,7 +124,7 @@ Object.defineProperty(process, "_needImmediateCallback", {
 		_needImmediateCallback = value;
 		if (value && !_immediateCallbackScheduled) {
 			_immediateCallbackScheduled = true;
-			processPort.asyncIO('setImmediate', [], immediateCallback);
+			basePort.asyncIO('setImmediate', [], immediateCallback);
 		}
 	},
 	enumerable : false,
@@ -141,7 +137,7 @@ function immediateCallback() {
 		process._immediateCallback();
 		if (_needImmediateCallback) {
 			_immediateCallbackScheduled = true;
-			processPort.asyncIO('setImmediate', [], immediateCallback);
+			basePort.asyncIO('setImmediate', [], immediateCallback);
 		}
 	}
 }

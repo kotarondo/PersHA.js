@@ -37,40 +37,35 @@ module.exports = {
 	open : open,
 };
 
-function open(name, args, callback) {
+function open(name, callback) {
 	if (name === 'FSEvent') {
 		return new FSEventPort(callback);
 	}
-	console.log("[unhandled] fs_event_wrap open:" + name + ": " + args);
+	console.log("[unhandled] fs_event_wrap open: " + name);
 }
 
 function FSEventPort(callback) {
 	var handle = new binding.FSEvent();
-	var restarted;
 
 	handle.onchange = function() {
 		var args = Array.prototype.slice.call(arguments);
 		callback('onchange', args);
 	};
 
-	this.syncIO = function(name, args) {
-		if (name === 'start') {
-			return handle.start.apply(handle, args);
-		}
-		if (name === 'close') {
-			return handle.close();
-		}
-		if (name === 'restart') {
-			if (restarted) {
-				return;
-			}
-			restarted = true;
+	this.syncIO = function(func, args) {
+		if (func === 'restart') {
 			var startArgs = args[0];
 			if (startArgs) {
 				handle.start.apply(handle, startArgs);
 			}
 			return;
 		}
-		console.log("[unhandled] FSEvent syncIO:" + name);
+		if (func === 'start') {
+			return handle.start.apply(handle, args);
+		}
+		if (func === 'close') {
+			return handle.close();
+		}
+		console.log("[unhandled] FSEvent syncIO:" + func);
 	};
 }

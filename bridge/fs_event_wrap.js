@@ -34,36 +34,32 @@
 'use strict';
 
 var binding = process.binding('fs_event_wrap');
-var fsPort = new IOPort('fs_event_wrap');
+var basePort = new IOPort('fs_event_wrap');
 
 binding.FSEvent = FSEvent;
 
 function FSEvent() {
 	var self = this;
-	self._port = fsPort.open('FSEvent', [], portEventCallback, true);
-
-	function portEventCallback(name, args) {
-		if (name instanceof IOPortError) {
-			if (name.message === 'restart') {
-				self._port.syncIO('restart', [ self._startArgs ]);
+	self._port = basePort.open('FSEvent', function(event, args) {
+		if (event instanceof IOPortError) {
+			if (event.message === 'restart') {
+				args.asyncIO('restart', [ self._startArgs ]);
 			}
 			return;
 		}
-		self[name].apply(self, args);
-	}
+		self[event].apply(self, args);
+	});
 }
 
 FSEvent.prototype.start = function() {
-	var self = this;
-	var err = self._port.syncIO('start', arguments);
+	var err = this._port.syncIO('start', arguments);
 	if (!err) {
-		self._startArgs = arguments;
+		this._startArgs = arguments;
 	}
 	return err;
 };
 
 FSEvent.prototype.close = function() {
-	var self = this;
-	self._port.syncIO('close', []);
-	self._port.close();
+	this._port.close();
+	this._port.asyncIO('close', []);
 };

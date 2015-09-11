@@ -34,11 +34,12 @@
 'use strict';
 
 var binding = process.binding('pipe_wrap');
-var pipePort = new IOPort('pipe_wrap');
+var basePort = new IOPort('pipe_wrap');
 
 binding.PipeConnectWrap = function() {
 	this.domain = process.domain;
 };
 
 binding.Pipe = function() {
+	//TODO
 };

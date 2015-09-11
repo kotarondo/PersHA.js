@@ -33,6 +33,8 @@ Copyright (c) 2015, Kotaro Endo.
 
 'use strict'
 
+var binding = process.binding('signal_wrap');
+
 module.exports = {
 	open : open,
 };
@@ -45,47 +47,39 @@ function open(name, args, callback) {
 }
 
 function SignalPort(callback) {
-	var Signal = process.binding('signal_wrap').Signal;
-
-	var handle = new Signal();
-	var restarted;
+	var handle = new binding.Signal();
 
 	handle.onsignal = function() {
 		var args = Array.prototype.slice.call(arguments);
 		callback('onsignal', args);
 	};
 
-	this.syncIO = function(name, args) {
-		if (name === 'close') {
-			return handle.close();
-		}
-		if (name === 'ref') {
-			return handle.ref();
-		}
-		if (name === 'unref') {
-			return handle.unref();
-		}
-		if (name === 'start') {
-			return handle.start(args[0]);
-		}
-		if (name === 'stop') {
-			return handle.stop();
-		}
-		if (name === 'restart') {
-			if (restarted) {
-				return;
+	this.syncIO = function(func, args) {
+		if (func === 'restart') {
+			var state = args[0];
+			if (state.signum >= 0) {
+				handle.start(state.signum);
 			}
-			restarted = true;
-			var unref = args[0];
-			var signum = args[1];
-			if (signum >= 0) {
-				handle.start(signum);
-			}
-			if (unref) {
+			if (state.unref) {
 				handle.unref();
 			}
 			return;
 		}
-		console.log("[unhandled] Signal syncIO:" + name);
+		if (func === 'close') {
+			return handle.close();
+		}
+		if (func === 'ref') {
+			return handle.ref();
+		}
+		if (func === 'unref') {
+			return handle.unref();
+		}
+		if (func === 'start') {
+			return handle.start(args[0]);
+		}
+		if (func === 'stop') {
+			return handle.stop();
+		}
+		console.log("[unhandled] Signal syncIO:" + func);
 	};
 }

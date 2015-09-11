@@ -34,63 +34,57 @@
 'use strict';
 
 var binding = process.binding('timer_wrap');
-var timerPort = new IOPort('timer_wrap');
+var basePort = new IOPort('timer_wrap');
 
 binding.Timer = Timer;
 
 Timer.now = function() {
-	return timerPort.syncIO('now', arguments);
+	return basePort.syncIO('now', []);
 };
 
 function Timer() {
 	var self = this;
-	self._port = timerPort.open('Timer', [], portEventCallback, true);
-
-	function portEventCallback(name, args) {
-		if (name instanceof IOPortError) {
-			if (name.message === 'restart') {
-				self._port.syncIO('restart', [ self._unref, self._startArgs ]);
+	self._state = {};
+	self._port = basePort.open('Timer', function(event, args) {
+		if (event instanceof IOPortError) {
+			if (event.message === 'restart') {
+				args.asyncIO('restart', [ self._state ]);
 			}
 			return;
 		}
 		process._MakeCallback(self.domain, function() {
-			self[name].apply(self, args);
+			self[event].apply(self, args);
 		});
-	}
+	});
 }
 
 Timer.prototype.close = function() {
-	var self = this;
-	self._port.syncIO('close', arguments);
-	self._port.close();
+	this._port.close();
+	this._port.asyncIO('close', []);
 };
 
 Timer.prototype.ref = function() {
-	var self = this;
-	self._port.syncIO('ref', arguments);
-	self._unref = false;
+	this._port.asyncIO('ref', []);
+	this._state.unref = false;
 };
 
 Timer.prototype.unref = function() {
-	var self = this;
-	self._port.syncIO('unref', arguments);
-	self._unref = true;
+	this._port.asyncIO('unref', []);
+	this._state.unref = true;
 };
 
 Timer.prototype.start = function() {
-	var self = this;
-	var err = self._port.syncIO('start', arguments);
+	var err = this._port.syncIO('start', arguments);
 	if (!err) {
-		self._startArgs = arguments;
+		this._state.startArgs = arguments;
 	}
 	return err;
 };
 
 Timer.prototype.stop = function() {
-	var self = this;
-	var err = self._port.syncIO('stop', arguments);
+	var err = this._port.syncIO('stop', []);
 	if (!err) {
-		self._startArgs = null;
+		this._state.startArgs = null;
 	}
 	return err;
 };

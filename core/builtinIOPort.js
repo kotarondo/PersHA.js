@@ -61,9 +61,12 @@ function IOPort_prototype_open(thisValue, argumentsList) {
 	port.Extensible = true;
 	defineFinal(port, 'root', root);
 	defineFinal(port, 'name', name);
-	task_pause();
-	IOManager_openPort(port, callback);
-	task_resume();
+	if (callback) {
+		task_pause();
+		IOManager_openPort(port, callback);
+		task_resume();
+		callback.Call(undefined, [ IOPortError_Construct([ 'restart' ]), port ]);
+	}
 	return port;
 }
 
@@ -78,21 +81,21 @@ function IOPort_prototype_close(thisValue, argumentsList) {
 function IOPort_prototype_asyncIO(thisValue, argumentsList) {
 	var port = thisValue;
 	if (Type(port) !== TYPE_Object || port.Class !== 'IOPort') throw VMTypeError();
-	var name = ToString(argumentsList[0]);
+	var func = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList[1]);
 	if (argumentsList.length >= 3) {
 		var callback = argumentsList[2];
 		if (IsCallable(callback) === false) throw VMTypeError();
 	}
 	task_pause();
-	IOManager_asyncIO(port, name, args, callback);
+	IOManager_asyncIO(port, func, args, callback);
 	task_resume();
 }
 
 function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== 'IOPort') throw VMTypeError();
 	var port = thisValue;
-	var name = ToString(argumentsList[0]);
+	var func = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList[1]);
 	var noRetry = ToBoolean(argumentsList[2]);
 	if (IsCallable(argumentsList[2])) {
@@ -100,7 +103,7 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	}
 	do {
 		task_pause();
-		var entry = IOManager_syncIO(port, name, args, callback);
+		var entry = IOManager_syncIO(port, func, args, callback);
 		task_resume();
 	} while (!noRetry && entry.error === 'restart');
 	if (entry.success) {
@@ -113,7 +116,17 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	throw IOPort_wrap(entry.exception);
 }
 
-function IOPort_callback(entry, callback) {
+function IOPort_portEvent(entry, callback, port) {
+	if (entry.error) {
+		assert(isPrimitiveValue(entry.error));
+		callback.Call(undefined, [ IOPortError_Construct([ entry.error ]), port ]);
+	}
+	else {
+		callback.Call(undefined, IOPort_wrapArgs(entry.value));
+	}
+}
+
+function IOPort_completionEvent(entry, callback) {
 	if (entry.error) {
 		assert(isPrimitiveValue(entry.error));
 		callback.Call(undefined, [ IOPortError_Construct([ entry.error ]) ]);
@@ -152,7 +165,7 @@ function IOPort_longname(port) {
 	if (!root) {
 		return name;
 	}
-	return IOPort_longname(port) + "." + name;
+	return IOPort_longname(root) + "." + name;
 }
 
 function IOPort_unwrapArgs(A) {

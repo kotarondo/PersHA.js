@@ -33,7 +33,8 @@ Copyright (c) 2015, Kotaro Endo.
 
 'use strict'
 
-var Timer = process.binding('timer_wrap').Timer;
+var binding = process.binding('timer_wrap');
+var kOnTimeout = binding.Timer.kOnTimeout;
 
 module.exports = {
 	open : open,
@@ -44,57 +45,50 @@ function open(name, args, callback) {
 	if (name === 'Timer') {
 		return new TimerPort(callback);
 	}
-	console.log("[unhandled] timer_wrap open:" + name);
+	console.log("[unhandled] timer_wrap open: " + name);
 }
 
-function syncIO(name, args) {
-	if (name === 'now') {
-		return Timer.now();
+function syncIO(func, args) {
+	if (func === 'now') {
+		return binding.Timer.now();
 	}
-	console.log("[unhandled] timer_wrap syncIO:" + name);
+	console.log("[unhandled] timer_wrap syncIO: " + func);
 }
 
 function TimerPort(callback) {
-	var handle = new Timer();
-	var restarted;
-	var kOnTimeout = Timer.kOnTimeout;
+	var handle = new binding.Timer();
 
 	handle[kOnTimeout] = function() {
 		var args = Array.prototype.slice.call(arguments);
 		callback(kOnTimeout, args);
 	};
 
-	this.syncIO = function(name, args) {
-		if (name === 'close') {
-			return handle.close();
-		}
-		if (name === 'ref') {
-			return handle.ref.apply(handle, args);
-		}
-		if (name === 'unref') {
-			return handle.unref.apply(handle, args);
-		}
-		if (name === 'start') {
-			return handle.start.apply(handle, args);
-		}
-		if (name === 'stop') {
-			return handle.stop.apply(handle, args);
-		}
-		if (name === 'restart') {
-			if (restarted) {
-				return;
+	this.syncIO = function(func, args) {
+		if (func === 'restart') {
+			var state = args[0];
+			if (state.startArgs) {
+				handle.start.apply(handle, state.startArgs);
 			}
-			restarted = true;
-			var unref = args[0];
-			var startArgs = args[1];
-			if (startArgs) {
-				handle.start.apply(handle, startArgs);
-			}
-			if (unref) {
+			if (state.unref) {
 				handle.unref();
 			}
 			return;
 		}
-		console.log("[unhandled] Timer syncIO:" + name);
+		if (func === 'close') {
+			return handle.close();
+		}
+		if (func === 'ref') {
+			return handle.ref();
+		}
+		if (func === 'unref') {
+			return handle.unref();
+		}
+		if (func === 'start') {
+			return handle.start.apply(handle, args);
+		}
+		if (func === 'stop') {
+			return handle.stop();
+		}
+		console.log("[unhandled] Timer syncIO: " + func);
 	};
 }
