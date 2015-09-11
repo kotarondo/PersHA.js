@@ -234,5 +234,5 @@ TCP.prototype.writeBinaryString = function(req, data) {
 };
 
 TCP.prototype.writev = function(req, chunks) {
-	return writeCall(this, req, 'writev', data);
+	return writeCall(this, req, 'writev', chunks);
 };
