@@ -367,16 +367,16 @@ function FileInputStream(filename) {
 		case 8:
 			return new Date(readNumber());
 		case 91:
-			var a = new TypeError(readString());
+			var a = new TypeError();
 			break;
 		case 92:
-			var a = new ReferenceError(readString());
+			var a = new ReferenceError();
 			break;
 		case 93:
-			var a = new RangeError(readString());
+			var a = new RangeError();
 			break;
 		case 9:
-			var a = new Error(readString());
+			var a = new Error();
 			break;
 		case 10:
 			var a = [];

@@ -52,7 +52,7 @@ function open(name, callback) {
 
 function TCPPort(handle, callback) {
 	if (!handle) {
-		handle = new TCP();
+		handle = new binding.TCP();
 	}
 	var queue = [];
 

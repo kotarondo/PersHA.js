@@ -33,6 +33,8 @@ Copyright (c) 2015, Kotaro Endo.
 
 'use strict'
 
+var binding = process.binding('fs_event_wrap');
+
 module.exports = {
 	open : open,
 };
