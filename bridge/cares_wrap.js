@@ -36,7 +36,7 @@
 var binding = process.binding('cares_wrap');
 var basePort = new IOPort('cares_wrap');
 
-function asyncCall(req, func, args) {
+function retryCall(req, func, args) {
 	(function retry() {
 		basePort.asyncIO(func, args, function(err, value) {
 			if (err instanceof IOPortError) {
@@ -54,52 +54,52 @@ function asyncCall(req, func, args) {
 
 binding.queryA = function(req, name) {
 	req.domain = process.domain;
-	asyncCall(req, 'query', [ 'queryA', name ]);
+	retryCall(req, 'query', [ 'queryA', name ]);
 };
 
 binding.queryAaaa = function(req, name) {
 	req.domain = process.domain;
-	asyncCall(req, 'query', [ 'queryAaaa', name ]);
+	retryCall(req, 'query', [ 'queryAaaa', name ]);
 };
 
 binding.queryCname = function(req, name) {
 	req.domain = process.domain;
-	asyncCall(req, 'query', [ 'queryCname', name ]);
+	retryCall(req, 'query', [ 'queryCname', name ]);
 };
 
 binding.queryMx = function(req, name) {
 	req.domain = process.domain;
-	asyncCall(req, 'query', [ 'queryMx', name ]);
+	retryCall(req, 'query', [ 'queryMx', name ]);
 };
 
 binding.queryNs = function(req, name) {
 	req.domain = process.domain;
-	asyncCall(req, 'query', [ 'queryNs', name ]);
+	retryCall(req, 'query', [ 'queryNs', name ]);
 };
 
 binding.queryTxt = function(req, name) {
 	req.domain = process.domain;
-	asyncCall(req, 'query', [ 'queryTxt', name ]);
+	retryCall(req, 'query', [ 'queryTxt', name ]);
 };
 
 binding.querySrv = function(req, name) {
 	req.domain = process.domain;
-	asyncCall(req, 'query', [ 'querySrv', name ]);
+	retryCall(req, 'query', [ 'querySrv', name ]);
 };
 
 binding.queryNaptr = function(req, name) {
 	req.domain = process.domain;
-	asyncCall(req, 'query', [ 'queryNaptr', name ]);
+	retryCall(req, 'query', [ 'queryNaptr', name ]);
 };
 
 binding.querySoa = function(req, name) {
 	req.domain = process.domain;
-	asyncCall(req, 'query', [ 'querySoa', name ]);
+	retryCall(req, 'query', [ 'querySoa', name ]);
 };
 
 binding.getHostByAddr = function(req, name) {
 	req.domain = process.domain;
-	asyncCall(req, 'query', [ 'getHostByAddr', name ]);
+	retryCall(req, 'query', [ 'getHostByAddr', name ]);
 };
 
 binding.GetAddrInfoReqWrap = function() {
@@ -107,7 +107,7 @@ binding.GetAddrInfoReqWrap = function() {
 };
 
 binding.getaddrinfo = function(req, hostname, family, hints) {
-	asyncCall(req, 'getaddrinfo', [ hostname, family, hints ]);
+	retryCall(req, 'getaddrinfo', [ hostname, family, hints ]);
 };
 
 binding.GetNameInfoReqWrap = function() {
@@ -115,7 +115,7 @@ binding.GetNameInfoReqWrap = function() {
 };
 
 binding.getnameinfo = function(req, host, port) {
-	asyncCall(req, 'getnameinfo', [ host, port ]);
+	retryCall(req, 'getnameinfo', [ host, port ]);
 };
 
 binding.isIP = function() {

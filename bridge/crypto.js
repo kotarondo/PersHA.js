@@ -209,20 +209,40 @@ function Certificate() {
 
 //TODO Certificate.prototype
 
+function retryCall(func, args, callback) {
+	if (!callback) {
+		return basePort.syncIO(func, args);
+	}
+	var domain = process.domain;
+	(function retry() {
+		basePort.asyncIO(func, args, function(err, value) {
+			if (err instanceof IOPortError) {
+				if (err.message === 'restart') {
+					retry();
+					return;
+				}
+			}
+			process._MakeCallback(domain, function() {
+				callback(err, value);
+			});
+		});
+	})();
+};
+
 function setEngine() {
 	return basePort.syncIO('setEngine', arguments);
 }
 
-function PBKDF2() {
-	return basePort.syncIO('PBKDF2', arguments);
+function PBKDF2(password, salt, iterations, keylen, digest, callback) {
+	return retryCall('PBKDF2', [ password, salt, iterations, keylen, digest ], callback);
 }
 
-function randomBytes() {
-	return basePort.syncIO('randomBytes', arguments);
+function randomBytes(size, callback) {
+	return retryCall('randomBytes', [ size ], callback);
 }
 
-function pseudoRandomBytes() {
-	return basePort.syncIO('pseudoRandomBytes', arguments);
+function pseudoRandomBytes(size, callback) {
+	return retryCall('pseudoRandomBytes', [ size ], callback);
 }
 
 function getSSLCiphers() {

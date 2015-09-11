@@ -37,6 +37,8 @@ var binding = process.binding('crypto');
 
 module.exports = {
 	open : open,
+	syncIO : syncIO,
+	asyncIO : asyncIO,
 };
 
 function open(name, callback) {
@@ -50,6 +52,33 @@ function open(name, callback) {
 		return new Hash();
 	}
 	console.log("[unhandled] crypto open: " + name);
+}
+
+function syncIO(func, args) {
+	if (func === 'PBKDF2') {
+		return binding.PBKDF2.apply(binding, args);
+	}
+	if (func === 'randomBytes') {
+		return binding.randomBytes(args[0]);
+	}
+	if (func === 'pseudoRandomBytes') {
+		return binding.pseudoRandomBytes(args[0]);
+	}
+	console.log("[unhandled] crypto syncIO: " + func);
+}
+
+function asyncIO(func, args, callback) {
+	if (func === 'PBKDF2') {
+		args.push(callback);
+		return binding.PBKDF2.apply(binding, args);
+	}
+	if (func === 'randomBytes') {
+		return binding.randomBytes(args[0], callback);
+	}
+	if (func === 'pseudoRandomBytes') {
+		return binding.pseudoRandomBytes(args[0], callback);
+	}
+	console.log("[unhandled] crypto asyncIO: " + func);
 }
 
 function CipherBase() {

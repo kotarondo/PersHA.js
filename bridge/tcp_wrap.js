@@ -80,13 +80,13 @@ function AcceptTCP(port) {
 AcceptTCP.prototype = TCP.prototype;
 
 TCP.prototype.close = function(callback) {
-	this._port.close();
-	if (callback) {
-		this._port.asyncIO('close', [], callback);
-	}
-	else {
-		this._port.asyncIO('close', []);
-	}
+	var self = this;
+	self._port.asyncIO('close', [], function() {
+		self._port.close();
+		if (callback) {
+			callback();
+		}
+	});
 };
 
 TCP.prototype.ref = function() {
