@@ -73,28 +73,28 @@ function HTTPParserPort(callback) {
 		};
 	}
 
-	this.syncIO = function(name, args) {
-		if (name === 'restart') {
+	this.syncIO = function(func, args) {
+		if (func === 'restart') {
 			return restart(args[0]);
 		}
-		if (name === 'close') {
+		if (func === 'close') {
 			return parser.close();
 		}
-		if (name === 'execute') {
+		if (func === 'execute') {
 			return parser.execute(args[0]);
 		}
-		if (name === 'finish') {
+		if (func === 'finish') {
 			return parser.finish();
 		}
-		if (name === 'reinitialize') {
+		if (func === 'reinitialize') {
 			return parser.reinitialize(args[0]);
 		}
-		if (name === 'pause') {
+		if (func === 'pause') {
 			return parser.pause();
 		}
-		if (name === 'resume') {
+		if (func === 'resume') {
 			return parser.resume();
 		}
-		console.log("[unhandled] HTTPParser syncIO: " + name);
+		console.log("[unhandled] HTTPParser syncIO: " + func);
 	};
 }

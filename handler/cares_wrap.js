@@ -42,40 +42,40 @@ var binding = process.binding('cares_wrap');
 var GetAddrInfoReqWrap = binding.GetAddrInfoReqWrap;
 var GetNameInfoReqWrap = binding.GetNameInfoReqWrap;
 
-function syncIO(name, args) {
-	if (name === 'isIP') {
+function syncIO(func, args) {
+	if (func === 'isIP') {
 		return binding.isIP.apply(binding, args);
 	}
-	if (name === 'strerror') {
+	if (func === 'strerror') {
 		return binding.strerror.apply(binding, args);
 	}
-	if (name === 'getServers') {
+	if (func === 'getServers') {
 		return binding.getServers.apply(binding, args);
 	}
-	if (name === 'setServers') {
+	if (func === 'setServers') {
 		return binding.setServers.apply(binding, args);
 	}
-	console.log("[unhandled] cares_wrap syncIO: " + name);
+	console.log("[unhandled] cares_wrap syncIO: " + func);
 }
 
-function asyncIO(name, args, callback) {
-	if (name === 'query') {
+function asyncIO(func, args, callback) {
+	if (func === 'query') {
 		var req = {};
 		req.oncomplete = callback;
 		binding[args[0]](req, args[1]);
 		return;
 	}
-	if (name === 'getaddrinfo') {
+	if (func === 'getaddrinfo') {
 		var req = new GetAddrInfoReqWrap();
 		req.oncomplete = callback;
 		binding.getaddrinfo(req, args[0], args[1], args[2]);
 		return;
 	}
-	if (name === 'getnameinfo') {
+	if (func === 'getnameinfo') {
 		var req = new GetNameInfoReqWrap();
 		req.oncomplete = callback;
-		binding.getaddrinfo(req, args[0], args[1]);
+		binding.getnameinfo(req, args[0], args[1]);
 		return;
 	}
-	console.log("[unhandled] cares_wrap asyncIO: " + name);
+	console.log("[unhandled] cares_wrap asyncIO: " + func);
 }

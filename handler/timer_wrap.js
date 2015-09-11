@@ -41,7 +41,7 @@ module.exports = {
 	syncIO : syncIO,
 };
 
-function open(name, args, callback) {
+function open(name, callback) {
 	if (name === 'Timer') {
 		return new TimerPort(callback);
 	}

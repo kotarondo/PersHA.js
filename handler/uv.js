@@ -33,15 +33,15 @@ Copyright (c) 2015, Kotaro Endo.
 
 'use strict'
 
+var binding = process.binding('uv');
+
 module.exports = {
 	syncIO : syncIO,
 };
 
-var binding = process.binding('uv');
-
-function syncIO(name, args) {
-	if (name === 'errname') {
+function syncIO(func, args) {
+	if (func === 'errname') {
 		return binding.errname.apply(binding, args);
 	}
-	console.log("[unhandled] uv syncIO: " + name);
+	console.log("[unhandled] uv syncIO: " + func);
 }

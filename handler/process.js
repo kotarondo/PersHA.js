@@ -38,35 +38,35 @@ module.exports = {
 	asyncIO : asyncIO,
 };
 
-function syncIO(name, args) {
-	if (name === 'debug') {
+function syncIO(func, args) {
+	if (func === 'debug') {
 		return console.log("debug: " + args);
 	}
-	if (name === 'cwd') {
+	if (func === 'cwd') {
 		return process.cwd();
 	}
-	if (name === 'chdir') {
+	if (func === 'chdir') {
 		return process.chdir.apply(process, args);
 	}
-	if (name === 'getuid') {
+	if (func === 'getuid') {
 		return process.getuid.apply(process, args);
 	}
-	if (name === 'setuid') {
+	if (func === 'setuid') {
 		return process.setuid.apply(process, args);
 	}
-	if (name === 'umask') {
+	if (func === 'umask') {
 		return process.umask.apply(process, args);
 	}
-	if (name === 'exit') {
+	if (func === 'exit') {
 		return process.exit(args[0]);
 	}
-	console.log("[unhandled] process syncIO:" + name + ":" + args);
+	console.log("[unhandled] process syncIO: " + func);
 }
 
-function asyncIO(name, args, callback) {
-	if (name === 'setImmediate') {
+function asyncIO(func, args, callback) {
+	if (func === 'setImmediate') {
 		setImmediate(callback);
 		return;
 	}
-	console.log("[unhandled] process asyncIO:" + name + ":" + args);
+	console.log("[unhandled] process asyncIO: " + func);
 }

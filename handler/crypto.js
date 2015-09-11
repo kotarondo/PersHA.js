@@ -39,7 +39,7 @@ module.exports = {
 	open : open,
 };
 
-function open(name, args, callback) {
+function open(name, callback) {
 	if (name === 'CipherBase') {
 		return new CipherBase();
 	}
