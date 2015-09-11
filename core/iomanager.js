@@ -196,7 +196,7 @@ function IOManager_syncIO(port, func, args, callback) {
 			}
 			if (entry.type === 'return') {
 				assert(entry.func === func, entry.func + " === " + func);
-				if (entry.success) {
+				if (callback && entry.success) {
 					IOManager_asyncCallbacks[txid] = callback;
 				}
 				return entry;
@@ -240,7 +240,7 @@ function IOManager_syncIO(port, func, args, callback) {
 	} catch (exception) {
 		entry.exception = exception;
 	}
-	if (entry.success) {
+	if (callback && entry.success) {
 		IOManager_asyncCallbacks[txid] = callback;
 	}
 	Journal_write(entry);
