@@ -214,8 +214,8 @@ function retryCall(func, args, callback) {
 		return basePort.syncIO(func, args);
 	}
 	var domain = process.domain;
-	(function retry() {
-		basePort.asyncIO(func, args, function(err, value) {
+	return (function retry() {
+		return basePort.syncIO(func, args, function(err, value) {
 			if (err instanceof IOPortError) {
 				if (err.message === 'restart') {
 					retry();

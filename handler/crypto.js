@@ -93,7 +93,7 @@ function CipherBase() {
 			return obj.init.apply(obj, args);
 		}
 		if (func === 'initiv') {
-			return obj.initv.apply(obj, args);
+			return obj.initiv.apply(obj, args);
 		}
 		if (func === 'update') {
 			return obj.update.apply(obj, args);
