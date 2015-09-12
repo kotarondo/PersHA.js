@@ -1498,10 +1498,10 @@ var theParser = function() {
 					var x = mvDigitChar(c);
 					if (current === '8' || current === '9') SyntaxError();
 					if (isOctalDigitChar(current)) {
-						x = (x << 4) + mvDigitChar(proceed());
+						x = (x << 3) + mvDigitChar(proceed());
 						if (current === '8' || current === '9') SyntaxError();
 						if (isOctalDigitChar(current)) {
-							x = (x << 4) + mvDigitChar(proceed());
+							x = (x << 3) + mvDigitChar(proceed());
 						}
 					}
 					c = fromCharCode(x);
@@ -1514,7 +1514,7 @@ var theParser = function() {
 					var x = mvDigitChar(c);
 					if (current === '8' || current === '9') SyntaxError();
 					if (isOctalDigitChar(current)) {
-						x = (x << 4) + mvDigitChar(proceed());
+						x = (x << 3) + mvDigitChar(proceed());
 					}
 					c = fromCharCode(x);
 					break;
