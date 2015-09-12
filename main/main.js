@@ -104,6 +104,7 @@ function rmdirSync(path) {
 			process.exit(1);
 		}
 		IOManager_start();
+		Journal_checkpoint();
 	}
 	else {
 		print_usage();

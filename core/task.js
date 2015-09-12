@@ -60,7 +60,6 @@ function task_leave() {
 	pauseTaskTimer();
 	if (taskDepth === 0) {
 		if (IOManager_state === 'online' && taskAccumulatedTime >= RECOVERY_TARGET) {
-			taskAccumulatedTime = 0;
 			Journal_checkpoint();
 		}
 		runTasks();

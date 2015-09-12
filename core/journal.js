@@ -99,6 +99,7 @@ function Journal_checkpoint() {
 	Journal_writeCheckpointHeader();
 	writeSnapshot(Journal_outputStream);
 	Journal_writeLogHeader();
+	taskAccumulatedTime = 0;
 }
 
 function Journal_init() {
