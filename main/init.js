@@ -42,7 +42,7 @@ try {
 	IOManager_evaluate(text, 'bridge/bridge.js');
 
 	var bridge_list = [ 'process', 'fs', 'uv', 'http_parser', 'crypto', 'tcp_wrap', 'udp_wrap', 'tty_wrap', 'timer_wrap',
-			'pipe_wrap', 'cares_wrap', 'stream_wrap', 'signal_wrap', 'fs_event_wrap'];
+			'pipe_wrap', 'cares_wrap', 'stream_wrap', 'signal_wrap', 'fs_event_wrap' ];
 	for (var i = 0; i < bridge_list.length; i++) {
 		var n = bridge_list[i];
 		var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + n + '.js').toString();
@@ -50,20 +50,21 @@ try {
 		IOManager_evaluate(text, 'bridge/' + n + '.js');
 	}
 
-	var process_binding = Global_eval(undefined, [ "process" ]);
-	process_binding.Put('execPath', process.execPath, false);
-	process_binding.Put('platform', process.platform, false);
+	var _process = Global_eval(undefined, [ "process" ]);
+	_process.Put('execPath', process.execPath, false);
+	_process.Put('platform', process.platform, false);
+	_process.Put('arch', process.arch, false);
 
-	var argv_binding = Global_eval(undefined, [ "process.argv" ]);
+	var _process_argv = Global_eval(undefined, [ "process.argv" ]);
 	for (var i = 3; i < process.argv.length; i++) {
-		argv_binding.Put(String(i - 2), process.argv[i], false);
+		_process_argv.Put(String(i - 2), process.argv[i], false);
 	}
 
-	var env_binding = Global_eval(undefined, [ "process.env" ]);
-	env_binding.Put('HOME', process.env['HOME'], false);
-	env_binding.Put('NODE_PATH', process.env['NODE_PATH'], false);
+	var _process_env = Global_eval(undefined, [ "process.env" ]);
+	_process_env.Put('HOME', process.env['HOME'], false);
+	_process_env.Put('NODE_PATH', process.env['NODE_PATH'], false);
 
-	var natives_binding = Global_eval(undefined, [ "process.binding('natives')" ]);
+	var _natives = Global_eval(undefined, [ "process.binding('natives')" ]);
 	var natives_list = [ 'events', 'constants', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream',
 			'console', 'fs', 'path', 'net', 'repl', 'readline', 'domain', 'string_decoder', '_stream_readable',
 			'_stream_writable', '_stream_duplex', '_stream_transform', '_stream_passthrough', 'http', '_http_agent',
@@ -72,51 +73,51 @@ try {
 	for (var i = 0; i < natives_list.length; i++) {
 		var n = natives_list[i];
 		var text = fs.readFileSync(NODE_INIT_SCRIPT_DIR + n + '.js').toString();
-		natives_binding.Put(n, text, false);
+		_natives.Put(n, text, false);
 	}
 
-	var smalloc_binding = Global_eval(undefined, [ "process.binding('smalloc')" ]);
+	var _smalloc = Global_eval(undefined, [ "process.binding('smalloc')" ]);
 	var smalloc = process.binding('smalloc');
 	for ( var P in smalloc) {
 		if (isPrimitiveValue(smalloc[P])) {
-			smalloc_binding.Put(P, smalloc[P], false);
+			_smalloc.Put(P, smalloc[P], false);
 		}
 	}
 
-	var constants_binding = Global_eval(undefined, [ "process.binding('constants')" ]);
+	var _constants = Global_eval(undefined, [ "process.binding('constants')" ]);
 	var constants = process.binding('constants');
 	for ( var P in constants) {
 		if (isPrimitiveValue(constants[P])) {
-			constants_binding.Put(P, constants[P], false);
+			_constants.Put(P, constants[P], false);
 		}
 	}
 
-	var uv_binding = Global_eval(undefined, [ "process.binding('uv')" ]);
+	var _uv = Global_eval(undefined, [ "process.binding('uv')" ]);
 	var uv = process.binding('uv');
 	for ( var P in uv) {
 		if (isPrimitiveValue(uv[P])) {
-			uv_binding.Put(P, uv[P], false);
+			_uv.Put(P, uv[P], false);
 		}
 	}
 
-	var HTTPParser_binding = Global_eval(undefined, [ "process.binding('http_parser').HTTPParser" ]);
+	var _HTTPParser = Global_eval(undefined, [ "process.binding('http_parser').HTTPParser" ]);
 	var HTTPParser = process.binding('http_parser').HTTPParser;
 	for ( var P in HTTPParser) {
 		if (isPrimitiveValue(HTTPParser[P])) {
-			HTTPParser_binding.Put(P, HTTPParser[P], false);
+			_HTTPParser.Put(P, HTTPParser[P], false);
 		}
 	}
 	for ( var P in HTTPParser.methods) {
 		if (isPrimitiveValue(HTTPParser.methods[P])) {
-			HTTPParser_binding.Get('methods').Put(P, HTTPParser.methods[P], false);
+			_HTTPParser.Get('methods').Put(P, HTTPParser.methods[P], false);
 		}
 	}
 
-	var cares_binding = Global_eval(undefined, [ "process.binding('cares_wrap')" ]);
+	var _cares = Global_eval(undefined, [ "process.binding('cares_wrap')" ]);
 	var cares = process.binding('cares_wrap');
 	for ( var P in cares) {
 		if (isPrimitiveValue(cares[P])) {
-			cares_binding.Put(P, cares[P], false);
+			_cares.Put(P, cares[P], false);
 		}
 	}
 

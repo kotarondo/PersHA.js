@@ -46,6 +46,7 @@ process._eval = null;
 process._forceRepl = true;
 process.moduleLoadList = [];
 process.features = {};
+process.versions = {};
 
 process.cwd = function() {
 	return basePort.syncIO('cwd', arguments);
@@ -65,6 +66,18 @@ process.setuid = function() {
 
 process.umask = function() {
 	return basePort.syncIO('umask', arguments);
+};
+
+process.hrtime = function() {
+	return basePort.syncIO('hrtime', arguments);
+};
+
+process.memoryUsage = function() {
+	return basePort.syncIO('memoryUsage', arguments);
+};
+
+process.abort = function() {
+	basePort.asyncIO('abort', arguments);
 };
 
 process.reallyExit = function() {

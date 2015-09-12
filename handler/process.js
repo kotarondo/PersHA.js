@@ -57,6 +57,15 @@ function syncIO(func, args) {
 	if (func === 'umask') {
 		return process.umask.apply(process, args);
 	}
+	if (func === 'hrtime') {
+		return process.hrtime.apply(process, args);
+	}
+	if (func === 'memoryUsage') {
+		return process.memoryUsage.apply(process, args);
+	}
+	if (func === 'abort') {
+		return process.abort();
+	}
 	if (func === 'exit') {
 		return process.exit(args[0]);
 	}
