@@ -42,7 +42,7 @@ try {
 	IOManager_evaluate(text, 'bridge/bridge.js');
 
 	var bridge_list = [ 'process', 'fs', 'uv', 'http_parser', 'crypto', 'tcp_wrap', 'udp_wrap', 'tty_wrap', 'timer_wrap',
-			'pipe_wrap', 'cares_wrap', 'stream_wrap', 'signal_wrap', ];
+			'pipe_wrap', 'cares_wrap', 'stream_wrap', 'signal_wrap', 'fs_event_wrap'];
 	for (var i = 0; i < bridge_list.length; i++) {
 		var n = bridge_list[i];
 		var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + n + '.js').toString();
