@@ -1609,7 +1609,7 @@ var theParser = function() {
 			pos = currentPos;
 		}
 		if (pos >= source.length) {
-			throw VMSyntaxError("Unexpected end of input");
+			throw VMSyntaxError("Unexpected end of input of " + sourceObject.filename);
 		}
 		var info = {};
 		convertToLineColumn(source, pos, info);

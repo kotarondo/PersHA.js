@@ -168,3 +168,33 @@ Error.captureStackTrace = (function() {
 	};
 
 })();
+
+function DTRACE_HTTP_CLIENT_REQUEST() {
+}
+function DTRACE_HTTP_CLIENT_RESPONSE() {
+}
+function DTRACE_HTTP_SERVER_REQUEST() {
+}
+function DTRACE_HTTP_SERVER_RESPONSE() {
+}
+function DTRACE_NET_STREAM_END() {
+}
+function DTRACE_NET_SERVER_CONNECTION() {
+}
+function DTRACE_NET_SOCKET_READ() {
+}
+function DTRACE_NET_SOCKET_WRITE() {
+}
+
+function COUNTER_HTTP_CLIENT_REQUEST() {
+}
+function COUNTER_HTTP_CLIENT_RESPONSE() {
+}
+function COUNTER_HTTP_SERVER_REQUEST() {
+}
+function COUNTER_HTTP_SERVER_RESPONSE() {
+}
+function COUNTER_NET_SERVER_CONNECTION() {
+}
+function COUNTER_NET_SERVER_CONNECTION_CLOSE() {
+}

@@ -77,7 +77,7 @@ function rmdirSync(path) {
 	}
 
 	PERSHA_HOME = path.dirname(path.dirname(process.argv[1]));
-	NODE_INIT_SCRIPT_DIR = PERSHA_HOME + "/node-init/";
+	NODE_INIT_SCRIPT_DIR = PERSHA_HOME + "/node-lib/";
 	BRIDGE_SCRIPT_DIR = PERSHA_HOME + "/bridge/";
 	HANDLER_SCRIPT_DIR = PERSHA_HOME + "/handler/";
 

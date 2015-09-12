@@ -92,17 +92,31 @@ var tickCallback;
 
 process._setupNextTick = function(tickInfo, _tickCallback, _runMicrotasks) {
 	tickCallback = _tickCallback;
-	tickInfo[0] = 0;
-	tickInfo[1] = 0;
+	var callbackNextTickScheduled = false;
 	function callbackNextTick() {
-		if (tickInfo[0] < tickInfo[1]) {
+		callbackNextTickScheduled = false;
+		while (tickInfo[0] < tickInfo[1]) {
 			tickCallback();
 		}
 	}
+	tickInfo[0] = 0;
+	var tickInfo1 = 0;
+	Object.defineProperty(tickInfo, "1", {
+		get : function() {
+			return tickInfo1;
+		},
+		set : function(value) {
+			tickInfo1 = value;
+			if (!callbackNextTickScheduled && tickInfo[0] < tickInfo1) {
+				callbackNextTickScheduled = true;
+				callbackNextTick.scheduleAsMicrotask();
+			}
+		},
+		enumerable : true,
+		configurable : false
+	});
 	_runMicrotasks.runMicrotasks = function() {
-		callbackNextTick.scheduleAsMicrotask();
-	};
-	_runMicrotasks.runMicrotasks();
+	}
 };
 
 process._setupDomainUse = function(_domain, _domain_flag) {
