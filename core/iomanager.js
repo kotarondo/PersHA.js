@@ -91,7 +91,8 @@ function IOManager_bindPort(port) {
 				value : value,
 			};
 			if (taskDepth > 0 && taskInterruptible) {
-				IOManager_portEvent(entry);
+				var ee = IOManager_portEvent(entry);
+				if (ee) throw ee;
 			}
 			else {
 				scheduleTask(IOManager_portEvent, entry);
@@ -116,12 +117,19 @@ function IOManager_portEvent(entry) {
 	try {
 		IOPort_portEvent(entry, port.callback, port);
 	} catch (e) {
-		var err = IOPort_callbackUncaughtError(e);
-		if (err && IOManager_state !== 'recovery') {
-			console.error("Uncaught: " + err);
+		if (taskDepth >= 2) {
+			if (isInternalError(e)) throw e;
+			var ee = IOPort_unwrap(e);
+		}
+		else {
+			var err = IOPort_callbackUncaughtError(e);
+			if (err && IOManager_state !== 'recovery') {
+				console.error("Uncaught: " + err);
+			}
 		}
 	}
 	task_leave();
+	return ee;
 }
 
 function IOManager_asyncIO(port, func, args, callback) {

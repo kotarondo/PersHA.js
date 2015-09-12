@@ -190,19 +190,16 @@ function IOPort_unwrap(A, stack) {
 		return undefined;
 	}
 	if (stack === undefined) stack = [];
-	if (isIncluded(A, stack)) throw VMTypeError();
+	if (isIncluded(A, stack)) return null;
 	stack.push(A);
-	if (A.Class === 'Object') {
-		var a = {};
-	}
-	else if (A.Class === 'Array' || A.Class === 'Arguments') {
+	if (A.Class === 'Array' || A.Class === 'Arguments') {
 		var a = [];
 	}
 	else if (A.Class === 'Error') {
 		var a = new Error();
 	}
 	else {
-		throw VMTypeError();
+		var a = {};
 	}
 	var next = A.enumerator(false, true);
 	var P;
