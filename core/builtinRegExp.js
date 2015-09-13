@@ -52,13 +52,13 @@ function RegExp_Construct(argumentsList) {
 		var obj = VMObject(CLASSID_RegExp);
 		obj.Prototype = vm.builtin_RegExp_prototype;
 		obj.Extensible = true;
+		obj.Match = R.Match;
+		obj.NCapturingParens = R.NCapturingParens;
 		defineFinal(obj, "source", R.Get("source"));
 		defineFinal(obj, "global", R.Get("global"));
 		defineFinal(obj, "ignoreCase", R.Get("ignoreCase"));
 		defineFinal(obj, "multiline", R.Get("multiline"));
 		defineWritable(obj, "lastIndex", 0);
-		obj.Match = R.Match;
-		obj.NCapturingParens = R.NCapturingParens;
 		return obj;
 	}
 	if (pattern === undefined) {
@@ -76,8 +76,20 @@ function RegExp_Construct(argumentsList) {
 	var obj = VMObject(CLASSID_RegExp);
 	obj.Prototype = vm.builtin_RegExp_prototype;
 	obj.Extensible = true;
-	theRegExpFactory.setup(obj, P, F);
-	theRegExpFactory.compile(obj);
+	try {
+		var info = theRegExpFactory.setup(P, F);
+		theRegExpFactory.compile(info);
+	} catch (e) {
+		//TODO syntax error
+		throw e;
+	}
+	obj.Match = info.Match;
+	obj.NCapturingParens = info.NCapturingParens;
+	defineFinal(obj, "source", info.source);
+	defineFinal(obj, "global", info.global);
+	defineFinal(obj, "ignoreCase", info.ignoreCase);
+	defineFinal(obj, "multiline", info.multiline);
+	defineWritable(obj, "lastIndex", 0);
 	return obj;
 }
 
@@ -157,7 +169,8 @@ function RegExp_prototype_test(thisValue, argumentsList) {
 function RegExp_prototype_toString(thisValue, argumentsList) {
 	var R = thisValue;
 	if (Type(R) !== TYPE_Object || R.Class !== "RegExp") throw VMTypeError();
-	return "/" + R.Get("source") + "/" + (R.Get("global") ? "g" : "") + (R.Get("ignoreCase") ? "i" : "") + (R.Get("multiline") ? "m" : "");
+	return "/" + R.Get("source") + "/" + (R.Get("global") ? "g" : "") + (R.Get("ignoreCase") ? "i" : "")
+			+ (R.Get("multiline") ? "m" : "");
 }
 
 function State(endIndex, captures) {
@@ -213,30 +226,24 @@ function RegExpFactory() {
 	var leftCapturingParentheses;
 	var oneCharacterOfCharSet;
 	var NCapturingParens;
+
 	var IgnoreCase;
 	var Multiline;
 	var Input;
 	var InputLength;
 
-	function compile(obj) {
-		var P = obj.Get("source");
-		IgnoreCase = obj.Get("ignoreCase");
-		Multiline = obj.Get("multiline");
-		NCapturingParens = countNCapturingParens(P);
-		obj.Match = evaluatePattern(P, IgnoreCase, Multiline, NCapturingParens);
-		obj.NCapturingParens = NCapturingParens;
-	}
-
-	function evaluatePattern(P, ignoreCase, multiline, nCapturingParens) {
-		setPattern(P);
-		leftCapturingParentheses = 0;
+	function compile(info) {
+		setPattern(info.source);
+		NCapturingParens = info.NCapturingParens = countNCapturingParens(info.source), leftCapturingParentheses = 0;
 		var m = evaluateDisjunction();
 		if (current !== undefined) throw VMSyntaxError();
-		assertEquals(nCapturingParens, leftCapturingParentheses, P);
+		assertEquals(nCapturingParens, leftCapturingParentheses);
+
+		var ignoreCase = info.ignoreCase;
+		var multiline = info.multiline;
 		return function(str, index) {
 			Input = str;
 			InputLength = Input.length;
-			NCapturingParens = nCapturingParens;
 			IgnoreCase = ignoreCase;
 			Multiline = multiline;
 			var cap = [];
@@ -942,7 +949,7 @@ function RegExpFactory() {
 		return join(buffer);
 	}
 
-	function setup(obj, P, F) {
+	function setup(P, F) {
 		var ignoreCase = false;
 		var multiline = false;
 		var global = false;
@@ -962,10 +969,11 @@ function RegExpFactory() {
 			}
 			else throw VMSyntaxError();
 		}
-		defineFinal(obj, "source", escapePattern(P));
-		defineFinal(obj, "global", global);
-		defineFinal(obj, "ignoreCase", ignoreCase);
-		defineFinal(obj, "multiline", multiline);
-		defineWritable(obj, "lastIndex", 0);
+		return {
+			source : escapePattern(P),
+			global : global,
+			ignoreCase : ignoreCase,
+			multiline : multiline,
+		};
 	}
 }

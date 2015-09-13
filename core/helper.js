@@ -210,7 +210,6 @@ function isSnapshotObject(x) {
 	if (x === null) {
 		return false;
 	}
-	assert(x.walkObject !== undefined, x);
 	return true;
 }
 
@@ -230,3 +229,7 @@ function redirectException(e) {
 function compareNumber(a, b) {
 	return Number(a) - Number(b);
 }
+
+function ReturnUndefined() {
+	return undefined;
+};

@@ -140,6 +140,7 @@ function Function_prototype_bind(thisValue, argumentsList) {
 		A.push(argumentsList[i]);
 	}
 	var F = VMObject(CLASSID_BindFunction);
+	F.vm = vm;
 	F.TargetFunction = Target;
 	F.BoundThis = thisArg;
 	F.BoundArgs = A;

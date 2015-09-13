@@ -54,9 +54,9 @@ function Literal(value) {
 	};
 }
 
-function RegExpLiteral(regexp) {
+function RegExpLiteral(info) {
 	return function() {
-		return RegExp_Construct([ regexp ]);
+		return RegExpLiteral_Construct(info);
 	};
 }
 
@@ -515,10 +515,10 @@ function abstractEqualityComparison(x, y) {
 	if (Type(x) === TYPE_String && Type(y) === TYPE_Number) return abstractEqualityComparison(ToNumber(x), y);
 	if (Type(x) === TYPE_Boolean) return abstractEqualityComparison(ToNumber(x), y);
 	if (Type(y) === TYPE_Boolean) return abstractEqualityComparison(x, ToNumber(y));
-	if ((Type(x) === TYPE_String || Type(x) === TYPE_Number) && Type(y) === TYPE_Object)
-		return abstractEqualityComparison(x, ToPrimitive(y));
-	if (Type(x) === TYPE_Object && (Type(y) === TYPE_String || Type(y) === TYPE_Number))
-		return abstractEqualityComparison(ToPrimitive(x), y);
+	if ((Type(x) === TYPE_String || Type(x) === TYPE_Number) && Type(y) === TYPE_Object) return abstractEqualityComparison(x,
+			ToPrimitive(y));
+	if (Type(x) === TYPE_Object && (Type(y) === TYPE_String || Type(y) === TYPE_Number)) return abstractEqualityComparison(
+			ToPrimitive(x), y);
 	return false;
 }
 

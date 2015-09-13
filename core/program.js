@@ -82,7 +82,6 @@ function NewSourceObject(source, strict, filename) {
 	}
 	if (SourceObjectClass === undefined) {
 		SourceObjectClass = freeze({
-			walkObject : SourceObject_walkObject,
 			writeObject : SourceObject_writeObject,
 			readObject : undefined,
 			ClassID : CLASSID_SourceObject,

@@ -86,6 +86,7 @@ var CLASSID_SourceObject = 19;
 // extensions
 var CLASSID_Buffer = 20;
 var CLASSID_IOPort = 21;
+var CLASSID_vm = 22;
 
 var VMObjectClass;
 var VMBuiltinFunctionClass;
@@ -101,14 +102,15 @@ var VMErrorClass;
 var VMGlobalClass;
 var VMMathClass;
 var VMJSONClass;
-var VMArgumentsClass;
-var VMPlainArgumentsClass;
+var ArgumentsClass;
+var PlainArgumentsClass;
 var DeclarativeEnvironmentClass;
 var ObjectEnvironmentClass;
 var SourceObjectClass;
 // extensions
 var VMBufferClass;
 var VMIOPortClass;
+var vmClass;
 
 function setAlltheInternalMethod(Class, ClassID) {
 	var obj = Object.create(null);
@@ -123,6 +125,8 @@ function setAlltheInternalMethod(Class, ClassID) {
 	obj.Delete = default_Delete;
 	obj.DefaultValue = default_DefaultValue;
 	obj.DefineOwnProperty = default_DefineOwnProperty;
+	obj.Call = default_Call;
+	obj.Construct = default_Construct;
 	obj.enumerator = default_enumerator;
 	obj.walkObject = default_walkObject;
 	obj.writeObject = default_writeObject;
@@ -149,15 +153,15 @@ function VMObject(ClassID) {
 			VMBuiltinFunctionClass = freeze(obj);
 		}
 		var obj = Object.create(VMBuiltinFunctionClass);
-		obj.Call = undefined;
-		obj.Construct = undefined;
+		obj._Call = undefined;
+		obj._Construct = undefined;
 		break;
 	case CLASSID_FunctionObject:
 		if (VMFunctionObjectClass === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
 			obj.Get = FunctionObject_Get;
-			obj.Call = FunctionObject_Call;
-			obj.Construct = FunctionObject_Construct;
+			obj._Call= FunctionObject_Call;
+			obj._Construct= FunctionObject_Construct;
 			obj.HasInstance = FunctionObject_HasInstance;
 			obj.walkObject = FunctionObject_walkObject;
 			obj.writeObject = FunctionObject_writeObject;
@@ -165,6 +169,7 @@ function VMObject(ClassID) {
 			VMFunctionObjectClass = freeze(obj);
 		}
 		var obj = Object.create(VMFunctionObjectClass);
+		obj.vm = undefined;
 		obj.Scope = undefined;
 		obj.FormalParameters = undefined;
 		obj.Code = undefined;
@@ -173,8 +178,8 @@ function VMObject(ClassID) {
 		if (VMBindFunctionClass === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
 			obj.Get = FunctionObject_Get;
-			obj.Call = BindFunction_Call;
-			obj.Construct = BindFunction_Construct;
+			obj._Call= BindFunction_Call;
+			obj._Construct= BindFunction_Construct;
 			obj.HasInstance = BindFunction_HasInstance;
 			obj.walkObject = BindFunction_walkObject;
 			obj.writeObject = BindFunction_writeObject;
@@ -182,6 +187,7 @@ function VMObject(ClassID) {
 			VMBindFunctionClass = freeze(obj);
 		}
 		var obj = Object.create(VMBindFunctionClass);
+		obj.vm = undefined;
 		obj.TargetFunction = undefined;
 		obj.BoundThis = undefined;
 		obj.BoundArgs = undefined;
@@ -280,7 +286,7 @@ function VMObject(ClassID) {
 		var obj = Object.create(VMJSONClass);
 		break;
 	case CLASSID_Arguments:
-		if (VMArgumentsClass === undefined) {
+		if (ArgumentsClass === undefined) {
 			var obj = setAlltheInternalMethod("Arguments", ClassID);
 			obj.GetOwnProperty = Arguments_GetOwnProperty;
 			obj.Get = Arguments_Get;
@@ -289,18 +295,18 @@ function VMObject(ClassID) {
 			obj.walkObject = Arguments_walkObject;
 			obj.writeObject = Arguments_writeObject;
 			obj.readObject = Arguments_readObject;
-			VMArgumentsClass = freeze(obj);
+			ArgumentsClass = freeze(obj);
 		}
-		var obj = Object.create(VMArgumentsClass);
+		var obj = Object.create(ArgumentsClass);
 		obj.ParameterMap = undefined;
 		obj.ArgumentsScope = undefined;
 		break;
 	case CLASSID_PlainArguments:
-		if (VMPlainArgumentsClass === undefined) {
+		if (PlainArgumentsClass === undefined) {
 			var obj = setAlltheInternalMethod("Arguments", ClassID);
-			VMPlainArgumentsClass = freeze(obj);
+			PlainArgumentsClass = freeze(obj);
 		}
-		var obj = Object.create(VMPlainArgumentsClass);
+		var obj = Object.create(PlainArgumentsClass);
 		break;
 	//extensions
 	case CLASSID_Buffer:
@@ -325,6 +331,19 @@ function VMObject(ClassID) {
 		obj.handler = undefined;
 		obj.txid = undefined;
 		obj.callback = undefined;
+		break;
+	case CLASSID_vm:
+		if (vmClass === undefined) {
+			var obj = setAlltheInternalMethod("vm", ClassID);
+			obj.walkObject = vm_walkObject;
+			obj.writeObject = vm_writeObject;
+			obj.readObject = vm_readObject;
+			vmClass = freeze(obj);
+		}
+		var obj = Object.create(vmClass);
+		for(var name in vmTemplate){
+			obj [name]=undefined;
+		}
 		break;
 	default:
 		assert(false, ClassID);

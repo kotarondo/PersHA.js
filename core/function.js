@@ -71,6 +71,7 @@ function FunctionBody(sourceElements) {
 
 function FunctionObject(parameters, body, Scope, Strict) {
 	var F = VMObject(CLASSID_FunctionObject);
+	F.vm = vm;
 	F.Prototype = vm.builtin_Function_prototype;
 	F.Scope = Scope;
 	F.FormalParameters = parameters;
@@ -153,7 +154,7 @@ function ThrowTypeError() {
 function initializeThrowTypeErrorObject() {
 	var F = VMObject(CLASSID_BuiltinFunction);
 	F.Prototype = vm.builtin_Function_prototype;
-	F.Call = ThrowTypeError;
+	defineCall(F,ThrowTypeError);
 	defineFinal(F, "length", 0);
 	F.Extensible = false;
 	vm.theThrowTypeError = F;

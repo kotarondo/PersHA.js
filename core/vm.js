@@ -35,7 +35,7 @@
 
 // ECMAScript 5.1: 15 Standard Built-in ECMAScript Objects
 
-var vm = {};
+var vm;
 
 function define(obj, name, value) {
 	intrinsic_createData(obj, name, PropertyDescriptor({
@@ -77,7 +77,7 @@ function defineFunction(obj, name, length, func) {
 	var F = VMObject(CLASSID_BuiltinFunction);
 	F.Prototype = vm.builtin_Function_prototype;
 	F.Extensible = true;
-	F.Call = func;
+	defineCall(F, func);
 	defineFinal(F, "length", length);
 	define(obj, name, F);
 	return F;
@@ -88,14 +88,14 @@ function defineAccessor(obj, name, get, set) {
 		var Get = VMObject(CLASSID_BuiltinFunction);
 		Get.Prototype = vm.builtin_Function_prototype;
 		Get.Extensible = true;
-		Get.Call = get;
+		defineCall(Get, get);
 		defineFinal(Get, "length", 0);
 	}
 	if (set !== undefined) {
 		var Set = VMObject(CLASSID_BuiltinFunction);
 		Set.Prototype = vm.builtin_Function_prototype;
 		Set.Extensible = true;
-		Set.Call = set;
+		defineCall(Set, set);
 		defineFinal(Set, "length", 1);
 	}
 	intrinsic_createAccessor(obj, name, PropertyDescriptor({
@@ -106,11 +106,51 @@ function defineAccessor(obj, name, get, set) {
 	}));
 }
 
-function ReturnUndefined() {
-	return undefined;
-};
+function defineCall(obj, func) {
+	obj.vm = vm;
+	obj._Call= func;
+}
+
+function default_Call(thisValue, argumentsList) {
+		var callingVM = vm;
+		var objectVM = this.vm;
+		assert(objectVM);
+		if (objectVM === callingVM) {
+			return this._Call(thisValue, argumentsList);
+		}
+		try {
+			vm = objectVM;
+			return this._Call(thisValue, argumentsList);
+		} finally {
+			vm = callingVM;
+		}
+}
+
+function defineConstruct(obj, func) {
+	obj.vm = vm;
+	obj._Construct= func;
+}
+
+function default_Construct(argumentsList) {
+		var callingVM = vm;
+		var objectVM = this.vm;
+		assert(objectVM);
+		if (objectVM === callingVM) {
+			return this._Construct(argumentsList);
+		}
+		try {
+			vm = objectVM;
+			return this._Construct(argumentsList);
+		} finally {
+			vm = callingVM;
+		}
+}
 
 function initializeVM() {
+	vm = VMObject(CLASSID_vm);
+	vm.Prototype = null;
+	vm.Extensible = true;
+
 	var builtin_Object_prototype = VMObject(CLASSID_Object);
 	vm.builtin_Object_prototype = builtin_Object_prototype;
 	builtin_Object_prototype.Prototype = null;
@@ -120,7 +160,7 @@ function initializeVM() {
 	vm.builtin_Function_prototype = builtin_Function_prototype;
 	builtin_Function_prototype.Prototype = builtin_Object_prototype;
 	builtin_Function_prototype.Extensible = true;
-	builtin_Function_prototype.Call = ReturnUndefined;
+	defineCall(builtin_Function_prototype, ReturnUndefined);
 
 	var builtin_Array_prototype = VMObject(CLASSID_Array);
 	vm.builtin_Array_prototype = builtin_Array_prototype;
@@ -193,43 +233,43 @@ function initializeVM() {
 
 	var builtin_Object = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_Object = builtin_Object;
-	builtin_Object.Call = Object_Call;
-	builtin_Object.Construct = Object_Construct;
+	defineCall(builtin_Object, Object_Call);
+	defineConstruct(builtin_Object, Object_Construct);
 	builtin_Object.Prototype = builtin_Function_prototype;
 	builtin_Object.Extensible = true;
 
 	var builtin_Function = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_Function = builtin_Function;
-	builtin_Function.Call = Function_Call;
-	builtin_Function.Construct = Function_Construct;
+	defineCall(builtin_Function, Function_Call);
+	defineConstruct(builtin_Function, Function_Construct);
 	builtin_Function.Prototype = builtin_Function_prototype;
 	builtin_Function.Extensible = true;
 
 	var builtin_Array = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_Array = builtin_Array;
-	builtin_Array.Call = Array_Call;
-	builtin_Array.Construct = Array_Construct;
+	defineCall(builtin_Array, Array_Call);
+	defineConstruct(builtin_Array, Array_Construct);
 	builtin_Array.Prototype = builtin_Function_prototype;
 	builtin_Array.Extensible = true;
 
 	var builtin_String = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_String = builtin_String;
-	builtin_String.Call = String_Call;
-	builtin_String.Construct = String_Construct;
+	defineCall(builtin_String, String_Call);
+	defineConstruct(builtin_String, String_Construct);
 	builtin_String.Prototype = builtin_Function_prototype;
 	builtin_String.Extensible = true;
 
 	var builtin_Boolean = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_Boolean = builtin_Boolean;
-	builtin_Boolean.Call = Boolean_Call;
-	builtin_Boolean.Construct = Boolean_Construct;
+	defineCall(builtin_Boolean, Boolean_Call);
+	defineConstruct(builtin_Boolean, Boolean_Construct);
 	builtin_Boolean.Prototype = builtin_Function_prototype;
 	builtin_Boolean.Extensible = true;
 
 	var builtin_Number = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_Number = builtin_Number;
-	builtin_Number.Call = Number_Call;
-	builtin_Number.Construct = Number_Construct;
+	defineCall(builtin_Number, Number_Call);
+	defineConstruct(builtin_Number, Number_Construct);
 	builtin_Number.Prototype = builtin_Function_prototype;
 	builtin_Number.Extensible = true;
 
@@ -240,64 +280,64 @@ function initializeVM() {
 
 	var builtin_Date = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_Date = builtin_Date;
-	builtin_Date.Call = Date_Call;
-	builtin_Date.Construct = Date_Construct;
+	defineCall(builtin_Date, Date_Call);
+	defineConstruct(builtin_Date, Date_Construct);
 	builtin_Date.Prototype = builtin_Function_prototype;
 	builtin_Date.Extensible = true;
 
 	var builtin_RegExp = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_RegExp = builtin_RegExp;
-	builtin_RegExp.Call = RegExp_Call;
-	builtin_RegExp.Construct = RegExp_Construct;
+	defineCall(builtin_RegExp, RegExp_Call);
+	defineConstruct(builtin_RegExp, RegExp_Construct);
 	builtin_RegExp.Prototype = builtin_Function_prototype;
 	builtin_RegExp.Extensible = true;
 
 	var builtin_Error = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_Error = builtin_Error;
-	builtin_Error.Call = Error_Call;
-	builtin_Error.Construct = Error_Construct;
+	defineCall(builtin_Error, Error_Call);
+	defineConstruct(builtin_Error, Error_Construct);
 	builtin_Error.Prototype = builtin_Function_prototype;
 	builtin_Error.Extensible = true;
 
 	var builtin_EvalError = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_EvalError = builtin_EvalError;
-	builtin_EvalError.Call = EvalError_Call;
-	builtin_EvalError.Construct = EvalError_Construct;
+	defineCall(builtin_EvalError, EvalError_Call);
+	defineConstruct(builtin_EvalError, EvalError_Construct);
 	builtin_EvalError.Prototype = builtin_Function_prototype;
 	builtin_EvalError.Extensible = true;
 
 	var builtin_RangeError = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_RangeError = builtin_RangeError;
-	builtin_RangeError.Call = RangeError_Call;
-	builtin_RangeError.Construct = RangeError_Construct;
+	defineCall(builtin_RangeError, RangeError_Call);
+	defineConstruct(builtin_RangeError, RangeError_Construct);
 	builtin_RangeError.Prototype = builtin_Function_prototype;
 	builtin_RangeError.Extensible = true;
 
 	var builtin_ReferenceError = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_ReferenceError = builtin_ReferenceError;
-	builtin_ReferenceError.Call = ReferenceError_Call;
-	builtin_ReferenceError.Construct = ReferenceError_Construct;
+	defineCall(builtin_ReferenceError, ReferenceError_Call);
+	defineConstruct(builtin_ReferenceError, ReferenceError_Construct);
 	builtin_ReferenceError.Prototype = builtin_Function_prototype;
 	builtin_ReferenceError.Extensible = true;
 
 	var builtin_SyntaxError = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_SyntaxError = builtin_SyntaxError;
-	builtin_SyntaxError.Call = SyntaxError_Call;
-	builtin_SyntaxError.Construct = SyntaxError_Construct;
+	defineCall(builtin_SyntaxError, SyntaxError_Call);
+	defineConstruct(builtin_SyntaxError, SyntaxError_Construct);
 	builtin_SyntaxError.Prototype = builtin_Function_prototype;
 	builtin_SyntaxError.Extensible = true;
 
 	var builtin_TypeError = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_TypeError = builtin_TypeError;
-	builtin_TypeError.Call = TypeError_Call;
-	builtin_TypeError.Construct = TypeError_Construct;
+	defineCall(builtin_TypeError, TypeError_Call);
+	defineConstruct(builtin_TypeError, TypeError_Construct);
 	builtin_TypeError.Prototype = builtin_Function_prototype;
 	builtin_TypeError.Extensible = true;
 
 	var builtin_URIError = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_URIError = builtin_URIError;
-	builtin_URIError.Call = URIError_Call;
-	builtin_URIError.Construct = URIError_Construct;
+	defineCall(builtin_URIError, URIError_Call);
+	defineConstruct(builtin_URIError, URIError_Construct);
 	builtin_URIError.Prototype = builtin_Function_prototype;
 	builtin_URIError.Extensible = true;
 
@@ -624,8 +664,8 @@ function initializeVM() {
 
 	var builtin_Buffer = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_Buffer = builtin_Buffer;
-	builtin_Buffer.Call = Buffer_Call;
-	builtin_Buffer.Construct = Buffer_Construct;
+	defineCall(builtin_Buffer, Buffer_Call);
+	defineConstruct(builtin_Buffer, Buffer_Construct);
 	builtin_Buffer.Prototype = builtin_Function_prototype;
 	builtin_Buffer.Extensible = true;
 	define(theGlobalObject, "Buffer", builtin_Buffer);
@@ -700,16 +740,16 @@ function initializeVM() {
 
 	var builtin_IOPort = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_IOPort = builtin_IOPort;
-	builtin_IOPort.Call = IOPort_Call;
-	builtin_IOPort.Construct = IOPort_Construct;
+	defineCall(builtin_IOPort, IOPort_Call);
+	defineConstruct(builtin_IOPort, IOPort_Construct);
 	builtin_IOPort.Prototype = builtin_Function_prototype;
 	builtin_IOPort.Extensible = true;
 	define(theGlobalObject, "IOPort", builtin_IOPort);
 
 	var builtin_IOPortError = VMObject(CLASSID_BuiltinFunction);
 	vm.builtin_IOPortError = builtin_IOPortError;
-	builtin_IOPortError.Call = IOPortError_Call;
-	builtin_IOPortError.Construct = IOPortError_Construct;
+	defineCall(builtin_IOPortError, IOPortError_Call);
+	defineConstruct(builtin_IOPortError, IOPortError_Construct);
 	builtin_IOPortError.Prototype = builtin_Function_prototype;
 	builtin_IOPortError.Extensible = true;
 	define(theGlobalObject, "IOPortError", builtin_IOPortError);
@@ -728,12 +768,11 @@ function initializeVM() {
 	define(builtin_IOPortError_prototype, "name", "IOPortError");
 	define(builtin_IOPortError_prototype, "message", "");
 
-	Object.freeze(vm);
 	assert(checkVM());
 }
 
 function checkVM() {
-	return true //
+	return vm.ClassID === CLASSID_vm //
 			&& vm.builtin_Object_prototype.ClassID === CLASSID_Object //
 			&& vm.builtin_Function_prototype.ClassID === CLASSID_BuiltinFunction //
 			&& vm.builtin_Array_prototype.ClassID === CLASSID_Array //
@@ -778,3 +817,48 @@ function checkVM() {
 			&& vm.builtin_IOPortError.ClassID === CLASSID_BuiltinFunction //
 	;
 }
+
+var vmTemplate = {
+	builtin_Object_prototype : undefined,
+	builtin_Function_prototype : undefined,
+	builtin_Array_prototype : undefined,
+	builtin_String_prototype : undefined,
+	builtin_Boolean_prototype : undefined,
+	builtin_Number_prototype : undefined,
+	builtin_Date_prototype : undefined,
+	builtin_RegExp_prototype : undefined,
+	builtin_Error_prototype : undefined,
+	builtin_EvalError_prototype : undefined,
+	builtin_RangeError_prototype : undefined,
+	builtin_ReferenceError_prototype : undefined,
+	builtin_SyntaxError_prototype : undefined,
+	builtin_TypeError_prototype : undefined,
+	builtin_URIError_prototype : undefined,
+	builtin_Object : undefined,
+	builtin_Function : undefined,
+	builtin_Array : undefined,
+	builtin_String : undefined,
+	builtin_Boolean : undefined,
+	builtin_Number : undefined,
+	builtin_Math : undefined,
+	builtin_Date : undefined,
+	builtin_RegExp : undefined,
+	builtin_Error : undefined,
+	builtin_EvalError : undefined,
+	builtin_RangeError : undefined,
+	builtin_ReferenceError : undefined,
+	builtin_SyntaxError : undefined,
+	builtin_TypeError : undefined,
+	builtin_URIError : undefined,
+	builtin_JSON : undefined,
+	theGlobalObject : undefined,
+	theGlobalEnvironment : undefined,
+	theEvalFunction : undefined,
+	theThrowTypeError : undefined,
+	builtin_Buffer_prototype : undefined,
+	builtin_Buffer : undefined,
+	builtin_IOPort_prototype : undefined,
+	builtin_IOPortError_prototype : undefined,
+	builtin_IOPort : undefined,
+	builtin_IOPortError : undefined,
+};

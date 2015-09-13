@@ -33,7 +33,7 @@
 
 'use strict';
 
-var OBJID_BASE=10;
+var OBJID_BASE = 10;
 
 function SnapshotOutputStream(ostream, allObjs) {
 	return {
@@ -122,10 +122,10 @@ function SnapshotInputStream(istream, allObjs) {
 }
 
 var systemProperties = {
-	stackDepthLimit: undefined,
-	LocalTZA: undefined,
-	LocalTZAString: undefined,
-	INSPECT_MAX_BYTES:  undefined,
+	stackDepthLimit : undefined,
+	LocalTZA : undefined,
+	LocalTZAString : undefined,
+	INSPECT_MAX_BYTES : undefined,
 };
 
 function writeSnapshot(l_ostream) {
@@ -142,12 +142,10 @@ function writeSnapshot(l_ostream) {
 			obj.ID = allObjs.length;
 			allObjs.push(obj);
 		}
-		assert(allObjs[obj.ID ] === obj, obj);
+		assert(allObjs[obj.ID] === obj, obj);
 	}
-	for(var name in vm){
-		mark(vm[name]);
-	}
-	for(var name in systemProperties){
+	mark(vm);
+	for ( var name in systemProperties) {
 		mark(global[name]);
 	}
 	for ( var txid in IOManager_asyncCallbacks) {
@@ -167,7 +165,9 @@ function writeSnapshot(l_ostream) {
 		if (obj.ClassID === CLASSID_SourceObject) {
 			obj.writeObject(ostream);
 		}
-		obj.walkObject(mark);
+		else {
+			obj.walkObject(mark);
+		}
 	}
 	ostream.writeInt(0);
 
@@ -182,14 +182,10 @@ function writeSnapshot(l_ostream) {
 	ostream.writeInt(0);
 
 	ostream.writeString("VM");
-	for(var name in vm){
-		ostream.writeString(name);
-		ostream.writeValue(vm[name]);
-	}
-	ostream.writeString("");
+	ostream.writeValue(vm);
 
 	ostream.writeString("SYSTEM");
-	for(var name in systemProperties){
+	for ( var name in systemProperties) {
 		ostream.writeString(name);
 		ostream.writeValue(global[name]);
 	}
@@ -231,7 +227,7 @@ function readSnapshot(l_istream) {
 		throw Error("unsupported format version: " + version);
 	}
 
-	istream.assert(istream.readString() ==="CLASSID");
+	istream.assert(istream.readString() === "CLASSID");
 	while (true) {
 		var ClassID = istream.readInt();
 		if (ClassID === 0) {
@@ -254,7 +250,7 @@ function readSnapshot(l_istream) {
 		allObjs.push(obj);
 	}
 
-	istream.assert(istream.readString() ==="CONTENTS");
+	istream.assert(istream.readString() === "CONTENTS");
 	for (var i = OBJID_BASE; i < allObjs.length; i++) {
 		var obj = allObjs[i];
 		if (obj.ClassID === CLASSID_SourceObject) {
@@ -264,28 +260,22 @@ function readSnapshot(l_istream) {
 		istream.assert(ID === i);
 		obj.readObject(istream);
 	}
-	istream.assert(istream.readInt() ===0);
+	istream.assert(istream.readInt() === 0);
 
-	istream.assert(istream.readString() ==="VM");
-	while (true) {
-		var name = istream.readString();
-		if (name === "") {
-			break;
-		}
-		vm[name]=istream.readValue();
-	}
+	istream.assert(istream.readString() === "VM");
+	vm = istream.readValue();
 
-	istream.assert(istream.readString() ==="SYSTEM");
+	istream.assert(istream.readString() === "SYSTEM");
 	while (true) {
 		var name = istream.readString();
 		if (name === "") {
 			break;
 		}
 		istream.assert(name in systemProperties);
-		global[name ] = istream.readValue();
+		global[name] = istream.readValue();
 	}
 
-	istream.assert(istream.readString() ==="IO");
+	istream.assert(istream.readString() === "IO");
 	IOManager_uniqueID = istream.readInt();
 	IOManager_asyncCallbacks = {};
 	IOManager_openPorts = {};
@@ -314,8 +304,7 @@ function readSnapshot(l_istream) {
 		istream.assert(IsCallable(callback));
 	}
 
-	istream.assert(istream.readString() ==="FINISH");
-	Object.freeze(vm);
+	istream.assert(istream.readString() === "FINISH");
 	istream.assert(checkVM());
 
 	//cleanup
@@ -412,26 +401,31 @@ function default_readObject(istream) {
 
 function BuiltinFunctionObject_writeObject(ostream) {
 	intrinsic_writeObject(this, ostream);
-	ostream.writeString(getIntrinsicFunctionName(this.Call));
-	ostream.writeString(getIntrinsicFunctionName(this.Construct));
+	ostream.writeString(getIntrinsicFunctionName(this._Call));
+	ostream.writeString(getIntrinsicFunctionName(this._Construct));
+	ostream.writeValue(this.vm);
 }
 
 function BuiltinFunctionObject_readObject(istream) {
 	intrinsic_readObject(this, istream);
-	this.Call = getIntrinsicFunction(istream.readString());
-	this.Construct = getIntrinsicFunction(istream.readString());
-	istream.assert(this.Call !== null && this.Call !== undefined);
-	istream.assert(this.Construct !== null);
+	this._Call = getIntrinsicFunction(istream.readString());
+	this._Construct = getIntrinsicFunction(istream.readString());
+	this.vm = istream.readValue();
+	istream.assert(this._Call !== null);
+	istream.assert(this._Construct !== null);
+	istream.assert(this.vm.ClassID === CLASSID_vm);
 }
 
 function FunctionObject_walkObject(mark) {
 	intrinsic_walkObject(this, mark);
 	mark(this.Scope);
 	mark(this.Code.sourceObject);
+	mark(this.vm);
 }
 
 function FunctionObject_writeObject(ostream) {
 	intrinsic_writeObject(this, ostream);
+	ostream.writeValue(this.vm);
 	ostream.writeValue(this.Scope);
 	ostream.writeValue(this.Code.sourceObject);
 	ostream.writeInt(this.Code.index);
@@ -444,6 +438,7 @@ function FunctionObject_writeObject(ostream) {
 
 function FunctionObject_readObject(istream) {
 	intrinsic_readObject(this, istream);
+	this.vm = istream.readValue();
 	this.Scope = istream.readValue();
 	var sourceObject = istream.readValue();
 	var index = istream.readInt();
@@ -453,12 +448,14 @@ function FunctionObject_readObject(istream) {
 	for (var i = 0; i < length; i++) {
 		this.FormalParameters[i] = istream.readString();
 	}
+	istream.assert(this.vm.ClassID === CLASSID_vm);
 	istream.assert(Type(this.Scope) === TYPE_Environment);
 	istream.assert(this.Code !== undefined);
 }
 
 function BindFunction_walkObject(mark) {
 	intrinsic_walkObject(this, mark);
+	mark(this.vm);
 	mark(this.TargetFunction);
 	mark(this.BoundThis);
 	this.BoundArgs.forEach(mark);
@@ -466,6 +463,7 @@ function BindFunction_walkObject(mark) {
 
 function BindFunction_writeObject(ostream) {
 	intrinsic_writeObject(this, ostream);
+	ostream.writeValue(this.vm);
 	ostream.writeValue(this.TargetFunction);
 	ostream.writeValue(this.BoundThis);
 	var length = this.BoundArgs.length;
@@ -477,6 +475,7 @@ function BindFunction_writeObject(ostream) {
 
 function BindFunction_readObject(istream) {
 	intrinsic_readObject(this, istream);
+	this.vm = istream.readValue();
 	this.TargetFunction = istream.readValue();
 	this.BoundThis = istream.readValue();
 	var length = istream.readInt();
@@ -484,6 +483,7 @@ function BindFunction_readObject(istream) {
 	for (var i = 0; i < length; i++) {
 		this.BoundArgs[i] = istream.readValue();
 	}
+	istream.assert(this.vm.ClassID === CLASSID_vm);
 	istream.assert(Type(this.TargetFunction) === TYPE_Object && this.TargetFunction.Class === "Function");
 }
 
@@ -508,12 +508,19 @@ function RegExp_writeObject(ostream) {
 function RegExp_readObject(istream) {
 	intrinsic_readObject(this, istream);
 	try {
-		theRegExpFactory.compile(this);
+		var info = {
+			source : this.Get("source"),
+			global : this.Get("global"),
+			ignoreCase : this.Get("ignoreCase"),
+			multiline : this.Get("multiline"),
+		};
+		theRegExpFactory.compile(info);
 	} catch (e) {
-		if (isInternalError(e)) throw e;
-		console.log("debug: regexp load error: " + ToString(e));
-		console.log("debug: regexp load error: " + this.Get("source"))
+		//TODO syntax error
+		throw e;
 	}
+	obj.Match = info.Match;
+	obj.NCapturingParens = info.NCapturingParens;
 }
 
 function Error_walkObject(mark) {
@@ -648,9 +655,6 @@ function DeclarativeEnvironment_readObject(istream) {
 	istream.assert(this.outer === null || Type(this.outer) === TYPE_Environment);
 }
 
-function SourceObject_walkObject(mark) {
-}
-
 function SourceObject_writeObject(ostream) {
 	ostream.writeString(this.source);
 	ostream.writeValue(this.strict);
@@ -683,4 +687,32 @@ function BufferObject_writeObject(ostream) {
 function BufferObject_readObject(istream) {
 	intrinsic_readObject(this, istream);
 	this.wrappedBuffer = istream.readBuffer();
+}
+
+function vm_walkObject(mark) {
+	intrinsic_walkObject(this, mark);
+	for ( var name in vmTemplate) {
+		mark(vm[name]);
+	}
+}
+
+function vm_writeObject(ostream) {
+	intrinsic_writeObject(this, ostream);
+	for ( var name in vmTemplate) {
+		ostream.writeString(name);
+		ostream.writeValue(this[name]);
+	}
+	ostream.writeString("");
+}
+
+function vm_readObject(istream) {
+	intrinsic_readObject(this, istream);
+	while (true) {
+		var name = istream.readString();
+		if (name === "") {
+			break;
+		}
+		istream.assert(name in vmTemplate);
+		this[name] = istream.readValue();
+	}
 }
