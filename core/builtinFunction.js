@@ -62,7 +62,7 @@ function Function_Construct(argumentsList) {
 	var body = ToString(body);
 	var parameters = theParser.readFunctionParameters(P);
 	var body = theParser.readFunctionCode(body, parameters, [], "<anonymous>");
-	return FunctionObject(parameters, body, theGlobalEnvironment, body.strict);
+	return FunctionObject(parameters, body, vm.theGlobalEnvironment, body.strict);
 }
 
 function Function_prototype_toString(thisValue, argumentsList) {
@@ -143,7 +143,7 @@ function Function_prototype_bind(thisValue, argumentsList) {
 	F.TargetFunction = Target;
 	F.BoundThis = thisArg;
 	F.BoundArgs = A;
-	F.Prototype = builtin_Function_prototype;
+	F.Prototype = vm.builtin_Function_prototype;
 	if (Target.Class === "Function") {
 		var L = Target.Get("length") - A.length;
 		defineFinal(F, "length", max(0, L));
@@ -152,7 +152,7 @@ function Function_prototype_bind(thisValue, argumentsList) {
 		defineFinal(F, "length", 0);
 	}
 	F.Extensible = true;
-	var thrower = theThrowTypeError;
+	var thrower = vm.theThrowTypeError;
 	F.DefineOwnProperty("caller", PropertyDescriptor({
 		Get : thrower,
 		Set : thrower,

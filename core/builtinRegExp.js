@@ -50,7 +50,7 @@ function RegExp_Construct(argumentsList) {
 	if (Type(R) === TYPE_Object && R.Class === "RegExp") {
 		if (flags !== undefined) throw VMTypeError();
 		var obj = VMObject(CLASSID_RegExp);
-		obj.Prototype = builtin_RegExp_prototype;
+		obj.Prototype = vm.builtin_RegExp_prototype;
 		obj.Extensible = true;
 		defineFinal(obj, "source", R.Get("source"));
 		defineFinal(obj, "global", R.Get("global"));
@@ -74,7 +74,7 @@ function RegExp_Construct(argumentsList) {
 		var F = ToString(flags);
 	}
 	var obj = VMObject(CLASSID_RegExp);
-	obj.Prototype = builtin_RegExp_prototype;
+	obj.Prototype = vm.builtin_RegExp_prototype;
 	obj.Extensible = true;
 	theRegExpFactory.setup(obj, P, F);
 	theRegExpFactory.compile(obj);

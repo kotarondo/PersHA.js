@@ -92,17 +92,6 @@ Object.defineProperty(Number, "isFinite", {
 	configurable : true
 });
 
-Object.defineProperty(Error, "stackTraceLimit", {
-	get : function() {
-		return getSystemProperty("stackTraceLimit");
-	},
-	set : function(value) {
-		setSystemProperty("stackTraceLimit", value);
-	},
-	enumerable : true,
-	configurable : true
-});
-
 Error.captureStackTrace = (function() {
 	function StackTraceEntry(info) {
 		this.info = info;

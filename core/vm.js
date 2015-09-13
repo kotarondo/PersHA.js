@@ -35,7 +35,7 @@
 
 // ECMAScript 5.1: 15 Standard Built-in ECMAScript Objects
 
-var STRICT_CONFORMANCE = false;
+var vm = {};
 
 function define(obj, name, value) {
 	intrinsic_createData(obj, name, PropertyDescriptor({
@@ -75,7 +75,7 @@ function defineWritable(obj, name, value) {
 
 function defineFunction(obj, name, length, func) {
 	var F = VMObject(CLASSID_BuiltinFunction);
-	F.Prototype = builtin_Function_prototype;
+	F.Prototype = vm.builtin_Function_prototype;
 	F.Extensible = true;
 	F.Call = func;
 	defineFinal(F, "length", length);
@@ -86,14 +86,14 @@ function defineFunction(obj, name, length, func) {
 function defineAccessor(obj, name, get, set) {
 	if (get !== undefined) {
 		var Get = VMObject(CLASSID_BuiltinFunction);
-		Get.Prototype = builtin_Function_prototype;
+		Get.Prototype = vm.builtin_Function_prototype;
 		Get.Extensible = true;
 		Get.Call = get;
 		defineFinal(Get, "length", 0);
 	}
 	if (set !== undefined) {
 		var Set = VMObject(CLASSID_BuiltinFunction);
-		Set.Prototype = builtin_Function_prototype;
+		Set.Prototype = vm.builtin_Function_prototype;
 		Set.Extensible = true;
 		Set.Call = set;
 		defineFinal(Set, "length", 1);
@@ -106,203 +106,218 @@ function defineAccessor(obj, name, get, set) {
 	}));
 }
 
-var builtin_Object_prototype;
-var builtin_Function_prototype;
-var builtin_Array_prototype;
-var builtin_String_prototype;
-var builtin_Boolean_prototype;
-var builtin_Number_prototype;
-var builtin_Date_prototype;
-var builtin_RegExp_prototype;
-var builtin_Error_prototype;
-var builtin_EvalError_prototype;
-var builtin_RangeError_prototype;
-var builtin_ReferenceError_prototype;
-var builtin_SyntaxError_prototype;
-var builtin_TypeError_prototype;
-var builtin_URIError_prototype;
-
-var theGlobalObject;
-var theGlobalEnvironment;
-var theEvalFunction;
-
 function ReturnUndefined() {
 	return undefined;
 };
 
 function initializeVM() {
-	builtin_Object_prototype = VMObject(CLASSID_Object);
+	var builtin_Object_prototype = VMObject(CLASSID_Object);
+	vm.builtin_Object_prototype = builtin_Object_prototype;
 	builtin_Object_prototype.Prototype = null;
 	builtin_Object_prototype.Extensible = true;
 
-	builtin_Function_prototype = VMObject(CLASSID_BuiltinFunction);
+	var builtin_Function_prototype = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_Function_prototype = builtin_Function_prototype;
 	builtin_Function_prototype.Prototype = builtin_Object_prototype;
 	builtin_Function_prototype.Extensible = true;
 	builtin_Function_prototype.Call = ReturnUndefined;
 
-	builtin_Array_prototype = VMObject(CLASSID_Array);
+	var builtin_Array_prototype = VMObject(CLASSID_Array);
+	vm.builtin_Array_prototype = builtin_Array_prototype;
 	builtin_Array_prototype.Prototype = builtin_Object_prototype;
 	builtin_Array_prototype.Extensible = true;
 
-	builtin_String_prototype = VMObject(CLASSID_String);
+	var builtin_String_prototype = VMObject(CLASSID_String);
+	vm.builtin_String_prototype = builtin_String_prototype;
 	builtin_String_prototype.Prototype = builtin_Object_prototype;
 	builtin_String_prototype.Extensible = true;
 	builtin_String_prototype.PrimitiveValue = "";
 
-	builtin_Boolean_prototype = VMObject(CLASSID_Boolean);
+	var builtin_Boolean_prototype = VMObject(CLASSID_Boolean);
+	vm.builtin_Boolean_prototype = builtin_Boolean_prototype;
 	builtin_Boolean_prototype.Prototype = builtin_Object_prototype;
 	builtin_Boolean_prototype.Extensible = true;
 	builtin_Boolean_prototype.PrimitiveValue = false;
 
-	builtin_Number_prototype = VMObject(CLASSID_Number);
+	var builtin_Number_prototype = VMObject(CLASSID_Number);
+	vm.builtin_Number_prototype = builtin_Number_prototype;
 	builtin_Number_prototype.Prototype = builtin_Object_prototype;
 	builtin_Number_prototype.Extensible = true;
 	builtin_Number_prototype.PrimitiveValue = 0;
 
-	builtin_Date_prototype = VMObject(CLASSID_Date);
+	var builtin_Date_prototype = VMObject(CLASSID_Date);
+	vm.builtin_Date_prototype = builtin_Date_prototype;
 	builtin_Date_prototype.Prototype = builtin_Object_prototype;
 	builtin_Date_prototype.Extensible = true;
 	builtin_Date_prototype.PrimitiveValue = NaN;
 
-	builtin_RegExp_prototype = VMObject(CLASSID_RegExp);
+	var builtin_RegExp_prototype = VMObject(CLASSID_RegExp);
+	vm.builtin_RegExp_prototype = builtin_RegExp_prototype;
 	builtin_RegExp_prototype.Prototype = builtin_Object_prototype;
 	builtin_RegExp_prototype.Extensible = true;
 
-	builtin_Error_prototype = VMObject(CLASSID_Error);
+	var builtin_Error_prototype = VMObject(CLASSID_Error);
+	vm.builtin_Error_prototype = builtin_Error_prototype;
 	builtin_Error_prototype.Prototype = builtin_Object_prototype;
 	builtin_Error_prototype.Extensible = true;
 
-	builtin_EvalError_prototype = VMObject(CLASSID_Error);
+	var builtin_EvalError_prototype = VMObject(CLASSID_Error);
+	vm.builtin_EvalError_prototype = builtin_EvalError_prototype;
 	builtin_EvalError_prototype.Prototype = builtin_Error_prototype;
 	builtin_EvalError_prototype.Extensible = true;
 
-	builtin_RangeError_prototype = VMObject(CLASSID_Error);
+	var builtin_RangeError_prototype = VMObject(CLASSID_Error);
+	vm.builtin_RangeError_prototype = builtin_RangeError_prototype;
 	builtin_RangeError_prototype.Prototype = builtin_Error_prototype;
 	builtin_RangeError_prototype.Extensible = true;
 
-	builtin_ReferenceError_prototype = VMObject(CLASSID_Error);
+	var builtin_ReferenceError_prototype = VMObject(CLASSID_Error);
+	vm.builtin_ReferenceError_prototype = builtin_ReferenceError_prototype;
 	builtin_ReferenceError_prototype.Prototype = builtin_Error_prototype;
 	builtin_ReferenceError_prototype.Extensible = true;
 
-	builtin_SyntaxError_prototype = VMObject(CLASSID_Error);
+	var builtin_SyntaxError_prototype = VMObject(CLASSID_Error);
+	vm.builtin_SyntaxError_prototype = builtin_SyntaxError_prototype;
 	builtin_SyntaxError_prototype.Prototype = builtin_Error_prototype;
 	builtin_SyntaxError_prototype.Extensible = true;
 
-	builtin_TypeError_prototype = VMObject(CLASSID_Error);
+	var builtin_TypeError_prototype = VMObject(CLASSID_Error);
+	vm.builtin_TypeError_prototype = builtin_TypeError_prototype;
 	builtin_TypeError_prototype.Prototype = builtin_Error_prototype;
 	builtin_TypeError_prototype.Extensible = true;
 
-	builtin_URIError_prototype = VMObject(CLASSID_Error);
+	var builtin_URIError_prototype = VMObject(CLASSID_Error);
+	vm.builtin_URIError_prototype = builtin_URIError_prototype;
 	builtin_URIError_prototype.Prototype = builtin_Error_prototype;
 	builtin_URIError_prototype.Extensible = true;
 
-	theGlobalObject = VMObject(CLASSID_Global);
-	theGlobalObject.Prototype = builtin_Object_prototype;
-	theGlobalObject.Extensible = true;
-	theGlobalEnvironment = NewObjectEnvironment(theGlobalObject, null);
-
 	var builtin_Object = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_Object = builtin_Object;
 	builtin_Object.Call = Object_Call;
 	builtin_Object.Construct = Object_Construct;
 	builtin_Object.Prototype = builtin_Function_prototype;
 	builtin_Object.Extensible = true;
 
 	var builtin_Function = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_Function = builtin_Function;
 	builtin_Function.Call = Function_Call;
 	builtin_Function.Construct = Function_Construct;
 	builtin_Function.Prototype = builtin_Function_prototype;
 	builtin_Function.Extensible = true;
 
 	var builtin_Array = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_Array = builtin_Array;
 	builtin_Array.Call = Array_Call;
 	builtin_Array.Construct = Array_Construct;
 	builtin_Array.Prototype = builtin_Function_prototype;
 	builtin_Array.Extensible = true;
 
 	var builtin_String = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_String = builtin_String;
 	builtin_String.Call = String_Call;
 	builtin_String.Construct = String_Construct;
 	builtin_String.Prototype = builtin_Function_prototype;
 	builtin_String.Extensible = true;
 
 	var builtin_Boolean = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_Boolean = builtin_Boolean;
 	builtin_Boolean.Call = Boolean_Call;
 	builtin_Boolean.Construct = Boolean_Construct;
 	builtin_Boolean.Prototype = builtin_Function_prototype;
 	builtin_Boolean.Extensible = true;
 
 	var builtin_Number = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_Number = builtin_Number;
 	builtin_Number.Call = Number_Call;
 	builtin_Number.Construct = Number_Construct;
 	builtin_Number.Prototype = builtin_Function_prototype;
 	builtin_Number.Extensible = true;
 
 	var builtin_Math = VMObject(CLASSID_Math);
+	vm.builtin_Math = builtin_Math;
 	builtin_Math.Prototype = builtin_Object_prototype;
 	builtin_Math.Extensible = true;
 
 	var builtin_Date = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_Date = builtin_Date;
 	builtin_Date.Call = Date_Call;
 	builtin_Date.Construct = Date_Construct;
 	builtin_Date.Prototype = builtin_Function_prototype;
 	builtin_Date.Extensible = true;
 
 	var builtin_RegExp = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_RegExp = builtin_RegExp;
 	builtin_RegExp.Call = RegExp_Call;
 	builtin_RegExp.Construct = RegExp_Construct;
 	builtin_RegExp.Prototype = builtin_Function_prototype;
 	builtin_RegExp.Extensible = true;
 
 	var builtin_Error = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_Error = builtin_Error;
 	builtin_Error.Call = Error_Call;
 	builtin_Error.Construct = Error_Construct;
 	builtin_Error.Prototype = builtin_Function_prototype;
 	builtin_Error.Extensible = true;
 
 	var builtin_EvalError = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_EvalError = builtin_EvalError;
 	builtin_EvalError.Call = EvalError_Call;
 	builtin_EvalError.Construct = EvalError_Construct;
 	builtin_EvalError.Prototype = builtin_Function_prototype;
 	builtin_EvalError.Extensible = true;
 
 	var builtin_RangeError = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_RangeError = builtin_RangeError;
 	builtin_RangeError.Call = RangeError_Call;
 	builtin_RangeError.Construct = RangeError_Construct;
 	builtin_RangeError.Prototype = builtin_Function_prototype;
 	builtin_RangeError.Extensible = true;
 
 	var builtin_ReferenceError = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_ReferenceError = builtin_ReferenceError;
 	builtin_ReferenceError.Call = ReferenceError_Call;
 	builtin_ReferenceError.Construct = ReferenceError_Construct;
 	builtin_ReferenceError.Prototype = builtin_Function_prototype;
 	builtin_ReferenceError.Extensible = true;
 
 	var builtin_SyntaxError = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_SyntaxError = builtin_SyntaxError;
 	builtin_SyntaxError.Call = SyntaxError_Call;
 	builtin_SyntaxError.Construct = SyntaxError_Construct;
 	builtin_SyntaxError.Prototype = builtin_Function_prototype;
 	builtin_SyntaxError.Extensible = true;
 
 	var builtin_TypeError = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_TypeError = builtin_TypeError;
 	builtin_TypeError.Call = TypeError_Call;
 	builtin_TypeError.Construct = TypeError_Construct;
 	builtin_TypeError.Prototype = builtin_Function_prototype;
 	builtin_TypeError.Extensible = true;
 
 	var builtin_URIError = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_URIError = builtin_URIError;
 	builtin_URIError.Call = URIError_Call;
 	builtin_URIError.Construct = URIError_Construct;
 	builtin_URIError.Prototype = builtin_Function_prototype;
 	builtin_URIError.Extensible = true;
 
 	var builtin_JSON = VMObject(CLASSID_JSON);
+	vm.builtin_JSON = builtin_JSON;
 	builtin_JSON.Prototype = builtin_Object_prototype;
 	builtin_JSON.Extensible = true;
+
+	var theGlobalObject = VMObject(CLASSID_Global);
+	vm.theGlobalObject = theGlobalObject;
+	theGlobalObject.Prototype = builtin_Object_prototype;
+	theGlobalObject.Extensible = true;
+
+	vm.theGlobalEnvironment = NewObjectEnvironment(theGlobalObject, null);
+	initializeThrowTypeErrorObject();
 
 	defineFinal(theGlobalObject, "NaN", NaN);
 	defineFinal(theGlobalObject, "Infinity", Infinity);
 	defineFinal(theGlobalObject, "undefined", undefined);
-	theEvalFunction = //
+	vm.theEvalFunction = //
 	defineFunction(theGlobalObject, "eval", 1, Global_eval);
 	defineFunction(theGlobalObject, "parseInt", 2, Global_parseInt);
 	defineFunction(theGlobalObject, "parseFloat", 1, Global_parseFloat);
@@ -326,6 +341,7 @@ function initializeVM() {
 	define(theGlobalObject, "String", builtin_String);
 	define(theGlobalObject, "Boolean", builtin_Boolean);
 	define(theGlobalObject, "Number", builtin_Number);
+	define(theGlobalObject, "Math", builtin_Math);
 	define(theGlobalObject, "Date", builtin_Date);
 	define(theGlobalObject, "RegExp", builtin_RegExp);
 	define(theGlobalObject, "Error", builtin_Error);
@@ -335,7 +351,6 @@ function initializeVM() {
 	define(theGlobalObject, "SyntaxError", builtin_SyntaxError);
 	define(theGlobalObject, "TypeError", builtin_TypeError);
 	define(theGlobalObject, "URIError", builtin_URIError);
-	define(theGlobalObject, "Math", builtin_Math);
 	define(theGlobalObject, "JSON", builtin_JSON);
 
 	defineFinal(builtin_Object, "length", 1);
@@ -555,6 +570,7 @@ function initializeVM() {
 	define(builtin_Error_prototype, "message", "");
 	defineFunction(builtin_Error_prototype, "toString", 0, Error_prototype_toString);
 	if (STRICT_CONFORMANCE === false) {
+		defineWritable(builtin_Error, "stackTraceLimit", 10);
 		defineAccessor(builtin_Error_prototype, "stack", get_Error_prototype_stack, undefined);
 		defineFunction(builtin_Error_prototype, "getStackTraceEntry", 1, Error_prototype_getStackTraceEntry);
 	}
@@ -598,21 +614,16 @@ function initializeVM() {
 	defineFunction(builtin_JSON, "parse", 2, JSON_parse);
 	defineFunction(builtin_JSON, "stringify", 3, JSON_stringify);
 
-	initializeThrowTypeErrorObject();
-	initializeBuffer();
-	initializeIOPort();
-	initExecutionContext();
-}
+	// ----------- Buffer ----------- 
 
-var builtin_Buffer_prototype;
-
-function initializeBuffer() {
-	builtin_Buffer_prototype = VMObject(CLASSID_Buffer);
+	var builtin_Buffer_prototype = VMObject(CLASSID_Buffer);
+	vm.builtin_Buffer_prototype = builtin_Buffer_prototype;
 	builtin_Buffer_prototype.Prototype = builtin_Object_prototype;
 	builtin_Buffer_prototype.Extensible = true;
 	builtin_Buffer_prototype.wrappedBuffer = new Buffer(0);
 
 	var builtin_Buffer = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_Buffer = builtin_Buffer;
 	builtin_Buffer.Call = Buffer_Call;
 	builtin_Buffer.Construct = Buffer_Construct;
 	builtin_Buffer.Prototype = builtin_Function_prototype;
@@ -673,23 +684,35 @@ function initializeBuffer() {
 	defineFunction(builtin_Buffer_prototype, "writeDoubleBE", 3, Buffer_prototype_writeDoubleBE);
 	defineFunction(builtin_Buffer_prototype, "fill", 3, Buffer_prototype_fill);
 	defineFunction(builtin_Buffer_prototype, "inspect", 0, Buffer_prototype_inspect);
-}
 
-var builtin_IOPort_prototype;
-var builtin_IOPortError_prototype;
+	// ----------- IOPort ----------- 
 
-function initializeIOPort() {
-	builtin_IOPort_prototype = VMObject(CLASSID_IOPort);
+	var builtin_IOPort_prototype = VMObject(CLASSID_IOPort);
+	vm.builtin_IOPort_prototype = builtin_IOPort_prototype;
 	builtin_IOPort_prototype.Prototype = builtin_Object_prototype;
 	builtin_IOPort_prototype.Extensible = true;
 	builtin_IOPort_prototype.handler = null;
 
+	var builtin_IOPortError_prototype = VMObject(CLASSID_Error);
+	vm.builtin_IOPortError_prototype = builtin_IOPortError_prototype;
+	builtin_IOPortError_prototype.Prototype = builtin_Error_prototype;
+	builtin_IOPortError_prototype.Extensible = true;
+
 	var builtin_IOPort = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_IOPort = builtin_IOPort;
 	builtin_IOPort.Call = IOPort_Call;
 	builtin_IOPort.Construct = IOPort_Construct;
 	builtin_IOPort.Prototype = builtin_Function_prototype;
 	builtin_IOPort.Extensible = true;
 	define(theGlobalObject, "IOPort", builtin_IOPort);
+
+	var builtin_IOPortError = VMObject(CLASSID_BuiltinFunction);
+	vm.builtin_IOPortError = builtin_IOPortError;
+	builtin_IOPortError.Call = IOPortError_Call;
+	builtin_IOPortError.Construct = IOPortError_Construct;
+	builtin_IOPortError.Prototype = builtin_Function_prototype;
+	builtin_IOPortError.Extensible = true;
+	define(theGlobalObject, "IOPortError", builtin_IOPortError);
 
 	defineFinal(builtin_IOPort, "length", 1);
 	defineFinal(builtin_IOPort, "prototype", builtin_IOPort_prototype);
@@ -699,20 +722,59 @@ function initializeIOPort() {
 	defineFunction(builtin_IOPort_prototype, "syncIO", 3, IOPort_prototype_syncIO);
 	defineFunction(builtin_IOPort_prototype, "asyncIO", 3, IOPort_prototype_asyncIO);
 
-	builtin_IOPortError_prototype = VMObject(CLASSID_Error);
-	builtin_IOPortError_prototype.Prototype = builtin_Error_prototype;
-	builtin_IOPortError_prototype.Extensible = true;
-
-	var builtin_IOPortError = VMObject(CLASSID_BuiltinFunction);
-	builtin_IOPortError.Call = IOPortError_Call;
-	builtin_IOPortError.Construct = IOPortError_Construct;
-	builtin_IOPortError.Prototype = builtin_Function_prototype;
-	builtin_IOPortError.Extensible = true;
-	define(theGlobalObject, "IOPortError", builtin_IOPortError);
-
 	defineFinal(builtin_IOPortError, "length", 1);
 	defineFinal(builtin_IOPortError, "prototype", builtin_IOPortError_prototype);
 	define(builtin_IOPortError_prototype, "constructor", builtin_IOPortError);
 	define(builtin_IOPortError_prototype, "name", "IOPortError");
 	define(builtin_IOPortError_prototype, "message", "");
+
+	Object.freeze(vm);
+	assert(checkVM());
+}
+
+function checkVM() {
+	return true //
+			&& vm.builtin_Object_prototype.ClassID === CLASSID_Object //
+			&& vm.builtin_Function_prototype.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_Array_prototype.ClassID === CLASSID_Array //
+			&& vm.builtin_String_prototype.ClassID === CLASSID_String //
+			&& vm.builtin_Boolean_prototype.ClassID === CLASSID_Boolean //
+			&& vm.builtin_Number_prototype.ClassID === CLASSID_Number //
+			&& vm.builtin_Date_prototype.ClassID === CLASSID_Date //
+			&& vm.builtin_RegExp_prototype.ClassID === CLASSID_RegExp //
+			&& vm.builtin_Error_prototype.ClassID === CLASSID_Error //
+			&& vm.builtin_EvalError_prototype.ClassID === CLASSID_Error //
+			&& vm.builtin_RangeError_prototype.ClassID === CLASSID_Error //
+			&& vm.builtin_ReferenceError_prototype.ClassID === CLASSID_Error //
+			&& vm.builtin_SyntaxError_prototype.ClassID === CLASSID_Error //
+			&& vm.builtin_TypeError_prototype.ClassID === CLASSID_Error //
+			&& vm.builtin_URIError_prototype.ClassID === CLASSID_Error //
+			&& vm.builtin_Object.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_Function.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_Array.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_String.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_Boolean.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_Number.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_Math.ClassID === CLASSID_Math //
+			&& vm.builtin_Date.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_RegExp.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_Error.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_EvalError.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_RangeError.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_ReferenceError.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_SyntaxError.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_TypeError.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_URIError.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_JSON.ClassID === CLASSID_JSON //
+			&& vm.theGlobalObject.ClassID === CLASSID_Global //
+			&& vm.theGlobalEnvironment.ClassID === CLASSID_ObjectEnvironment //
+			&& vm.theEvalFunction.ClassID === CLASSID_BuiltinFunction //
+			&& vm.theThrowTypeError.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_Buffer_prototype.ClassID === CLASSID_Buffer //
+			&& vm.builtin_Buffer.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_IOPort_prototype.ClassID === CLASSID_IOPort //
+			&& vm.builtin_IOPortError_prototype.ClassID === CLASSID_Error //
+			&& vm.builtin_IOPort.ClassID === CLASSID_BuiltinFunction //
+			&& vm.builtin_IOPortError.ClassID === CLASSID_BuiltinFunction //
+	;
 }

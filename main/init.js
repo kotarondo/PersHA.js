@@ -37,6 +37,7 @@ var fs = require('fs');
 
 try {
 	initializeVM();
+	initExecutionContext();
 
 	var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + 'bridge.js').toString();
 	IOManager_evaluate(text, 'bridge/bridge.js');

@@ -71,7 +71,7 @@ function FunctionBody(sourceElements) {
 
 function FunctionObject(parameters, body, Scope, Strict) {
 	var F = VMObject(CLASSID_FunctionObject);
-	F.Prototype = builtin_Function_prototype;
+	F.Prototype = vm.builtin_Function_prototype;
 	F.Scope = Scope;
 	F.FormalParameters = parameters;
 	F.Code = body;
@@ -97,7 +97,7 @@ function FunctionObject(parameters, body, Scope, Strict) {
 		Configurable : false
 	}), false);
 	if (Strict === true) {
-		var thrower = theThrowTypeError;
+		var thrower = vm.theThrowTypeError;
 		F.DefineOwnProperty("caller", PropertyDescriptor({
 			Get : thrower,
 			Set : thrower,
@@ -139,7 +139,7 @@ function FunctionObject_Construct(argumentsList) {
 		obj.Prototype = proto;
 	}
 	if (Type(proto) !== TYPE_Object) {
-		obj.Prototype = builtin_Object_prototype;
+		obj.Prototype = vm.builtin_Object_prototype;
 	}
 	var result = F.Call(obj, argumentsList);
 	if (Type(result) === TYPE_Object) return result;
@@ -150,13 +150,11 @@ function ThrowTypeError() {
 	throw VMTypeError();
 }
 
-var theThrowTypeError;
-
 function initializeThrowTypeErrorObject() {
 	var F = VMObject(CLASSID_BuiltinFunction);
-	F.Prototype = builtin_Function_prototype;
+	F.Prototype = vm.builtin_Function_prototype;
 	F.Call = ThrowTypeError;
 	defineFinal(F, "length", 0);
 	F.Extensible = false;
-	theThrowTypeError = F;
+	vm.theThrowTypeError = F;
 }

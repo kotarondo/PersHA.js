@@ -207,28 +207,27 @@ function NewObjectEnvironment(O, E) {
 var LexicalEnvironment;
 var VariableEnvironment;
 var ThisBinding;
-
 var runningFunction;
 var runningCode;
 var runningSourcePos;
 var outerExecutionContext;
 
 var stackDepth;
-var stackDepthLimit = 1000;
+var stackDepthLimit = 400;
 
 function initExecutionContext() {
-	LexicalEnvironment = theGlobalEnvironment;
-	VariableEnvironment = theGlobalEnvironment;
-	ThisBinding = theGlobalObject;
+	stackDepth = 0;
+	LexicalEnvironment = vm.theGlobalEnvironment;
+	VariableEnvironment = vm.theGlobalEnvironment;
+	ThisBinding = vm.theGlobalObject;
 	runningFunction = undefined;
 	runningCode = undefined;
 	runningSourcePos = undefined;
 	outerExecutionContext = undefined;
-	stackDepth = 0;
 }
 
 function saveExecutionContext() {
-	if(stackDepth >= stackDepthLimit){
+	if (stackDepth >= stackDepthLimit) {
 		throw VMRangeError("stack overflow");
 	}
 	stackDepth++;
@@ -245,6 +244,7 @@ function saveExecutionContext() {
 
 function exitExecutionContext() {
 	var ctx = outerExecutionContext;
+	stackDepth--;
 	LexicalEnvironment = ctx.LexicalEnvironment;
 	VariableEnvironment = ctx.VariableEnvironment;
 	ThisBinding = ctx.ThisBinding;
@@ -252,12 +252,13 @@ function exitExecutionContext() {
 	runningCode = ctx.runningCode;
 	runningSourcePos = ctx.runningSourcePos;
 	outerExecutionContext = ctx.outerExecutionContext;
-	stackDepth--;
 }
 
-var stackTraceLimit = 10;
-
 function getStackTrace() {
+	var stackTraceLimit = vm.builtin_Error.Get('stackTraceLimit');
+	if (Type(stackTraceLimit) !== TYPE_Number) {
+		stackTraceLimit = 10;
+	}
 	var stackTrace = [];
 	if (runningCode !== undefined) {
 		if (stackTrace.length >= stackTraceLimit) {
@@ -286,9 +287,9 @@ function getStackTrace() {
 
 function enterExecutionContextForGlobalCode(code) {
 	saveExecutionContext();
-	LexicalEnvironment = theGlobalEnvironment;
-	VariableEnvironment = theGlobalEnvironment;
-	ThisBinding = theGlobalObject;
+	LexicalEnvironment = vm.theGlobalEnvironment;
+	VariableEnvironment = vm.theGlobalEnvironment;
+	ThisBinding = vm.theGlobalObject;
 	runningFunction = undefined;
 	runningCode = code;
 	runningSourcePos = 0;
@@ -298,9 +299,9 @@ function enterExecutionContextForGlobalCode(code) {
 function enterExecutionContextForEvalCode(code, direct) {
 	saveExecutionContext();
 	if (direct !== true) {
-		LexicalEnvironment = theGlobalEnvironment;
-		VariableEnvironment = theGlobalEnvironment;
-		ThisBinding = theGlobalObject;
+		LexicalEnvironment = vm.theGlobalEnvironment;
+		VariableEnvironment = vm.theGlobalEnvironment;
+		ThisBinding = vm.theGlobalObject;
 	}
 	if (code.strict) {
 		var strictVarEnv = NewDeclarativeEnvironment(LexicalEnvironment);
@@ -320,7 +321,7 @@ function enterExecutionContextForFunctionCode(F, thisValue, argumentsList) {
 		ThisBinding = thisValue;
 	}
 	else if (thisValue === null || thisValue === undefined) {
-		ThisBinding = theGlobalObject;
+		ThisBinding = vm.theGlobalObject;
 	}
 	else if (Type(thisValue) !== TYPE_Object) {
 		ThisBinding = ToObject(thisValue);
@@ -373,8 +374,8 @@ function DeclarationBindingInstantiation(code, args, func) {
 		if (funcAlreadyDeclared === false) {
 			env.CreateMutableBinding(fn, configurableBindings);
 		}
-		else if (env === theGlobalEnvironment.envRec) {
-			var go = theGlobalObject;
+		else if (env === vm.theGlobalEnvironment.envRec) {
+			var go = vm.theGlobalObject;
 			var existingProp = go.GetProperty(fn);
 			if (existingProp.Configurable === true) {
 				go.DefineOwnProperty(fn, PropertyDescriptor({
@@ -384,8 +385,8 @@ function DeclarationBindingInstantiation(code, args, func) {
 					Configurable : configurableBindings
 				}), true);
 			}
-			else if (IsAccessorDescriptor(existingProp) || !(existingProp.Writable === true && existingProp.Enumerable === true))
-				throw VMTypeError();
+			else if (IsAccessorDescriptor(existingProp)
+					|| !(existingProp.Writable === true && existingProp.Enumerable === true)) throw VMTypeError();
 		}
 		env.SetMutableBinding(fn, fo, strict);
 	}
@@ -420,7 +421,7 @@ function CreateArgumentsObject(func, names, args, env, strict) {
 	else {
 		var obj = VMObject(CLASSID_Arguments);
 	}
-	obj.Prototype = builtin_Object_prototype;
+	obj.Prototype = vm.builtin_Object_prototype;
 	obj.Extensible = true;
 	default_DefineOwnProperty.call(obj, "length", PropertyDescriptor({
 		Value : len,
@@ -461,7 +462,7 @@ function CreateArgumentsObject(func, names, args, env, strict) {
 		}), false);
 	}
 	else {
-		var thrower = theThrowTypeError;
+		var thrower = vm.theThrowTypeError;
 		obj.DefineOwnProperty("caller", PropertyDescriptor({
 			Get : thrower,
 			Set : thrower,
@@ -495,8 +496,7 @@ function Arguments_Get(P) {
 	}
 	if (isMapped === undefined) {
 		var v = default_Get.call(this, P);
-		if (P === "caller" && Type(v) === TYPE_Object && v.Class === "Function" && v.Code !== undefined && v.Code.strict)
-			throw VMTypeError();
+		if (P === "caller" && Type(v) === TYPE_Object && v.Class === "Function" && v.Code !== undefined && v.Code.strict) throw VMTypeError();
 		return v;
 	}
 	else {

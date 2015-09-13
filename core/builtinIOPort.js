@@ -40,7 +40,7 @@ function IOPort_Call(thisValue, argumentsList) {
 function IOPort_Construct(argumentsList) {
 	var name = ToString(argumentsList[0]);
 	var port = VMObject(CLASSID_IOPort);
-	port.Prototype = builtin_IOPort_prototype;
+	port.Prototype = vm.builtin_IOPort_prototype;
 	port.Extensible = true;
 	defineFinal(port, 'root', null);
 	defineFinal(port, 'name', name);
@@ -57,7 +57,7 @@ function IOPort_prototype_open(thisValue, argumentsList) {
 	}
 	var root = thisValue;
 	var port = VMObject(CLASSID_IOPort);
-	port.Prototype = builtin_IOPort_prototype;
+	port.Prototype = vm.builtin_IOPort_prototype;
 	port.Extensible = true;
 	defineFinal(port, 'root', root);
 	defineFinal(port, 'name', name);
@@ -139,7 +139,7 @@ function IOPort_completionEvent(entry, callback) {
 function IOPort_callbackUncaughtError(e) {
 	if (isInternalError(e)) throw e;
 	try {
-		var callback = theGlobalObject.Get('_uncaughtErrorCallback');
+		var callback = vm.theGlobalObject.Get('_uncaughtErrorCallback');
 		if (IsCallable(callback)) {
 			callback.Call(undefined, [ e ]);
 			return;
@@ -233,7 +233,7 @@ function IOPort_wrap(a, stack) {
 	}
 	if (a instanceof Buffer) {
 		var A = VMObject(CLASSID_Buffer);
-		A.Prototype = builtin_Buffer_prototype;
+		A.Prototype = vm.builtin_Buffer_prototype;
 		A.Extensible = true;
 		A.wrappedBuffer = new Buffer(a); // safeguard
 		defineFinal(A, 'length', a.length);
@@ -284,7 +284,7 @@ function IOPort_wrap(a, stack) {
 function IOPortError_Call(thisValue, argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_IOPortError_prototype;
+	obj.Prototype = vm.builtin_IOPortError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -296,7 +296,7 @@ function IOPortError_Call(thisValue, argumentsList) {
 function IOPortError_Construct(argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_IOPortError_prototype;
+	obj.Prototype = vm.builtin_IOPortError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {

@@ -262,7 +262,7 @@ function Date_Construct(argumentsList) {
 		var seconds = argumentsList[5];
 		var ms = argumentsList[6];
 		var obj = VMObject(CLASSID_Date);
-		obj.Prototype = builtin_Date_prototype;
+		obj.Prototype = vm.builtin_Date_prototype;
 		obj.Extensible = true;
 		var y = ToNumber(year);
 		var m = ToNumber(month);
@@ -309,7 +309,7 @@ function Date_Construct(argumentsList) {
 	if (argumentsList.length === 1) {
 		var value = argumentsList[0];
 		var obj = VMObject(CLASSID_Date);
-		obj.Prototype = builtin_Date_prototype;
+		obj.Prototype = vm.builtin_Date_prototype;
 		obj.Extensible = true;
 		var v = ToPrimitive(value);
 		if (Type(v) === TYPE_String) {
@@ -322,7 +322,7 @@ function Date_Construct(argumentsList) {
 		return obj;
 	}
 	var obj = VMObject(CLASSID_Date);
-	obj.Prototype = builtin_Date_prototype;
+	obj.Prototype = vm.builtin_Date_prototype;
 	obj.Extensible = true;
 	obj.PrimitiveValue = Date_now();
 	return obj;

@@ -408,7 +408,7 @@ function PutValue(V, W) {
 	var base = GetBase(V);
 	if (IsUnresolvableReference(V)) {
 		if (IsStrictReference(V) === true) throw VMReferenceError(GetReferencedName(V));
-		theGlobalObject.Put(GetReferencedName(V), W, false);
+		vm.theGlobalObject.Put(GetReferencedName(V), W, false);
 	}
 	else if (IsPropertyReference(V)) {
 		if (HasPrimitiveBase(V) === false) {

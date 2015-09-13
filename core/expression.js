@@ -175,7 +175,9 @@ function FunctionCall(expression, args, strict) {
 			}
 			else {
 				var thisValue = GetBase(ref).ImplicitThisValue();
-				if (func === theEvalFunction && GetReferencedName(ref) === "eval") return Global_eval(thisValue, argList, true, strict);
+				if (func === vm.theEvalFunction && GetReferencedName(ref) === "eval") {
+					return Global_eval(thisValue, argList, true, strict);
+				}
 			}
 		}
 		return func.Call(thisValue, argList);

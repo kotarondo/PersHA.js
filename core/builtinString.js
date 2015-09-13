@@ -44,7 +44,7 @@ function String_Call(thisValue, argumentsList) {
 function String_Construct(argumentsList) {
 	var value = String_Call(null, argumentsList);
 	var obj = VMObject(CLASSID_String);
-	obj.Prototype = builtin_String_prototype;
+	obj.Prototype = vm.builtin_String_prototype;
 	obj.Extensible = true;
 	obj.PrimitiveValue = value;
 	defineFinal(obj, "length", value.length);

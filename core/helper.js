@@ -33,6 +33,7 @@
 
 'use strict';
 
+var STRICT_CONFORMANCE = false;
 var CHECK_EXTENSION = false;
 var CHECK_READONLY = false;
 

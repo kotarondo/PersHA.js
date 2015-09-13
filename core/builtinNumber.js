@@ -44,7 +44,7 @@ function Number_Call(thisValue, argumentsList) {
 function Number_Construct(argumentsList) {
 	var value = Number_Call(null, argumentsList);
 	var obj = VMObject(CLASSID_Number);
-	obj.Prototype = builtin_Number_prototype;
+	obj.Prototype = vm.builtin_Number_prototype;
 	obj.Extensible = true;
 	obj.PrimitiveValue = value;
 	return obj;

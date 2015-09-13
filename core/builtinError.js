@@ -38,7 +38,7 @@
 function Error_Call(thisValue, argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_Error_prototype;
+	obj.Prototype = vm.builtin_Error_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -50,7 +50,7 @@ function Error_Call(thisValue, argumentsList) {
 function Error_Construct(argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_Error_prototype;
+	obj.Prototype = vm.builtin_Error_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -90,7 +90,7 @@ function Error_prototype_toString(thisValue, argumentsList) {
 function EvalError_Call(thisValue, argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_EvalError_prototype;
+	obj.Prototype = vm.builtin_EvalError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -102,7 +102,7 @@ function EvalError_Call(thisValue, argumentsList) {
 function EvalError_Construct(argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_EvalError_prototype;
+	obj.Prototype = vm.builtin_EvalError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -114,7 +114,7 @@ function EvalError_Construct(argumentsList) {
 function RangeError_Call(thisValue, argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_RangeError_prototype;
+	obj.Prototype = vm.builtin_RangeError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -126,7 +126,7 @@ function RangeError_Call(thisValue, argumentsList) {
 function RangeError_Construct(argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_RangeError_prototype;
+	obj.Prototype = vm.builtin_RangeError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -138,7 +138,7 @@ function RangeError_Construct(argumentsList) {
 function ReferenceError_Call(thisValue, argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_ReferenceError_prototype;
+	obj.Prototype = vm.builtin_ReferenceError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -150,7 +150,7 @@ function ReferenceError_Call(thisValue, argumentsList) {
 function ReferenceError_Construct(argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_ReferenceError_prototype;
+	obj.Prototype = vm.builtin_ReferenceError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -162,7 +162,7 @@ function ReferenceError_Construct(argumentsList) {
 function SyntaxError_Call(thisValue, argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_SyntaxError_prototype;
+	obj.Prototype = vm.builtin_SyntaxError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -174,7 +174,7 @@ function SyntaxError_Call(thisValue, argumentsList) {
 function SyntaxError_Construct(argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_SyntaxError_prototype;
+	obj.Prototype = vm.builtin_SyntaxError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -186,7 +186,7 @@ function SyntaxError_Construct(argumentsList) {
 function TypeError_Call(thisValue, argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_TypeError_prototype;
+	obj.Prototype = vm.builtin_TypeError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -198,7 +198,7 @@ function TypeError_Call(thisValue, argumentsList) {
 function TypeError_Construct(argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_TypeError_prototype;
+	obj.Prototype = vm.builtin_TypeError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -210,7 +210,7 @@ function TypeError_Construct(argumentsList) {
 function URIError_Call(thisValue, argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_URIError_prototype;
+	obj.Prototype = vm.builtin_URIError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {
@@ -222,7 +222,7 @@ function URIError_Call(thisValue, argumentsList) {
 function URIError_Construct(argumentsList) {
 	var message = argumentsList[0];
 	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = builtin_URIError_prototype;
+	obj.Prototype = vm.builtin_URIError_prototype;
 	obj.Extensible = true;
 	obj.stackTrace = getStackTrace();
 	if (message !== undefined) {

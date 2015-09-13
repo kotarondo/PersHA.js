@@ -358,8 +358,8 @@ function Global_unescape(thisValue, argumentsList) {
 function Global_setSystemProperty(thisValue, argumentsList) {
 	var name = ToString(argumentsList[0]);
 	var value = argumentsList[1];
-	if (name === "stackTraceLimit") {
-		stackTraceLimit = ToUint32(value);
+	if (name === "stackDepthLimit") {
+		stackDepthLimit = ToUint32(value);
 	}
 	if (name === "LocalTZA") {
 		LocalTZA = ToUint32(value);
@@ -370,15 +370,12 @@ function Global_setSystemProperty(thisValue, argumentsList) {
 	if (name === "INSPECT_MAX_BYTES") {
 		INSPECT_MAX_BYTES = ToInteger(value);
 	}
-	if (name === "stackDepthLimit") {
-		stackDepthLimit = ToUint32(value);
-	}
 }
 
 function Global_getSystemProperty(thisValue, argumentsList) {
 	var name = ToString(argumentsList[0]);
-	if (name === "stackTraceLimit") {
-		return stackTraceLimit;
+	if (name === "stackDepthLimit") {
+		return stackDepthLimit;
 	}
 	if (name === "LocalTZA") {
 		return LocalTZA;
@@ -388,8 +385,5 @@ function Global_getSystemProperty(thisValue, argumentsList) {
 	}
 	if (name === "INSPECT_MAX_BYTES") {
 		return INSPECT_MAX_BYTES;
-	}
-	if (name === "stackDepthLimit") {
-		return stackDepthLimit;
 	}
 }

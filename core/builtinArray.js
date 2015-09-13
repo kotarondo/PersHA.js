@@ -41,7 +41,7 @@ function Array_Call(thisValue, argumentsList) {
 
 function Array_Construct(argumentsList) {
 	var obj = VMObject(CLASSID_Array);
-	obj.Prototype = builtin_Array_prototype;
+	obj.Prototype = vm.builtin_Array_prototype;
 	obj.Extensible = true;
 	if (argumentsList.length !== 1) {
 		defineWritable(obj, "length", argumentsList.length);

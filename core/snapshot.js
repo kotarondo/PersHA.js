@@ -33,7 +33,9 @@
 
 'use strict';
 
-function SnapshotOutputStream(ostream) {
+var OBJID_BASE=10;
+
+function SnapshotOutputStream(ostream, allObjs) {
 	return {
 		writeInt : function(x) {
 			ostream.writeInt(x);
@@ -68,7 +70,7 @@ function SnapshotOutputStream(ostream) {
 				ostream.writeInt(6);
 				return;
 			}
-			assert(10 <= x.ID, x);
+			assert(allObjs[x.ID] === x, x);
 			ostream.writeInt(x.ID);
 		},
 	};
@@ -90,7 +92,7 @@ function SnapshotInputStream(istream, allObjs) {
 		},
 		readValue : function() {
 			var ID = istream.readInt();
-			if (10 <= ID) {
+			if (OBJID_BASE <= ID) {
 				var obj = allObjs[ID];
 				this.assert(obj !== undefined);
 				return obj;
@@ -119,11 +121,19 @@ function SnapshotInputStream(istream, allObjs) {
 	};
 }
 
+var systemProperties = {
+	stackDepthLimit: undefined,
+	LocalTZA: undefined,
+	LocalTZAString: undefined,
+	INSPECT_MAX_BYTES:  undefined,
+};
+
 function writeSnapshot(l_ostream) {
-	var ostream = SnapshotOutputStream(l_ostream);
-	ostream.writeInt(1); // format version
 	var allObjs = [];
-	allObjs.length = 10;
+	allObjs.length = OBJID_BASE;
+	var ostream = SnapshotOutputStream(l_ostream, allObjs);
+	ostream.writeString("v2.0");
+
 	function mark(obj) {
 		if (isSnapshotObject(obj) === false) {
 			return;
@@ -132,34 +142,13 @@ function writeSnapshot(l_ostream) {
 			obj.ID = allObjs.length;
 			allObjs.push(obj);
 		}
-		assert(obj.ID >= 10, obj);
+		assert(allObjs[obj.ID ] === obj, obj);
 	}
-	mark(builtin_Object_prototype);
-	mark(builtin_Function_prototype);
-	mark(builtin_Array_prototype);
-	mark(builtin_String_prototype);
-	mark(builtin_Boolean_prototype);
-	mark(builtin_Number_prototype);
-	mark(builtin_Date_prototype);
-	mark(builtin_RegExp_prototype);
-	mark(builtin_Error_prototype);
-	mark(builtin_EvalError_prototype);
-	mark(builtin_RangeError_prototype);
-	mark(builtin_ReferenceError_prototype);
-	mark(builtin_SyntaxError_prototype);
-	mark(builtin_TypeError_prototype);
-	mark(builtin_URIError_prototype);
-	mark(theGlobalObject);
-	mark(theGlobalEnvironment);
-	mark(theEvalFunction);
-	mark(theThrowTypeError);
-	// mark extensions
-	if (builtin_Buffer_prototype !== undefined) {
-		mark(builtin_Buffer_prototype);
+	for(var name in vm){
+		mark(vm[name]);
 	}
-	if (builtin_IOPort_prototype !== undefined) {
-		mark(builtin_IOPort_prototype);
-		mark(builtin_IOPortError_prototype);
+	for(var name in systemProperties){
+		mark(global[name]);
 	}
 	for ( var txid in IOManager_asyncCallbacks) {
 		var callback = IOManager_asyncCallbacks[txid];
@@ -171,7 +160,8 @@ function writeSnapshot(l_ostream) {
 		mark(port.callback);
 	}
 
-	for (var i = 10; i < allObjs.length; i++) {
+	ostream.writeString("CLASSID");
+	for (var i = OBJID_BASE; i < allObjs.length; i++) {
 		var obj = allObjs[i];
 		ostream.writeInt(obj.ClassID);
 		if (obj.ClassID === CLASSID_SourceObject) {
@@ -180,62 +170,53 @@ function writeSnapshot(l_ostream) {
 		obj.walkObject(mark);
 	}
 	ostream.writeInt(0);
-	for (var i = 10; i < allObjs.length; i++) {
+
+	ostream.writeString("CONTENTS");
+	for (var i = OBJID_BASE; i < allObjs.length; i++) {
 		var obj = allObjs[i];
-		assert(obj.ID === i, obj);
 		if (obj.ClassID !== CLASSID_SourceObject) {
 			ostream.writeInt(obj.ID);
 			obj.writeObject(ostream);
 		}
 	}
+	ostream.writeInt(0);
 
-	// extensions
-	{
-		ostream.writeString("StackTrace");
-		ostream.writeInt(stackTraceLimit);
+	ostream.writeString("VM");
+	for(var name in vm){
+		ostream.writeString(name);
+		ostream.writeValue(vm[name]);
 	}
-	{
-		ostream.writeString("StackLimit");
-		ostream.writeInt(stackDepthLimit);
+	ostream.writeString("");
+
+	ostream.writeString("SYSTEM");
+	for(var name in systemProperties){
+		ostream.writeString(name);
+		ostream.writeValue(global[name]);
 	}
-	{
-		ostream.writeString("Timezone");
-		ostream.writeInt(LocalTZA);
-		ostream.writeString(LocalTZAString);
+	ostream.writeString("");
+
+	ostream.writeString("IO");
+	ostream.writeInt(IOManager_uniqueID);
+	for ( var txid in IOManager_asyncCallbacks) {
+		var callback = IOManager_asyncCallbacks[txid];
+		ostream.writeInt(ToNumber(txid));
+		ostream.writeValue(callback);
 	}
-	if (builtin_Buffer_prototype !== undefined) {
-		ostream.writeString("Buffer");
-		ostream.writeInt(builtin_Buffer_prototype.ID);
-		ostream.writeValue(INSPECT_MAX_BYTES);
+	ostream.writeInt(0);
+	for ( var txid in IOManager_openPorts) {
+		var port = IOManager_openPorts[txid];
+		assert(ToNumber(txid) === port.txid);
+		ostream.writeInt(ToNumber(txid));
+		ostream.writeValue(port);
+		ostream.writeValue(port.callback);
 	}
-	if (builtin_IOPort_prototype !== undefined) {
-		ostream.writeString("IOPort");
-		ostream.writeInt(builtin_IOPort_prototype.ID);
-		ostream.writeInt(builtin_IOPortError_prototype.ID);
-	}
-	{
-		ostream.writeString("IOManager");
-		ostream.writeInt(IOManager_uniqueID);
-		for ( var txid in IOManager_asyncCallbacks) {
-			var callback = IOManager_asyncCallbacks[txid];
-			ostream.writeInt(ToNumber(txid));
-			ostream.writeInt(callback.ID);
-		}
-		ostream.writeInt(0);
-		for ( var txid in IOManager_openPorts) {
-			var port = IOManager_openPorts[txid];
-			ostream.writeInt(ToNumber(txid));
-			ostream.writeInt(port.ID);
-			ostream.writeInt(port.callback.ID);
-			assert(ToNumber(txid) === port.txid);
-		}
-		ostream.writeInt(0);
-	}
-	ostream.writeString("end");
+	ostream.writeInt(0);
+
+	ostream.writeString("FINISH");
 
 	//cleanup
 	l_ostream.flush();
-	for (var i = 10; i < allObjs.length; i++) {
+	for (var i = OBJID_BASE; i < allObjs.length; i++) {
 		var obj = allObjs[i];
 		obj.ID = 0;
 	}
@@ -243,12 +224,14 @@ function writeSnapshot(l_ostream) {
 
 function readSnapshot(l_istream) {
 	var allObjs = [];
-	allObjs.length = 10;
+	allObjs.length = OBJID_BASE;
 	var istream = SnapshotInputStream(l_istream, allObjs);
-	var version = istream.readInt();
-	if (version > 1) {
-		throw Error("version not supported: " + version);
+	var version = istream.readString();
+	if (version !== "v2.0") {
+		throw Error("unsupported format version: " + version);
 	}
+
+	istream.assert(istream.readString() ==="CLASSID");
 	while (true) {
 		var ClassID = istream.readInt();
 		if (ClassID === 0) {
@@ -270,7 +253,9 @@ function readSnapshot(l_istream) {
 		}
 		allObjs.push(obj);
 	}
-	for (var i = 10; i < allObjs.length; i++) {
+
+	istream.assert(istream.readString() ==="CONTENTS");
+	for (var i = OBJID_BASE; i < allObjs.length; i++) {
 		var obj = allObjs[i];
 		if (obj.ClassID === CLASSID_SourceObject) {
 			continue;
@@ -279,119 +264,62 @@ function readSnapshot(l_istream) {
 		istream.assert(ID === i);
 		obj.readObject(istream);
 	}
-	var i = 10;
-	builtin_Object_prototype = allObjs[i++];
-	builtin_Function_prototype = allObjs[i++];
-	builtin_Array_prototype = allObjs[i++];
-	builtin_String_prototype = allObjs[i++];
-	builtin_Boolean_prototype = allObjs[i++];
-	builtin_Number_prototype = allObjs[i++];
-	builtin_Date_prototype = allObjs[i++];
-	builtin_RegExp_prototype = allObjs[i++];
-	builtin_Error_prototype = allObjs[i++];
-	builtin_EvalError_prototype = allObjs[i++];
-	builtin_RangeError_prototype = allObjs[i++];
-	builtin_ReferenceError_prototype = allObjs[i++];
-	builtin_SyntaxError_prototype = allObjs[i++];
-	builtin_TypeError_prototype = allObjs[i++];
-	builtin_URIError_prototype = allObjs[i++];
-	theGlobalObject = allObjs[i++];
-	theGlobalEnvironment = allObjs[i++];
-	theEvalFunction = allObjs[i++];
-	theThrowTypeError = allObjs[i++];
-	istream.assert(builtin_Object_prototype.ClassID === CLASSID_Object);
-	istream.assert(builtin_Function_prototype.ClassID === CLASSID_BuiltinFunction);
-	istream.assert(builtin_Array_prototype.ClassID === CLASSID_Array);
-	istream.assert(builtin_String_prototype.ClassID === CLASSID_String);
-	istream.assert(builtin_Boolean_prototype.ClassID === CLASSID_Boolean);
-	istream.assert(builtin_Number_prototype.ClassID === CLASSID_Number);
-	istream.assert(builtin_Date_prototype.ClassID === CLASSID_Date);
-	istream.assert(builtin_RegExp_prototype.ClassID === CLASSID_RegExp);
-	istream.assert(builtin_Error_prototype.ClassID === CLASSID_Error);
-	istream.assert(builtin_EvalError_prototype.ClassID === CLASSID_Error);
-	istream.assert(builtin_RangeError_prototype.ClassID === CLASSID_Error);
-	istream.assert(builtin_ReferenceError_prototype.ClassID === CLASSID_Error);
-	istream.assert(builtin_SyntaxError_prototype.ClassID === CLASSID_Error);
-	istream.assert(builtin_TypeError_prototype.ClassID === CLASSID_Error);
-	istream.assert(builtin_URIError_prototype.ClassID === CLASSID_Error);
-	istream.assert(theGlobalObject.ClassID === CLASSID_Global);
-	istream.assert(theGlobalEnvironment.ClassID === CLASSID_ObjectEnvironment);
-	istream.assert(theEvalFunction.ClassID === CLASSID_BuiltinFunction);
-	istream.assert(theThrowTypeError.ClassID === CLASSID_BuiltinFunction);
-	initExecutionContext();
+	istream.assert(istream.readInt() ===0);
 
-	// extensions
-	stackTraceLimit = 10;
-	stackDepthLimit = Infinity;
-	LocalTZA = 9 * 3600000;
-	LocalTZAString = "JST";
-	INSPECT_MAX_BYTES = 50;
-	builtin_Buffer_prototype = undefined;
-	builtin_IOPort_prototype = undefined;
-	builtin_IOPortError_prototype = undefined;
-	assert(IOManager_state === 'offline');
-	IOManager_uniqueID = 0
+	istream.assert(istream.readString() ==="VM");
+	while (true) {
+		var name = istream.readString();
+		if (name === "") {
+			break;
+		}
+		vm[name]=istream.readValue();
+	}
+
+	istream.assert(istream.readString() ==="SYSTEM");
+	while (true) {
+		var name = istream.readString();
+		if (name === "") {
+			break;
+		}
+		istream.assert(name in systemProperties);
+		global[name ] = istream.readValue();
+	}
+
+	istream.assert(istream.readString() ==="IO");
+	IOManager_uniqueID = istream.readInt();
 	IOManager_asyncCallbacks = {};
 	IOManager_openPorts = {};
 	while (true) {
-		var ext = istream.readString();
-		if (ext === "end") {
+		var txid = istream.readInt();
+		if (txid === 0) {
 			break;
 		}
-		switch (ext) {
-		case "StackTrace":
-			stackTraceLimit = istream.readInt();
+		var callback = istream.readValue();
+		IOManager_asyncCallbacks[txid] = callback;
+		istream.assert(txid <= IOManager_uniqueID);
+		istream.assert(IsCallable(callback));
+	}
+	while (true) {
+		var txid = istream.readInt();
+		if (txid === 0) {
 			break;
-		case "StackLimit":
-			stackDepthLimit = istream.readInt();
-			break;
-		case "Timezone":
-			LocalTZA = istream.readInt();
-			LocalTZAString = istream.readString();
-			break;
-		case "Buffer":
-			builtin_Buffer_prototype = allObjs[istream.readInt()];
-			istream.assert(builtin_Buffer_prototype.ClassID === CLASSID_Buffer);
-			INSPECT_MAX_BYTES = istream.readValue();
-			break;
-		case "IOPort":
-			builtin_IOPort_prototype = allObjs[istream.readInt()];
-			istream.assert(builtin_IOPort_prototype.ClassID === CLASSID_IOPort);
-			builtin_IOPortError_prototype = allObjs[istream.readInt()];
-			istream.assert(builtin_IOPortError_prototype.ClassID === CLASSID_Error);
-			break;
-		case "IOManager":
-			IOManager_uniqueID = istream.readInt();
-			while (true) {
-				var txid = istream.readInt();
-				if (txid === 0) {
-					break;
-				}
-				var callback = allObjs[istream.readInt()];
-				istream.assert(txid <= IOManager_uniqueID);
-				istream.assert(IsCallable(callback));
-				IOManager_asyncCallbacks[txid] = callback;
-			}
-			while (true) {
-				var txid = istream.readInt();
-				if (txid === 0) {
-					break;
-				}
-				var port = allObjs[istream.readInt()];
-				var callback = allObjs[istream.readInt()];
-				istream.assert(txid <= IOManager_uniqueID);
-				IOManager_openPorts[txid] = port;
-				port.txid = txid;
-				port.callback = callback;
-			}
-			break;
-		default:
-			throw Error("unknown extension: " + ext);
 		}
+		var port = istream.readValue();
+		var callback = istream.readValue();
+		IOManager_openPorts[txid] = port;
+		port.txid = txid;
+		port.callback = callback;
+		istream.assert(txid <= IOManager_uniqueID);
+		istream.assert(port.ClassID == CLASSID_IOPort);
+		istream.assert(IsCallable(callback));
 	}
 
+	istream.assert(istream.readString() ==="FINISH");
+	Object.freeze(vm);
+	istream.assert(checkVM());
+
 	//cleanup
-	for (var i = 10; i < allObjs.length; i++) {
+	for (var i = OBJID_BASE; i < allObjs.length; i++) {
 		var obj = allObjs[i];
 		if (obj.ClassID === CLASSID_SourceObject) {
 			obj.subcodes = undefined;

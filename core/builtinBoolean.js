@@ -43,7 +43,7 @@ function Boolean_Call(thisValue, argumentsList) {
 function Boolean_Construct(argumentsList) {
 	var value = Boolean_Call(null, argumentsList);
 	var obj = VMObject(CLASSID_Boolean);
-	obj.Prototype = builtin_Boolean_prototype;
+	obj.Prototype = vm.builtin_Boolean_prototype;
 	obj.Extensible = true;
 	obj.PrimitiveValue = value;
 	return obj;
