@@ -99,6 +99,8 @@ function Global_parseProgram(thisValue, argumentsList) {
 		throw e;
 	}
 	var obj = VMObject(CLASSID_Script);
+	obj.Prototype = null; //TODO
+	obj.Extensible = false;
 	obj.Code = prog;
 	return obj;
 }
