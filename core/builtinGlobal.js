@@ -88,7 +88,7 @@ function Global_parseProgram(thisValue, argumentsList) {
 	var filename = ToString(argumentsList[1]);
 	if (Type(x) !== TYPE_String) return;
 	try {
-		theParser.readProgram(x, false, [], filename);
+		var prog = theParser.readProgram(x, false, [], filename);
 	} catch (e) {
 		if (e instanceof theParser.SyntaxError) {
 			throw VMSyntaxError(e.message);
@@ -98,7 +98,9 @@ function Global_parseProgram(thisValue, argumentsList) {
 		}
 		throw e;
 	}
-	return x;
+	var obj = VMObject(CLASSID_Script);
+	obj.Code = prog;
+	return obj;
 }
 
 function Global_parseInt(thisValue, argumentsList) {

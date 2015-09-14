@@ -703,3 +703,22 @@ function vm_readObject(istream) {
 		this[name] = istream.readValue();
 	}
 }
+
+function Script_walkObject(mark) {
+	intrinsic_walkObject(this, mark);
+	mark(this.Code.sourceObject);
+}
+
+function Script_writeObject(ostream) {
+	intrinsic_writeObject(this, ostream);
+	ostream.writeValue(this.Code.sourceObject);
+	ostream.writeInt(this.Code.index);
+}
+
+function Script_readObject(istream) {
+	intrinsic_readObject(this, istream);
+	var sourceObject = istream.readValue();
+	var index = istream.readInt();
+	this.Code = sourceObject.subcodes[index];
+	istream.assert(this.Code !== undefined);
+}

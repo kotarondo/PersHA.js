@@ -134,7 +134,7 @@ function IOPort_portEvent(entry, callback, port) {
 			return IOPort_unwrap(e);
 		}
 		else {
-			IOPort_callbackUncaughtError(e);
+			task_callbackUncaughtError(e);
 		}
 	} finally {
 		vm = callingVM;
@@ -154,7 +154,7 @@ function IOPort_completionEvent(entry, callback) {
 			callback._Call(undefined, IOPort_wrapArgs(entry.value));
 		}
 	} catch (e) {
-		IOPort_callbackUncaughtError(e);
+		task_callbackUncaughtError(e);
 	} finally {
 		vm = callingVM;
 	}

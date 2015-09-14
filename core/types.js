@@ -87,6 +87,7 @@ var CLASSID_SourceObject = 19;
 var CLASSID_Buffer = 20;
 var CLASSID_IOPort = 21;
 var CLASSID_vm = 22;
+var CLASSID_Script = 23;
 
 var VMObjectClass;
 var VMBuiltinFunctionClass;
@@ -111,6 +112,7 @@ var SourceObjectClass;
 var VMBufferClass;
 var VMIOPortClass;
 var vmClass;
+var ScriptClass;
 
 function setAlltheInternalMethod(Class, ClassID) {
 	var obj = Object.create(null);
@@ -160,8 +162,8 @@ function VMObject(ClassID) {
 		if (VMFunctionObjectClass === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
 			obj.Get = FunctionObject_Get;
-			obj._Call= FunctionObject_Call;
-			obj._Construct= FunctionObject_Construct;
+			obj._Call = FunctionObject_Call;
+			obj._Construct = FunctionObject_Construct;
 			obj.HasInstance = FunctionObject_HasInstance;
 			obj.walkObject = FunctionObject_walkObject;
 			obj.writeObject = FunctionObject_writeObject;
@@ -178,8 +180,8 @@ function VMObject(ClassID) {
 		if (VMBindFunctionClass === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
 			obj.Get = FunctionObject_Get;
-			obj._Call= BindFunction_Call;
-			obj._Construct= BindFunction_Construct;
+			obj._Call = BindFunction_Call;
+			obj._Construct = BindFunction_Construct;
 			obj.HasInstance = BindFunction_HasInstance;
 			obj.walkObject = BindFunction_walkObject;
 			obj.writeObject = BindFunction_writeObject;
@@ -341,9 +343,20 @@ function VMObject(ClassID) {
 			vmClass = freeze(obj);
 		}
 		var obj = Object.create(vmClass);
-		for(var name in vmTemplate){
-			obj [name]=undefined;
+		for ( var name in vmTemplate) {
+			obj[name] = undefined;
 		}
+		break;
+	case CLASSID_Script:
+		if (ScriptClass === undefined) {
+			var obj = setAlltheInternalMethod("Script", ClassID);
+			obj.walkObject = Script_walkObject;
+			obj.writeObject = Script_writeObject;
+			obj.readObject = Script_readObject;
+			ScriptClass = freeze(obj);
+		}
+		var obj = Object.create(ScriptClass);
+		obj.Code = undefined;
 		break;
 	default:
 		assert(false, ClassID);
