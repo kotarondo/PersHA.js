@@ -138,15 +138,45 @@ function runMicrotasks() {
 		var args = task.args;
 		assert(IsCallable(callback), callback);
 		assert(args instanceof Array, args);
+		var callingVM = vm;
+		vm = callback.vm;
+		assert(vm);
 		try {
-			callback.Call(undefined, args);
+			callback._Call(undefined, args);
 		} catch (e) {
-			var err = IOPort_callbackUncaughtError(e);
-			if (err) {
-				console.error("Uncaught: " + err);
-			}
+			task_callbackUncaughtError(e);
+		} finally {
+			vm = callingVM;
 		}
 		microtaskQueue.shift();
 		assert(taskDepth === 1);
+	}
+}
+
+function task_callbackUncaughtError(e) {
+	if (isInternalError(e)) throw e;
+	try {
+		var callback = vm.theGlobalObject.Get('_uncaughtErrorCallback');
+		if (IsCallable(callback)) {
+			callback.Call(undefined, [ e ]);
+			return;
+		}
+	} catch (ee) {
+		if (isInternalError(ee)) throw ee;
+		e = ee;
+	}
+	try {
+		if (Type(e) === TYPE_Object && e.Class === "Error") {
+			var err = ToString(e.Get('stack'));
+		}
+		else {
+			var err = ToString(e);
+		}
+	} catch (ee) {
+		if (isInternalError(ee)) throw ee;
+		var err = "non-printable error";
+	}
+	if (IOManager_state !== 'recovery') {
+		console.error("Uncaught: " + err);
 	}
 }

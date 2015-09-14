@@ -38,7 +38,17 @@
 function Global_eval(thisValue, argumentsList, direct, strict) {
 	var x = argumentsList[0];
 	if (Type(x) !== TYPE_String) return x;
-	var prog = theParser.readProgram(x, strict, [], "<anonymous>");
+	try {
+		var prog = theParser.readProgram(x, strict, [], "<anonymous>");
+	} catch (e) {
+		if (e instanceof theParser.SyntaxError) {
+			throw VMSyntaxError(e.message);
+		}
+		if (e instanceof theParser.ReferenceError) {
+			throw VMReferenceError(e.message);
+		}
+		throw e;
+	}
 	prog.isEvalCode = true;
 	enterExecutionContextForEvalCode(prog, direct);
 	var result = prog.evaluate();
@@ -53,7 +63,17 @@ function Global_evaluateProgram(thisValue, argumentsList) {
 	var x = argumentsList[0];
 	var filename = ToString(argumentsList[1]);
 	if (Type(x) !== TYPE_String) return x;
-	var prog = theParser.readProgram(x, false, [], filename);
+	try {
+		var prog = theParser.readProgram(x, false, [], filename);
+	} catch (e) {
+		if (e instanceof theParser.SyntaxError) {
+			throw VMSyntaxError(e.message);
+		}
+		if (e instanceof theParser.ReferenceError) {
+			throw VMReferenceError(e.message);
+		}
+		throw e;
+	}
 	enterExecutionContextForGlobalCode(prog);
 	var result = prog.evaluate();
 	exitExecutionContext();
@@ -67,7 +87,17 @@ function Global_parseProgram(thisValue, argumentsList) {
 	var x = argumentsList[0];
 	var filename = ToString(argumentsList[1]);
 	if (Type(x) !== TYPE_String) return;
-	theParser.readProgram(x, false, [], filename);
+	try {
+		theParser.readProgram(x, false, [], filename);
+	} catch (e) {
+		if (e instanceof theParser.SyntaxError) {
+			throw VMSyntaxError(e.message);
+		}
+		if (e instanceof theParser.ReferenceError) {
+			throw VMReferenceError(e.message);
+		}
+		throw e;
+	}
 	return x;
 }
 

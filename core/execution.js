@@ -212,19 +212,8 @@ var runningCode;
 var runningSourcePos;
 var outerExecutionContext;
 
-var stackDepth;
+var stackDepth = 0;
 var stackDepthLimit = 400;
-
-function initExecutionContext() {
-	stackDepth = 0;
-	LexicalEnvironment = vm.theGlobalEnvironment;
-	VariableEnvironment = vm.theGlobalEnvironment;
-	ThisBinding = vm.theGlobalObject;
-	runningFunction = undefined;
-	runningCode = undefined;
-	runningSourcePos = undefined;
-	outerExecutionContext = undefined;
-}
 
 function saveExecutionContext() {
 	if (stackDepth >= stackDepthLimit) {

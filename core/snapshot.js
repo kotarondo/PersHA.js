@@ -507,20 +507,7 @@ function RegExp_writeObject(ostream) {
 
 function RegExp_readObject(istream) {
 	intrinsic_readObject(this, istream);
-	try {
-		var info = {
-			source : this.Get("source"),
-			global : this.Get("global"),
-			ignoreCase : this.Get("ignoreCase"),
-			multiline : this.Get("multiline"),
-		};
-		theRegExpFactory.compile(info);
-	} catch (e) {
-		//TODO syntax error
-		throw e;
-	}
-	obj.Match = info.Match;
-	obj.NCapturingParens = info.NCapturingParens;
+	theRegExpFactory.recompile(this);
 }
 
 function Error_walkObject(mark) {

@@ -108,42 +108,40 @@ function defineAccessor(obj, name, get, set) {
 
 function defineCall(obj, func) {
 	obj.vm = vm;
-	obj._Call= func;
-}
-
-function default_Call(thisValue, argumentsList) {
-		var callingVM = vm;
-		var objectVM = this.vm;
-		assert(objectVM);
-		if (objectVM === callingVM) {
-			return this._Call(thisValue, argumentsList);
-		}
-		try {
-			vm = objectVM;
-			return this._Call(thisValue, argumentsList);
-		} finally {
-			vm = callingVM;
-		}
+	obj._Call = func;
 }
 
 function defineConstruct(obj, func) {
 	obj.vm = vm;
-	obj._Construct= func;
+	obj._Construct = func;
+}
+
+function default_Call(thisValue, argumentsList) {
+	var callingVM = vm;
+	vm = this.vm;
+	assert(vm);
+	if (vm === callingVM) {
+		return this._Call(thisValue, argumentsList);
+	}
+	try {
+		return this._Call(thisValue, argumentsList);
+	} finally {
+		vm = callingVM;
+	}
 }
 
 function default_Construct(argumentsList) {
-		var callingVM = vm;
-		var objectVM = this.vm;
-		assert(objectVM);
-		if (objectVM === callingVM) {
-			return this._Construct(argumentsList);
-		}
-		try {
-			vm = objectVM;
-			return this._Construct(argumentsList);
-		} finally {
-			vm = callingVM;
-		}
+	var callingVM = vm;
+	vm = this.vm;
+	assert(vm);
+	if (vm === callingVM) {
+		return this._Construct(argumentsList);
+	}
+	try {
+		return this._Construct(argumentsList);
+	} finally {
+		vm = callingVM;
+	}
 }
 
 function initializeVM() {
@@ -597,7 +595,7 @@ function initializeVM() {
 	defineFinal(builtin_RegExp_prototype, "ignoreCase", false);
 	defineFinal(builtin_RegExp_prototype, "multiline", false);
 	defineWritable(builtin_RegExp_prototype, "lastIndex", 0);
-	theRegExpFactory.compile(builtin_RegExp_prototype);
+	theRegExpFactory.recompile(builtin_RegExp_prototype);
 	define(builtin_RegExp_prototype, "constructor", builtin_RegExp);
 	defineFunction(builtin_RegExp_prototype, "exec", 1, RegExp_prototype_exec);
 	defineFunction(builtin_RegExp_prototype, "test", 1, RegExp_prototype_test);

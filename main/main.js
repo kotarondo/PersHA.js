@@ -103,7 +103,6 @@ function rmdirSync(path) {
 			console.log("ERROR: invalid: " + PERSHA_DATA);
 			process.exit(1);
 		}
-		initExecutionContext();
 		IOManager_start();
 		Journal_checkpoint();
 	}

@@ -60,8 +60,18 @@ function Function_Construct(argumentsList) {
 		var body = argumentsList[k - 1];
 	}
 	var body = ToString(body);
-	var parameters = theParser.readFunctionParameters(P);
-	var body = theParser.readFunctionCode(body, parameters, [], "<anonymous>");
+	try {
+		var parameters = theParser.readFunctionParameters(P);
+		var body = theParser.readFunctionCode(body, parameters, [], "<anonymous>");
+	} catch (e) {
+		if (e instanceof theParser.SyntaxError) {
+			throw VMSyntaxError(e.message);
+		}
+		if (e instanceof theParser.ReferenceError) {
+			throw VMReferenceError(e.message);
+		}
+		throw e;
+	}
 	return FunctionObject(parameters, body, vm.theGlobalEnvironment, body.strict);
 }
 
@@ -91,7 +101,7 @@ function get_Function_prototype_name(thisValue, argumentsList) {
 		func = func.TargetFunction;
 	}
 	if (func.ClassID === CLASSID_BuiltinFunction) {
-		return getIntrinsicFunctionName(func.Call);
+		return getIntrinsicFunctionName(func._Call);
 	}
 	assert(func.ClassID === CLASSID_FunctionObject);
 	return func.Code.functionName;

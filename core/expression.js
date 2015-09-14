@@ -54,9 +54,9 @@ function Literal(value) {
 	};
 }
 
-function RegExpLiteral(info) {
+function RegExpLiteral(regexp) {
 	return function() {
-		return RegExpLiteral_Construct(info);
+		return theRegExpFactory.createRegExpObject(regexp);
 	};
 }
 

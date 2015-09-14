@@ -117,45 +117,46 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 }
 
 function IOPort_portEvent(entry, callback, port) {
-	if (entry.error) {
-		assert(isPrimitiveValue(entry.error));
-		callback.Call(undefined, [ IOPortError_Construct([ entry.error ]), port ]);
-	}
-	else {
-		callback.Call(undefined, IOPort_wrapArgs(entry.value));
+	var callingVM = vm;
+	vm = callback.vm;
+	assert(vm);
+	try {
+		if (entry.error) {
+			assert(isPrimitiveValue(entry.error));
+			callback._Call(undefined, [ IOPortError_Construct([ entry.error ]), port ]);
+		}
+		else {
+			callback._Call(undefined, IOPort_wrapArgs(entry.value));
+		}
+	} catch (e) {
+		if (taskDepth >= 2) {
+			if (isInternalError(e)) throw e;
+			return IOPort_unwrap(e);
+		}
+		else {
+			IOPort_callbackUncaughtError(e);
+		}
+	} finally {
+		vm = callingVM;
 	}
 }
 
 function IOPort_completionEvent(entry, callback) {
-	if (entry.error) {
-		assert(isPrimitiveValue(entry.error));
-		callback.Call(undefined, [ IOPortError_Construct([ entry.error ]) ]);
-	}
-	else {
-		callback.Call(undefined, IOPort_wrapArgs(entry.value));
-	}
-}
-
-function IOPort_callbackUncaughtError(e) {
-	if (isInternalError(e)) throw e;
+	var callingVM = vm;
+	vm = callback.vm;
+	assert(vm);
 	try {
-		var callback = vm.theGlobalObject.Get('_uncaughtErrorCallback');
-		if (IsCallable(callback)) {
-			callback.Call(undefined, [ e ]);
-			return;
+		if (entry.error) {
+			assert(isPrimitiveValue(entry.error));
+			callback._Call(undefined, [ IOPortError_Construct([ entry.error ]) ]);
 		}
-	} catch (ee) {
-		if (isInternalError(ee)) throw ee;
-		e = ee;
-	}
-	try {
-		if (Type(e) === TYPE_Object && e.Class === "Error") {
-			return ToString(e.Get('stack'));
+		else {
+			callback._Call(undefined, IOPort_wrapArgs(entry.value));
 		}
-		return ToString(e);
-	} catch (ee) {
-		if (isInternalError(ee)) throw ee;
-		return "non-printable error";
+	} catch (e) {
+		IOPort_callbackUncaughtError(e);
+	} finally {
+		vm = callingVM;
 	}
 }
 

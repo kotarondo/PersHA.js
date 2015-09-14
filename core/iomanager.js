@@ -114,20 +114,7 @@ function IOManager_portEvent(entry) {
 		Journal_write(entry);
 	}
 	task_enter();
-	try {
-		IOPort_portEvent(entry, port.callback, port);
-	} catch (e) {
-		if (taskDepth >= 2) {
-			if (isInternalError(e)) throw e;
-			var ee = IOPort_unwrap(e);
-		}
-		else {
-			var err = IOPort_callbackUncaughtError(e);
-			if (err && IOManager_state !== 'recovery') {
-				console.error("Uncaught: " + err);
-			}
-		}
-	}
+	var ee = IOPort_portEvent(entry, port.callback, port);
 	task_leave();
 	return ee;
 }
@@ -267,14 +254,7 @@ function IOManager_completionEvent(entry) {
 		Journal_write(entry);
 	}
 	task_enter();
-	try {
-		IOPort_completionEvent(entry, callback);
-	} catch (e) {
-		var err = IOPort_callbackUncaughtError(e);
-		if (err && IOManager_state !== 'recovery') {
-			console.error("Uncaught: " + err);
-		}
-	}
+	IOPort_completionEvent(entry, callback);
 	task_leave();
 }
 
@@ -350,10 +330,7 @@ function IOManager_evaluate(text, filename) {
 	try {
 		Global_evaluateProgram(undefined, [ text, filename ]);
 	} catch (e) {
-		var err = IOPort_callbackUncaughtError(e);
-		if (err && IOManager_state !== 'recovery') {
-			console.error("Uncaught: " + err);
-		}
+		task_callbackUncaughtError(e);
 	}
 	task_leave();
 }

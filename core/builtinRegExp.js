@@ -52,13 +52,13 @@ function RegExp_Construct(argumentsList) {
 		var obj = VMObject(CLASSID_RegExp);
 		obj.Prototype = vm.builtin_RegExp_prototype;
 		obj.Extensible = true;
-		obj.Match = R.Match;
-		obj.NCapturingParens = R.NCapturingParens;
 		defineFinal(obj, "source", R.Get("source"));
 		defineFinal(obj, "global", R.Get("global"));
 		defineFinal(obj, "ignoreCase", R.Get("ignoreCase"));
 		defineFinal(obj, "multiline", R.Get("multiline"));
 		defineWritable(obj, "lastIndex", 0);
+		obj.NCapturingParens = R.NCapturingParens;
+		obj.Match = R.Match;
 		return obj;
 	}
 	if (pattern === undefined) {
@@ -73,24 +73,15 @@ function RegExp_Construct(argumentsList) {
 	else {
 		var F = ToString(flags);
 	}
-	var obj = VMObject(CLASSID_RegExp);
-	obj.Prototype = vm.builtin_RegExp_prototype;
-	obj.Extensible = true;
 	try {
-		var info = theRegExpFactory.setup(P, F);
-		theRegExpFactory.compile(info);
+		var regexp = theRegExpFactory.compile(P, F);
 	} catch (e) {
-		//TODO syntax error
+		if (e instanceof theRegExpFactory.SyntaxError) {
+			throw VMSyntaxError(e.message);
+		}
 		throw e;
 	}
-	obj.Match = info.Match;
-	obj.NCapturingParens = info.NCapturingParens;
-	defineFinal(obj, "source", info.source);
-	defineFinal(obj, "global", info.global);
-	defineFinal(obj, "ignoreCase", info.ignoreCase);
-	defineFinal(obj, "multiline", info.multiline);
-	defineWritable(obj, "lastIndex", 0);
-	return obj;
+	return theRegExpFactory.createRegExpObject(regexp);
 }
 
 function RegExp_prototype_exec(thisValue, argumentsList) {
@@ -186,7 +177,9 @@ var theRegExpFactory = RegExpFactory();
 function RegExpFactory() {
 	return preventExtensions({
 		compile : compile,
-		setup : setup,
+		recompile : recompile,
+		createRegExpObject : createRegExpObject,
+		SyntaxError : SyntaxError,
 	});
 
 	var source;
@@ -204,7 +197,7 @@ function RegExpFactory() {
 	}
 
 	function expecting(c) {
-		if (c !== current) throw VMSyntaxError();
+		if (c !== current) throw SyntaxError();
 		proceed();
 	}
 
@@ -214,7 +207,7 @@ function RegExpFactory() {
 			count = 1;
 		}
 		for (var i = 0; i < count; i++) {
-			if (current === undefined) throw VMSyntaxError();
+			if (current === undefined) throw SyntaxError();
 			currentPos++;
 			current = lookahead;
 			lookahead = lookahead2;
@@ -232,15 +225,16 @@ function RegExpFactory() {
 	var Input;
 	var InputLength;
 
-	function compile(info) {
-		setPattern(info.source);
-		NCapturingParens = info.NCapturingParens = countNCapturingParens(info.source), leftCapturingParentheses = 0;
+	function evaluatePattern(regexp) {
+		setPattern(regexp.source);
+		leftCapturingParentheses = 0;
+		NCapturingParens = regexp.NCapturingParens;
 		var m = evaluateDisjunction();
-		if (current !== undefined) throw VMSyntaxError();
-		assertEquals(nCapturingParens, leftCapturingParentheses);
+		if (current !== undefined) throw SyntaxError();
+		assertEquals(NCapturingParens, leftCapturingParentheses);
 
-		var ignoreCase = info.ignoreCase;
-		var multiline = info.multiline;
+		var ignoreCase = regexp.ignoreCase;
+		var multiline = regexp.multiline;
 		return function(str, index) {
 			Input = str;
 			InputLength = Input.length;
@@ -507,7 +501,7 @@ function RegExpFactory() {
 				max = evaluateDecimalDigits();
 				expecting('}'); // '{'
 			}
-			else throw VMSyntaxError();
+			else throw SyntaxError();
 		}
 		else return m;
 		var greedy = true;
@@ -515,14 +509,14 @@ function RegExpFactory() {
 			proceed();
 			var greedy = false;
 		}
-		if (isFinite(max) && (max < min)) throw VMSyntaxError();
+		if (isFinite(max) && (max < min)) throw SyntaxError();
 		return function(x, c) {
 			return RepeatMatcher(m, min, max, greedy, x, c, parenIndex, parenCount);
 		};
 	}
 
 	function evaluateDecimalDigits() {
-		if (isDecimalDigitChar(current) === false) throw VMSyntaxError();
+		if (isDecimalDigitChar(current) === false) throw SyntaxError();
 		var x = 0;
 		while (isDecimalDigitChar(current)) {
 			x = x * 10 + mvDigitChar(current);
@@ -623,7 +617,7 @@ function RegExpFactory() {
 			}
 			var n = E;
 			if (n > NCapturingParens) {
-				if (STRICT_CONFORMANCE) throw VMSyntaxError();
+				if (STRICT_CONFORMANCE) throw SyntaxError();
 				return function(x, c) {
 					return failure;
 				};
@@ -671,8 +665,8 @@ function RegExpFactory() {
 			return '\u000D';
 		case 'c':
 			if ((mvDigitChar(current) >= 10) === false) {
-				if (STRICT_CONFORMANCE) throw VMSyntaxError();
-				if (isIncluded(current, "/^$\\.*+?()[]{}|")) throw VMSyntaxError();
+				if (STRICT_CONFORMANCE) throw SyntaxError();
+				if (isIncluded(current, "/^$\\.*+?()[]{}|")) throw SyntaxError();
 				return undefined;
 			}
 			var ch = proceed();
@@ -683,7 +677,7 @@ function RegExpFactory() {
 			var x = 0;
 			for (var i = 0; i < 2; i++) {
 				if (!isHexDigitChar(current)) {
-					if (STRICT_CONFORMANCE) throw VMSyntaxError();
+					if (STRICT_CONFORMANCE) throw SyntaxError();
 					return undefined;
 				}
 				x = (x << 4) + mvDigitChar(current);
@@ -694,7 +688,7 @@ function RegExpFactory() {
 			var x = 0;
 			for (var i = 0; i < 4; i++) {
 				if (!isHexDigitChar(current)) {
-					if (STRICT_CONFORMANCE) throw VMSyntaxError();
+					if (STRICT_CONFORMANCE) throw SyntaxError();
 					return undefined;
 				}
 				x = (x << 4) + mvDigitChar(current);
@@ -706,7 +700,7 @@ function RegExpFactory() {
 			return c;
 		}
 		if (STRICT_CONFORMANCE) {
-			if (isIdentifierPart(c)) throw VMSyntaxError();
+			if (isIdentifierPart(c)) throw SyntaxError();
 		}
 		return c;
 	}
@@ -715,7 +709,7 @@ function RegExpFactory() {
 		if (isDecimalDigitChar(current) === false) return undefined;
 		if (current === '0') {
 			proceed();
-			if (isDecimalDigitChar(current)) throw VMSyntaxError();
+			if (isDecimalDigitChar(current)) throw SyntaxError();
 			return '\u0000';
 		}
 		var x = 0;
@@ -730,13 +724,13 @@ function RegExpFactory() {
 		if (isDecimalDigitChar(current) === false) return undefined;
 		if (current === '0') {
 			proceed();
-			if (isDecimalDigitChar(current)) throw VMSyntaxError();
+			if (isDecimalDigitChar(current)) throw SyntaxError();
 			return '\u0000';
 		}
-		if (STRICT_CONFORMANCE) throw VMSyntaxError();
+		if (STRICT_CONFORMANCE) throw SyntaxError();
 		var x = 0;
 		while (isDecimalDigitChar(current)) {
-			if (current === '8' || current === '9') throw VMSyntaxError();
+			if (current === '8' || current === '9') throw SyntaxError();
 			x = x * 8 + mvDigitChar(current);
 			proceed();
 		}
@@ -804,7 +798,7 @@ function RegExpFactory() {
 					var B = evaluateClassAtom();
 					var b = oneCharacterOfCharSet;
 					if (a === undefined || b === undefined) {
-						if (STRICT_CONFORMANCE) throw VMSyntaxError();
+						if (STRICT_CONFORMANCE) throw SyntaxError();
 						charSets.push(A);
 						charSets.push(oneElementCharSet('-'));
 						charSets.push(B);
@@ -812,7 +806,7 @@ function RegExpFactory() {
 					else {
 						var i = toCharCode(a);
 						var j = toCharCode(b);
-						if (i > j) throw VMSyntaxError();
+						if (i > j) throw SyntaxError();
 						var D = rangeCharSet(i, j);
 						charSets.push(D);
 					}
@@ -870,7 +864,7 @@ function RegExpFactory() {
 				proceed();
 				return oneElementCharSet('\u0008');
 			}
-			if (current === 'B') throw VMSyntaxError();
+			if (current === 'B') throw SyntaxError();
 			if (isIncluded(current, "dDsSwW")) return evaluateCharacterClassEscape();
 			var ch = evaluateCharacterEscape();
 			if (ch === undefined) return function(cc) {
@@ -949,31 +943,68 @@ function RegExpFactory() {
 		return join(buffer);
 	}
 
-	function setup(P, F) {
+	function compile(P, F) {
 		var ignoreCase = false;
 		var multiline = false;
 		var global = false;
 		for (var i = 0; i !== F.length; i++) {
 			var f = F[i];
 			if (f === 'g') {
-				if (global) throw VMSyntaxError();
+				if (global) throw SyntaxError();
 				global = true;
 			}
 			else if (f === 'i') {
-				if (ignoreCase) throw VMSyntaxError();
+				if (ignoreCase) throw SyntaxError();
 				ignoreCase = true;
 			}
 			else if (f === 'm') {
-				if (multiline) throw VMSyntaxError();
+				if (multiline) throw SyntaxError();
 				multiline = true;
 			}
-			else throw VMSyntaxError();
+			else throw SyntaxError();
 		}
-		return {
+		var regexp = {
 			source : escapePattern(P),
 			global : global,
 			ignoreCase : ignoreCase,
 			multiline : multiline,
 		};
+		regexp.NCapturingParens = countNCapturingParens(regexp.source);
+		regexp.Match = evaluatePattern(regexp);
+		return regexp;
+	}
+
+	function recompile(obj) {
+		var regexp = {
+			source : obj.Get("source"),
+			global : obj.Get("global"),
+			ignoreCase : obj.Get("ignoreCase"),
+			multiline : obj.Get("multiline"),
+		};
+		regexp.NCapturingParens = countNCapturingParens(regexp.source);
+		obj.NCapturingParens = regexp.NCapturingParens;
+		obj.Match = evaluatePattern(regexp);
+	}
+
+	function createRegExpObject(regexp) {
+		var obj = VMObject(CLASSID_RegExp);
+		obj.Prototype = vm.builtin_RegExp_prototype;
+		obj.Extensible = true;
+		defineFinal(obj, "source", regexp.source);
+		defineFinal(obj, "global", regexp.global);
+		defineFinal(obj, "ignoreCase", regexp.ignoreCase);
+		defineFinal(obj, "multiline", regexp.multiline);
+		defineWritable(obj, "lastIndex", 0);
+		obj.NCapturingParens = regexp.NCapturingParens;
+		obj.Match = regexp.Match;
+		return obj;
+	}
+
+	function SyntaxError() {
+		if (this === undefined) {
+			return new SyntaxError();
+		}
+		this.message = "at " + currentPos;
+		this.pos = currentPos;
 	}
 }
