@@ -349,6 +349,7 @@ function initializeVM() {
 	theGlobalObject.Prototype = builtin_Object_prototype;
 	theGlobalObject.Extensible = true;
 
+	defineFinal(vm, "global", theGlobalObject);
 	vm.theGlobalEnvironment = NewObjectEnvironment(theGlobalObject, null);
 	initializeThrowTypeErrorObject();
 
@@ -372,6 +373,7 @@ function initializeVM() {
 		defineFunction(theGlobalObject, "parseProgram", 1, Global_parseProgram);
 		defineFunction(theGlobalObject, "setSystemProperty", 2, Global_setSystemProperty);
 		defineFunction(theGlobalObject, "getSystemProperty", 1, Global_getSystemProperty);
+		defineFunction(theGlobalObject, "createVM", 0, Global_createVM);
 	}
 	define(theGlobalObject, "Object", builtin_Object);
 	define(theGlobalObject, "Function", builtin_Function);
@@ -767,6 +769,7 @@ function initializeVM() {
 	define(builtin_IOPortError_prototype, "message", "");
 
 	assert(checkVM());
+	return vm;
 }
 
 function checkVM() {

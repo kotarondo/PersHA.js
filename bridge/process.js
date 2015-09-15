@@ -132,22 +132,37 @@ process._MakeCallback = function(domain, f) {
 };
 
 process.binding('contextify').ContextifyScript = function(code, options) {
-	if (options) {
+	if (typeof options === "string") {
+		var filename = options;
+	}
+	else if (options) {
 		var filename = options.filename;
 	}
-	parseProgram(code, filename);
+	var prog = parseProgram(code, filename);
 	this.runInThisContext = function() {
-		return evaluateProgram(code, filename);
+		return evaluateProgram(prog, filename);
 	};
 	this.runInContext = function(sandbox) {
 		var vm = sandbox && sandbox.__vm__;
-		return evaluateProgram(code, filename);
+		if (!vm) {
+			throw new TypeError();
+		}
+		return vm.global.evaluateProgram(prog, filename);
 	};
 };
 
 process.binding('contextify').makeContext = function(sandbox) {
-	//var vm = createVM(sandbox);
-	var vm = {};
+	var vm = createVM();
+	var names = Object.getOwnPropertyNames(sandbox);
+	for (var i = 0; i < names.length; i++) {
+		var name = names[i];
+		var desc = Object.getOwnPropertyDescriptor(sandbox, name);
+		try {
+			Object.defineProperty(vm.global, name, desc);
+		} catch (e) {
+			//ignore
+		}
+	}
 	Object.defineProperty(sandbox, "__vm__", {
 		value : vm,
 		writable : false,

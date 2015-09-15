@@ -62,7 +62,7 @@ function Global_eval(thisValue, argumentsList, direct, strict) {
 function Global_evaluateProgram(thisValue, argumentsList) {
 	var x = argumentsList[0];
 	var filename = ToString(argumentsList[1]);
-	if (Type(x) !== TYPE_String) return x;
+	if (Type(x) === TYPE_String) {
 	try {
 		var prog = theParser.readProgram(x, false, [], filename);
 	} catch (e) {
@@ -73,6 +73,14 @@ function Global_evaluateProgram(thisValue, argumentsList) {
 			throw VMReferenceError(e.message);
 		}
 		throw e;
+	}
+	}
+	else
+	if (Type(x) === TYPE_Object && x.Class === "Script") {
+		var prog = x.Code;
+	}
+	else{
+		return x;
 	}
 	enterExecutionContextForGlobalCode(prog);
 	var result = prog.evaluate();
@@ -99,7 +107,7 @@ function Global_parseProgram(thisValue, argumentsList) {
 		throw e;
 	}
 	var obj = VMObject(CLASSID_Script);
-	obj.Prototype = null; //TODO
+	obj.Prototype = null;
 	obj.Extensible = false;
 	obj.Code = prog;
 	return obj;
@@ -421,4 +429,11 @@ function Global_getSystemProperty(thisValue, argumentsList) {
 	if (name === "INSPECT_MAX_BYTES") {
 		return INSPECT_MAX_BYTES;
 	}
+}
+
+function Global_createVM(thisValue, argumentsList) {
+	var callingVM = vm;
+	var newVM = initializeVM();
+	vm = callingVM;
+	return newVM;
 }
