@@ -679,7 +679,7 @@ function BufferObject_readObject(istream) {
 function vm_walkObject(mark) {
 	intrinsic_walkObject(this, mark);
 	for ( var name in vmTemplate) {
-		mark(vm[name]);
+		mark(this[name]);
 	}
 }
 

@@ -155,6 +155,7 @@ function VMObject(ClassID) {
 			VMBuiltinFunctionClass = freeze(obj);
 		}
 		var obj = Object.create(VMBuiltinFunctionClass);
+		obj.vm = undefined;
 		obj._Call = undefined;
 		obj._Construct = undefined;
 		break;
