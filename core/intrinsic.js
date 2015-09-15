@@ -94,6 +94,7 @@ var intrinsicFunctions = {
 	Object_prototype_hasOwnProperty : Object_prototype_hasOwnProperty,
 	Object_prototype_isPrototypeOf : Object_prototype_isPrototypeOf,
 	Object_prototype_propertyIsEnumerable : Object_prototype_propertyIsEnumerable,
+	Object_prototype_mirrorTo : Object_prototype_mirrorTo,
 	get_Object_prototype___proto__ : get_Object_prototype___proto__,
 	set_Object_prototype___proto__ : set_Object_prototype___proto__,
 	Function_prototype_toString : Function_prototype_toString,

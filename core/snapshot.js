@@ -165,6 +165,10 @@ function writeSnapshot(l_ostream) {
 		if (obj.ClassID === CLASSID_SourceObject) {
 			obj.writeObject(ostream);
 		}
+		else if (obj.ClassID === CLASSID_mirror) {
+			ostream.writeInt(obj.__proto__.ClassID);
+			obj.walkObject(mark);
+		}
 		else {
 			obj.walkObject(mark);
 		}
@@ -242,6 +246,15 @@ function readSnapshot(l_istream) {
 			break;
 		case CLASSID_SourceObject:
 			var obj = SourceObject_readObject(istream);
+			break;
+		case CLASSID_mirror:
+			var ClassID = istream.readInt();
+			var obj = VMObject(ClassID);
+			obj.ClassID = CLASSID_mirror;
+			obj.walkObject = mirror_walkObject;
+			obj.writeObject = mirror_writeObject;
+			obj.readObject = mirror_readObject;
+			obj.DefineOwnProperty = mirror_DefineOwnProperty;
 			break;
 		default:
 			var obj = VMObject(ClassID);
@@ -721,4 +734,20 @@ function Script_readObject(istream) {
 	var index = istream.readInt();
 	this.Code = sourceObject.subcodes[index];
 	istream.assert(this.Code !== undefined);
+}
+
+function mirror_walkObject(mark) {
+	this.__proto__.walkObject.call(this, mark);
+	intrinsic_walkObject(this, mark);
+	mark(this.mirror);
+}
+
+function mirror_writeObject(ostream) {
+	this.__proto__.writeObject.call(this, ostream);
+	ostream.writeValue(this.mirror);
+}
+
+function mirror_readObject(istream) {
+	this.__proto__.readObject.call(this, istream);
+	this.mirror = istream.writeValue();
 }

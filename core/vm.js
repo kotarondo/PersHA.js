@@ -417,6 +417,7 @@ function initializeVM() {
 	defineFunction(builtin_Object_prototype, "propertyIsEnumerable", 1, Object_prototype_propertyIsEnumerable);
 	if (STRICT_CONFORMANCE === false) {
 		defineAccessor(builtin_Object_prototype, "__proto__", get_Object_prototype___proto__, set_Object_prototype___proto__);
+		defineFunction(builtin_Object_prototype, "mirrorTo", 1, Object_prototype_mirrorTo);
 	}
 
 	defineFinal(builtin_Function, "length", 1);
@@ -773,49 +774,49 @@ function initializeVM() {
 }
 
 function checkVM() {
-	return vm.ClassID === CLASSID_vm //
-			&& vm.builtin_Object_prototype.ClassID === CLASSID_Object //
-			&& vm.builtin_Function_prototype.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_Array_prototype.ClassID === CLASSID_Array //
-			&& vm.builtin_String_prototype.ClassID === CLASSID_String //
-			&& vm.builtin_Boolean_prototype.ClassID === CLASSID_Boolean //
-			&& vm.builtin_Number_prototype.ClassID === CLASSID_Number //
-			&& vm.builtin_Date_prototype.ClassID === CLASSID_Date //
-			&& vm.builtin_RegExp_prototype.ClassID === CLASSID_RegExp //
-			&& vm.builtin_Error_prototype.ClassID === CLASSID_Error //
-			&& vm.builtin_EvalError_prototype.ClassID === CLASSID_Error //
-			&& vm.builtin_RangeError_prototype.ClassID === CLASSID_Error //
-			&& vm.builtin_ReferenceError_prototype.ClassID === CLASSID_Error //
-			&& vm.builtin_SyntaxError_prototype.ClassID === CLASSID_Error //
-			&& vm.builtin_TypeError_prototype.ClassID === CLASSID_Error //
-			&& vm.builtin_URIError_prototype.ClassID === CLASSID_Error //
-			&& vm.builtin_Object.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_Function.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_Array.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_String.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_Boolean.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_Number.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_Math.ClassID === CLASSID_Math //
-			&& vm.builtin_Date.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_RegExp.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_Error.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_EvalError.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_RangeError.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_ReferenceError.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_SyntaxError.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_TypeError.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_URIError.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_JSON.ClassID === CLASSID_JSON //
-			&& vm.theGlobalObject.ClassID === CLASSID_Global //
+	return vm.Class === "vm" //
+			&& vm.builtin_Object_prototype.Class === "Object" //
+			&& vm.builtin_Function_prototype.Class === "Function" //
+			&& vm.builtin_Array_prototype.Class === "Array" //
+			&& vm.builtin_String_prototype.Class === "String" //
+			&& vm.builtin_Boolean_prototype.Class === "Boolean" //
+			&& vm.builtin_Number_prototype.Class === "Number" //
+			&& vm.builtin_Date_prototype.Class === "Date" //
+			&& vm.builtin_RegExp_prototype.Class === "RegExp" //
+			&& vm.builtin_Error_prototype.Class === "Error" //
+			&& vm.builtin_EvalError_prototype.Class === "Error" //
+			&& vm.builtin_RangeError_prototype.Class === "Error" //
+			&& vm.builtin_ReferenceError_prototype.Class === "Error" //
+			&& vm.builtin_SyntaxError_prototype.Class === "Error" //
+			&& vm.builtin_TypeError_prototype.Class === "Error" //
+			&& vm.builtin_URIError_prototype.Class === "Error" //
+			&& vm.builtin_Object.Class === "Function" //
+			&& vm.builtin_Function.Class === "Function" //
+			&& vm.builtin_Array.Class === "Function" //
+			&& vm.builtin_String.Class === "Function" //
+			&& vm.builtin_Boolean.Class === "Function" //
+			&& vm.builtin_Number.Class === "Function" //
+			&& vm.builtin_Math.Class === "Math" //
+			&& vm.builtin_Date.Class === "Function" //
+			&& vm.builtin_RegExp.Class === "Function" //
+			&& vm.builtin_Error.Class === "Function" //
+			&& vm.builtin_EvalError.Class === "Function" //
+			&& vm.builtin_RangeError.Class === "Function" //
+			&& vm.builtin_ReferenceError.Class === "Function" //
+			&& vm.builtin_SyntaxError.Class === "Function" //
+			&& vm.builtin_TypeError.Class === "Function" //
+			&& vm.builtin_URIError.Class === "Function" //
+			&& vm.builtin_JSON.Class === "JSON" //
+			&& vm.theGlobalObject.Class === "Global" //
 			&& vm.theGlobalEnvironment.ClassID === CLASSID_ObjectEnvironment //
-			&& vm.theEvalFunction.ClassID === CLASSID_BuiltinFunction //
-			&& vm.theThrowTypeError.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_Buffer_prototype.ClassID === CLASSID_Buffer //
-			&& vm.builtin_Buffer.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_IOPort_prototype.ClassID === CLASSID_IOPort //
-			&& vm.builtin_IOPortError_prototype.ClassID === CLASSID_Error //
-			&& vm.builtin_IOPort.ClassID === CLASSID_BuiltinFunction //
-			&& vm.builtin_IOPortError.ClassID === CLASSID_BuiltinFunction //
+			&& vm.theEvalFunction.Class === "Function" //
+			&& vm.theThrowTypeError.Class === "Function" //
+			&& vm.builtin_Buffer_prototype.Class === "Buffer" //
+			&& vm.builtin_Buffer.Class === "Function" //
+			&& vm.builtin_IOPort_prototype.Class === "IOPort" //
+			&& vm.builtin_IOPortError_prototype.Class === "Error" //
+			&& vm.builtin_IOPort.Class === "Function" //
+			&& vm.builtin_IOPortError.Class === "Function" //
 	;
 }
 

@@ -78,33 +78,32 @@ function Function_Construct(argumentsList) {
 function Function_prototype_toString(thisValue, argumentsList) {
 	var func = thisValue;
 	if (IsCallable(func) === false) throw VMTypeError();
-	while (func.ClassID === CLASSID_BindFunction) {
+	var name = get_Function_prototype_name(thisValue, argumentsList);
+	while (func.TargetFunction) {
 		func = func.TargetFunction;
 	}
-	if (func.ClassID === CLASSID_BuiltinFunction) {
-		return "function " + getIntrinsicFunctionName(func.Call) + "{ native }";
+	if (func.Code) {
+		var param = func.FormalParameters;
+		var name = func.Code.functionName || "anonymous";
+		var startPos = func.Code.startPos;
+		var endPos = func.Code.endPos;
+		var source = func.Code.sourceObject.source;
+		var codeText = source.substring(startPos, endPos);
+		return "function " + name + "(" + param + "){" + codeText + "}";
 	}
-	assert(func.ClassID === CLASSID_FunctionObject);
-	var param = func.FormalParameters;
-	var name = func.Code.functionName || "anonymous";
-	var startPos = func.Code.startPos;
-	var endPos = func.Code.endPos;
-	var source = func.Code.sourceObject.source;
-	var codeText = source.substring(startPos, endPos);
-	return "function " + name + "(" + param + "){" + codeText + "}";
+	return "function " + getIntrinsicFunctionName(func.Call) + "{ native }";
 }
 
 function get_Function_prototype_name(thisValue, argumentsList) {
 	var func = thisValue;
 	if (IsCallable(func) === false) throw VMTypeError();
-	while (func.ClassID === CLASSID_BindFunction) {
+	while (func.TargetFunction) {
 		func = func.TargetFunction;
 	}
-	if (func.ClassID === CLASSID_BuiltinFunction) {
-		return getIntrinsicFunctionName(func._Call);
+	if (func.Code) {
+		return func.Code.functionName;
 	}
-	assert(func.ClassID === CLASSID_FunctionObject);
-	return func.Code.functionName;
+	return getIntrinsicFunctionName(func._Call);
 }
 
 function Function_prototype_apply(thisValue, argumentsList) {

@@ -88,6 +88,7 @@ var CLASSID_Buffer = 20;
 var CLASSID_IOPort = 21;
 var CLASSID_vm = 22;
 var CLASSID_Script = 23;
+var CLASSID_mirror = 24;
 
 var VMObjectClass;
 var VMBuiltinFunctionClass;
@@ -115,7 +116,7 @@ var vmClass;
 var ScriptClass;
 
 function setAlltheInternalMethod(Class, ClassID) {
-	var obj = Object.create(null);
+	var obj = {};
 	obj.Class = Class;
 	obj.ClassID = ClassID;
 	obj.GetOwnProperty = default_GetOwnProperty;

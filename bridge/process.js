@@ -169,6 +169,8 @@ process.binding('contextify').makeContext = function(sandbox) {
 		enumerable : false,
 		configurable : false
 	});
+	sandbox.mirrorTo(vm.global);
+	vm.global.mirrorTo(sandbox);
 };
 
 process.binding('contextify').isContext = function(sandbox) {

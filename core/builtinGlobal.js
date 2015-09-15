@@ -63,23 +63,22 @@ function Global_evaluateProgram(thisValue, argumentsList) {
 	var x = argumentsList[0];
 	var filename = ToString(argumentsList[1]);
 	if (Type(x) === TYPE_String) {
-	try {
-		var prog = theParser.readProgram(x, false, [], filename);
-	} catch (e) {
-		if (e instanceof theParser.SyntaxError) {
-			throw VMSyntaxError(e.message);
+		try {
+			var prog = theParser.readProgram(x, false, [], filename);
+		} catch (e) {
+			if (e instanceof theParser.SyntaxError) {
+				throw VMSyntaxError(e.message);
+			}
+			if (e instanceof theParser.ReferenceError) {
+				throw VMReferenceError(e.message);
+			}
+			throw e;
 		}
-		if (e instanceof theParser.ReferenceError) {
-			throw VMReferenceError(e.message);
-		}
-		throw e;
 	}
-	}
-	else
-	if (Type(x) === TYPE_Object && x.Class === "Script") {
+	else if (Type(x) === TYPE_Object && x.Class === "Script") {
 		var prog = x.Code;
 	}
-	else{
+	else {
 		return x;
 	}
 	enterExecutionContextForGlobalCode(prog);
