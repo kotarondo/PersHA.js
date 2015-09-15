@@ -41,7 +41,7 @@ function Array_Call(thisValue, argumentsList) {
 
 function Array_Construct(argumentsList) {
 	var obj = VMObject(CLASSID_Array);
-	obj.Prototype = vm.builtin_Array_prototype;
+	obj.Prototype = vm.Array_prototype;
 	obj.Extensible = true;
 	if (argumentsList.length !== 1) {
 		defineWritable(obj, "length", argumentsList.length);
@@ -823,7 +823,7 @@ function Array_prototype_reduceRight(thisValue, argumentsList) {
 	return accumulator;
 }
 
-function ArrayObject_DefineOwnProperty(P, Desc, Throw) {
+function Array_DefineOwnProperty(P, Desc, Throw) {
 	var A = this;
 	var oldLenDesc = A.GetOwnProperty("length");
 	var oldLen = oldLenDesc.Value;
@@ -903,8 +903,8 @@ function ArrayObject_DefineOwnProperty(P, Desc, Throw) {
 	return default_DefineOwnProperty.call(A, P, Desc, Throw);
 }
 
-//optimized version of ArrayObject_DefineOwnProperty
-function ArrayObject_DefineOwnProperty_Value(A, P, V, ownDesc) {
+//optimized version of Array_DefineOwnProperty
+function Array_DefineOwnProperty_Value(A, P, V, ownDesc) {
 	assert(ownDesc.Writable, ownDesc);
 	if (P === "length") {
 		var oldLen = ownDesc.Value;

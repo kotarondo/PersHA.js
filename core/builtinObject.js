@@ -50,7 +50,7 @@ function Object_Construct(argumentsList) {
 		if (Type(value) === TYPE_Number) return ToObject(value);
 	}
 	var obj = VMObject(CLASSID_Object);
-	obj.Prototype = vm.builtin_Object_prototype;
+	obj.Prototype = vm.Object_prototype;
 	obj.Extensible = true;
 	return obj;
 }

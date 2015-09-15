@@ -35,7 +35,7 @@
 
 // ECMAScript 5.1: 10 Executable Code and Execution Contexts
 
-var DeclarativeEnvironmentRecordClass = freeze({
+var Class_DeclarativeEnvironmentRecord = freeze({
 	// $attributes
 	// 0: Mutable Deletable
 	// 1: Mutable Undeletable
@@ -98,7 +98,7 @@ var DeclarativeEnvironmentRecordClass = freeze({
 	},
 });
 
-var ObjectEnvironmentRecordClass = freeze({
+var Class_ObjectEnvironmentRecord = freeze({
 	HasBinding : function(N) {
 		var bindings = this.bindings;
 		return bindings.HasProperty(N);
@@ -159,29 +159,29 @@ function GetIdentifierReference(lex, name, strict) {
 }
 
 function DeclarativeEnvironmentRecord() {
-	var obj = Object.create(DeclarativeEnvironmentRecordClass);
+	var obj = Object.create(Class_DeclarativeEnvironmentRecord);
 	obj.$values = Object.create(null);
 	obj.$attributes = Object.create(null);
 	return preventExtensions(obj);
 }
 
 function ObjectEnvironmentRecord(bindings) {
-	var obj = Object.create(ObjectEnvironmentRecordClass);
+	var obj = Object.create(Class_ObjectEnvironmentRecord);
 	obj.bindings = bindings;
 	obj.provideThis = false;
 	return preventExtensions(obj);
 }
 
 function NewDeclarativeEnvironment(E) {
-	if (DeclarativeEnvironmentClass === undefined) {
-		DeclarativeEnvironmentClass = freeze({
+	if (Class_DeclarativeEnvironment === undefined) {
+		Class_DeclarativeEnvironment = freeze({
+			ClassID : CLASSID_DeclarativeEnvironment,
 			walkObject : DeclarativeEnvironment_walkObject,
 			writeObject : DeclarativeEnvironment_writeObject,
 			readObject : DeclarativeEnvironment_readObject,
-			ClassID : CLASSID_DeclarativeEnvironment,
 		});
 	}
-	var obj = Object.create(DeclarativeEnvironmentClass);
+	var obj = Object.create(Class_DeclarativeEnvironment);
 	obj.environmentRecord = DeclarativeEnvironmentRecord();
 	obj.outer = E;
 	obj.ID = 0;
@@ -189,15 +189,15 @@ function NewDeclarativeEnvironment(E) {
 }
 
 function NewObjectEnvironment(O, E) {
-	if (ObjectEnvironmentClass === undefined) {
-		ObjectEnvironmentClass = freeze({
+	if (Class_ObjectEnvironment === undefined) {
+		Class_ObjectEnvironment = freeze({
+			ClassID : CLASSID_ObjectEnvironment,
 			walkObject : ObjectEnvironment_walkObject,
 			writeObject : ObjectEnvironment_writeObject,
 			readObject : ObjectEnvironment_readObject,
-			ClassID : CLASSID_ObjectEnvironment,
 		});
 	}
-	var obj = Object.create(ObjectEnvironmentClass);
+	var obj = Object.create(Class_ObjectEnvironment);
 	obj.environmentRecord = ObjectEnvironmentRecord(O);
 	obj.outer = E;
 	obj.ID = 0;
@@ -244,7 +244,7 @@ function exitExecutionContext() {
 }
 
 function getStackTrace() {
-	var stackTraceLimit = vm.builtin_Error.Get('stackTraceLimit');
+	var stackTraceLimit = vm.Error.Get('stackTraceLimit');
 	if (Type(stackTraceLimit) !== TYPE_Number) {
 		stackTraceLimit = 10;
 	}
@@ -410,7 +410,7 @@ function CreateArgumentsObject(func, names, args, env, strict) {
 	else {
 		var obj = VMObject(CLASSID_Arguments);
 	}
-	obj.Prototype = vm.builtin_Object_prototype;
+	obj.Prototype = vm.Object_prototype;
 	obj.Extensible = true;
 	default_DefineOwnProperty.call(obj, "length", PropertyDescriptor({
 		Value : len,

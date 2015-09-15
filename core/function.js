@@ -40,7 +40,7 @@ function FunctionDeclaration(name, parameters, body) {
 		name : name,
 		instantiate : function() {
 			var env = VariableEnvironment;
-			return FunctionObject(parameters, body, env, body.strict);
+			return VMFunction(parameters, body, env, body.strict);
 		}
 	});
 }
@@ -48,7 +48,7 @@ function FunctionDeclaration(name, parameters, body) {
 function FunctionExpression(name, parameters, body) {
 	if (name === undefined) return function() {
 		var env = LexicalEnvironment;
-		return FunctionObject(parameters, body, env, body.strict);
+		return VMFunction(parameters, body, env, body.strict);
 	};
 
 	return function() {
@@ -56,7 +56,7 @@ function FunctionExpression(name, parameters, body) {
 		var funcEnv = NewDeclarativeEnvironment(env);
 		var envRec = funcEnv.environmentRecord;
 		envRec.CreateImmutableBinding(name);
-		var closure = FunctionObject(parameters, body, funcEnv, body.strict);
+		var closure = VMFunction(parameters, body, funcEnv, body.strict);
 		envRec.InitializeImmutableBinding(name, closure);
 		return closure;
 	};
@@ -69,10 +69,10 @@ function FunctionBody(sourceElements) {
 	};
 }
 
-function FunctionObject(parameters, body, Scope, Strict) {
-	var F = VMObject(CLASSID_FunctionObject);
+function VMFunction(parameters, body, Scope, Strict) {
+	var F = VMObject(CLASSID_Function);
 	F.vm = vm;
-	F.Prototype = vm.builtin_Function_prototype;
+	F.Prototype = vm.Function_prototype;
 	F.Scope = Scope;
 	F.FormalParameters = parameters;
 	F.Code = body;
@@ -115,7 +115,7 @@ function FunctionObject(parameters, body, Scope, Strict) {
 	return F;
 }
 
-function FunctionObject_Call(thisValue, argumentsList) {
+function Function_Call(thisValue, argumentsList) {
 	var F = this;
 	enterExecutionContextForFunctionCode(F, thisValue, argumentsList);
 	if (F.Code === undefined) {
@@ -131,7 +131,7 @@ function FunctionObject_Call(thisValue, argumentsList) {
 	return undefined;
 }
 
-function FunctionObject_Construct(argumentsList) {
+function Function_Construct(argumentsList) {
 	var F = this;
 	var obj = VMObject(CLASSID_Object);
 	obj.Extensible = true;
@@ -140,7 +140,7 @@ function FunctionObject_Construct(argumentsList) {
 		obj.Prototype = proto;
 	}
 	if (Type(proto) !== TYPE_Object) {
-		obj.Prototype = vm.builtin_Object_prototype;
+		obj.Prototype = vm.Object_prototype;
 	}
 	var result = F.Call(obj, argumentsList);
 	if (Type(result) === TYPE_Object) return result;
@@ -153,8 +153,8 @@ function ThrowTypeError() {
 
 function initializeThrowTypeErrorObject() {
 	var F = VMObject(CLASSID_BuiltinFunction);
-	F.Prototype = vm.builtin_Function_prototype;
-	defineCall(F,ThrowTypeError);
+	F.Prototype = vm.Function_prototype;
+	defineCall(F, ThrowTypeError);
 	defineFinal(F, "length", 0);
 	F.Extensible = false;
 	vm.theThrowTypeError = F;

@@ -65,8 +65,8 @@ function Type(x) {
 }
 
 var CLASSID_Object = 1;
-var CLASSID_BuiltinFunction = 2;
-var CLASSID_FunctionObject = 3;
+var CLASSID_Function = 2;
+var CLASSID_BuiltinFunction = 3;
 var CLASSID_BindFunction = 4;
 var CLASSID_Array = 5;
 var CLASSID_String = 6;
@@ -86,39 +86,39 @@ var CLASSID_SourceObject = 19;
 // extensions
 var CLASSID_Buffer = 20;
 var CLASSID_IOPort = 21;
-var CLASSID_vm = 22;
-var CLASSID_Script = 23;
+var CLASSID_Script = 22;
+var CLASSID_vm = 23;
 var CLASSID_mirror = 24;
 
-var VMObjectClass;
-var VMBuiltinFunctionClass;
-var VMFunctionObjectClass;
-var VMBindFunctionClass;
-var VMArrayClass;
-var VMStringClass;
-var VMBooleanClass;
-var VMNumberClass;
-var VMDateClass;
-var VMRegExpClass;
-var VMErrorClass;
-var VMGlobalClass;
-var VMMathClass;
-var VMJSONClass;
-var ArgumentsClass;
-var PlainArgumentsClass;
-var DeclarativeEnvironmentClass;
-var ObjectEnvironmentClass;
-var SourceObjectClass;
+var Class_Object;
+var Class_Function;
+var Class_BuiltinFunction;
+var Class_BindFunction;
+var Class_Array;
+var Class_String;
+var Class_Boolean;
+var Class_Number;
+var Class_Date;
+var Class_RegExp;
+var Class_Error;
+var Class_Global;
+var Class_Math;
+var Class_JSON;
+var Class_Arguments;
+var Class_PlainArguments;
+var Class_DeclarativeEnvironment;
+var Class_ObjectEnvironment;
+var Class_SourceObject;
 // extensions
-var VMBufferClass;
-var VMIOPortClass;
-var vmClass;
-var ScriptClass;
+var Class_Buffer;
+var Class_IOPort;
+var Class_Script;
+var Class_vm;
 
 function setAlltheInternalMethod(Class, ClassID) {
 	var obj = {};
-	obj.Class = Class;
 	obj.ClassID = ClassID;
+	obj.Class = Class;
 	obj.GetOwnProperty = default_GetOwnProperty;
 	obj.GetProperty = default_GetProperty;
 	obj.Get = default_Get;
@@ -140,157 +140,157 @@ function setAlltheInternalMethod(Class, ClassID) {
 function VMObject(ClassID) {
 	switch (ClassID) {
 	case CLASSID_Object:
-		if (VMObjectClass === undefined) {
+		if (Class_Object === undefined) {
 			var obj = setAlltheInternalMethod("Object", ClassID);
-			VMObjectClass = freeze(obj);
+			Class_Object = freeze(obj);
 		}
-		var obj = Object.create(VMObjectClass);
+		var obj = Object.create(Class_Object);
 		break;
 	case CLASSID_BuiltinFunction:
-		if (VMBuiltinFunctionClass === undefined) {
+		if (Class_BuiltinFunction === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
-			obj.Get = FunctionObject_Get;
-			obj.HasInstance = FunctionObject_HasInstance;
-			obj.writeObject = BuiltinFunctionObject_writeObject;
-			obj.readObject = BuiltinFunctionObject_readObject;
-			VMBuiltinFunctionClass = freeze(obj);
+			obj.Get = Function_Get;
+			obj.HasInstance = Function_HasInstance;
+			obj.writeObject = BuiltinFunction_writeObject;
+			obj.readObject = BuiltinFunction_readObject;
+			Class_BuiltinFunction = freeze(obj);
 		}
-		var obj = Object.create(VMBuiltinFunctionClass);
+		var obj = Object.create(Class_BuiltinFunction);
 		obj.vm = undefined;
 		obj._Call = undefined;
 		obj._Construct = undefined;
 		break;
-	case CLASSID_FunctionObject:
-		if (VMFunctionObjectClass === undefined) {
+	case CLASSID_Function:
+		if (Class_Function === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
-			obj.Get = FunctionObject_Get;
-			obj._Call = FunctionObject_Call;
-			obj._Construct = FunctionObject_Construct;
-			obj.HasInstance = FunctionObject_HasInstance;
-			obj.walkObject = FunctionObject_walkObject;
-			obj.writeObject = FunctionObject_writeObject;
-			obj.readObject = FunctionObject_readObject;
-			VMFunctionObjectClass = freeze(obj);
+			obj.Get = Function_Get;
+			obj._Call = Function_Call;
+			obj._Construct = Function_Construct;
+			obj.HasInstance = Function_HasInstance;
+			obj.walkObject = Function_walkObject;
+			obj.writeObject = Function_writeObject;
+			obj.readObject = Function_readObject;
+			Class_Function = freeze(obj);
 		}
-		var obj = Object.create(VMFunctionObjectClass);
+		var obj = Object.create(Class_Function);
 		obj.vm = undefined;
 		obj.Scope = undefined;
 		obj.FormalParameters = undefined;
 		obj.Code = undefined;
 		break;
 	case CLASSID_BindFunction:
-		if (VMBindFunctionClass === undefined) {
+		if (Class_BindFunction === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
-			obj.Get = FunctionObject_Get;
+			obj.Get = Function_Get;
 			obj._Call = BindFunction_Call;
 			obj._Construct = BindFunction_Construct;
 			obj.HasInstance = BindFunction_HasInstance;
 			obj.walkObject = BindFunction_walkObject;
 			obj.writeObject = BindFunction_writeObject;
 			obj.readObject = BindFunction_readObject;
-			VMBindFunctionClass = freeze(obj);
+			Class_BindFunction = freeze(obj);
 		}
-		var obj = Object.create(VMBindFunctionClass);
+		var obj = Object.create(Class_BindFunction);
 		obj.vm = undefined;
 		obj.TargetFunction = undefined;
 		obj.BoundThis = undefined;
 		obj.BoundArgs = undefined;
 		break;
 	case CLASSID_Array:
-		if (VMArrayClass === undefined) {
+		if (Class_Array === undefined) {
 			var obj = setAlltheInternalMethod("Array", ClassID);
-			obj.DefineOwnProperty = ArrayObject_DefineOwnProperty;
-			VMArrayClass = freeze(obj);
+			obj.DefineOwnProperty = Array_DefineOwnProperty;
+			Class_Array = freeze(obj);
 		}
-		var obj = Object.create(VMArrayClass);
+		var obj = Object.create(Class_Array);
 		break;
 	case CLASSID_String:
-		if (VMStringClass === undefined) {
+		if (Class_String === undefined) {
 			var obj = setAlltheInternalMethod("String", ClassID);
-			obj.GetOwnProperty = StringObject_GetOwnProperty;
-			obj.enumerator = StringObject_enumerator;
-			obj.writeObject = PrimitiveObject_writeObject;
-			obj.readObject = PrimitiveObject_readObject;
-			VMStringClass = freeze(obj);
+			obj.GetOwnProperty = String_GetOwnProperty;
+			obj.enumerator = String_enumerator;
+			obj.writeObject = Primitive_writeObject;
+			obj.readObject = Primitive_readObject;
+			Class_String = freeze(obj);
 		}
-		var obj = Object.create(VMStringClass);
+		var obj = Object.create(Class_String);
 		obj.PrimitiveValue = undefined;
 		break;
 	case CLASSID_Boolean:
-		if (VMBooleanClass === undefined) {
+		if (Class_Boolean === undefined) {
 			var obj = setAlltheInternalMethod("Boolean", ClassID);
-			obj.writeObject = PrimitiveObject_writeObject;
-			obj.readObject = PrimitiveObject_readObject;
-			VMBooleanClass = freeze(obj);
+			obj.writeObject = Primitive_writeObject;
+			obj.readObject = Primitive_readObject;
+			Class_Boolean = freeze(obj);
 		}
-		var obj = Object.create(VMBooleanClass);
+		var obj = Object.create(Class_Boolean);
 		obj.PrimitiveValue = undefined;
 		break;
 	case CLASSID_Number:
-		if (VMNumberClass === undefined) {
+		if (Class_Number === undefined) {
 			var obj = setAlltheInternalMethod("Number", ClassID);
-			obj.writeObject = PrimitiveObject_writeObject;
-			obj.readObject = PrimitiveObject_readObject;
-			VMNumberClass = freeze(obj);
+			obj.writeObject = Primitive_writeObject;
+			obj.readObject = Primitive_readObject;
+			Class_Number = freeze(obj);
 		}
-		var obj = Object.create(VMNumberClass);
+		var obj = Object.create(Class_Number);
 		obj.PrimitiveValue = undefined;
 		break;
 	case CLASSID_Date:
-		if (VMDateClass === undefined) {
+		if (Class_Date === undefined) {
 			var obj = setAlltheInternalMethod("Date", ClassID);
-			obj.writeObject = PrimitiveObject_writeObject;
-			obj.readObject = PrimitiveObject_readObject;
-			VMDateClass = freeze(obj);
+			obj.writeObject = Primitive_writeObject;
+			obj.readObject = Primitive_readObject;
+			Class_Date = freeze(obj);
 		}
-		var obj = Object.create(VMDateClass);
+		var obj = Object.create(Class_Date);
 		obj.PrimitiveValue = undefined;
 		break;
 	case CLASSID_RegExp:
-		if (VMRegExpClass === undefined) {
+		if (Class_RegExp === undefined) {
 			var obj = setAlltheInternalMethod("RegExp", ClassID);
 			obj.writeObject = RegExp_writeObject;
 			obj.readObject = RegExp_readObject;
-			VMRegExpClass = freeze(obj);
+			Class_RegExp = freeze(obj);
 		}
-		var obj = Object.create(VMRegExpClass);
+		var obj = Object.create(Class_RegExp);
 		obj.Match = undefined;
 		obj.NCapturingParens = undefined;
 		break;
 	case CLASSID_Error:
-		if (VMErrorClass === undefined) {
+		if (Class_Error === undefined) {
 			var obj = setAlltheInternalMethod("Error", ClassID);
 			obj.walkObject = Error_walkObject;
 			obj.writeObject = Error_writeObject;
 			obj.readObject = Error_readObject;
-			VMErrorClass = freeze(obj);
+			Class_Error = freeze(obj);
 		}
-		var obj = Object.create(VMErrorClass);
+		var obj = Object.create(Class_Error);
 		obj.stackTrace = [];
 		break;
 	case CLASSID_Global:
-		if (VMGlobalClass === undefined) {
+		if (Class_Global === undefined) {
 			var obj = setAlltheInternalMethod("Global", ClassID);
-			VMGlobalClass = freeze(obj);
+			Class_Global = freeze(obj);
 		}
-		var obj = Object.create(VMGlobalClass);
+		var obj = Object.create(Class_Global);
 		break;
 	case CLASSID_Math:
-		if (VMMathClass === undefined) {
+		if (Class_Math === undefined) {
 			var obj = setAlltheInternalMethod("Math", ClassID);
-			VMMathClass = freeze(obj);
+			Class_Math = freeze(obj);
 		}
-		var obj = Object.create(VMMathClass);
+		var obj = Object.create(Class_Math);
 		break;
 	case CLASSID_JSON:
-		if (VMJSONClass === undefined) {
+		if (Class_JSON === undefined) {
 			var obj = setAlltheInternalMethod("JSON", ClassID);
-			VMJSONClass = freeze(obj);
+			Class_JSON = freeze(obj);
 		}
-		var obj = Object.create(VMJSONClass);
+		var obj = Object.create(Class_JSON);
 		break;
 	case CLASSID_Arguments:
-		if (ArgumentsClass === undefined) {
+		if (Class_Arguments === undefined) {
 			var obj = setAlltheInternalMethod("Arguments", ClassID);
 			obj.GetOwnProperty = Arguments_GetOwnProperty;
 			obj.Get = Arguments_Get;
@@ -299,65 +299,65 @@ function VMObject(ClassID) {
 			obj.walkObject = Arguments_walkObject;
 			obj.writeObject = Arguments_writeObject;
 			obj.readObject = Arguments_readObject;
-			ArgumentsClass = freeze(obj);
+			Class_Arguments = freeze(obj);
 		}
-		var obj = Object.create(ArgumentsClass);
+		var obj = Object.create(Class_Arguments);
 		obj.ParameterMap = undefined;
 		obj.ArgumentsScope = undefined;
 		break;
 	case CLASSID_PlainArguments:
-		if (PlainArgumentsClass === undefined) {
+		if (Class_PlainArguments === undefined) {
 			var obj = setAlltheInternalMethod("Arguments", ClassID);
-			PlainArgumentsClass = freeze(obj);
+			Class_PlainArguments = freeze(obj);
 		}
-		var obj = Object.create(PlainArgumentsClass);
+		var obj = Object.create(Class_PlainArguments);
 		break;
 	//extensions
 	case CLASSID_Buffer:
-		if (VMBufferClass === undefined) {
+		if (Class_Buffer === undefined) {
 			var obj = setAlltheInternalMethod("Buffer", ClassID);
-			obj.GetOwnProperty = BufferObject_GetOwnProperty;
-			obj.enumerator = BufferObject_enumerator;
-			obj.DefineOwnProperty = BufferObject_DefineOwnProperty;
-			obj.writeObject = BufferObject_writeObject;
-			obj.readObject = BufferObject_readObject;
-			VMBufferClass = freeze(obj);
+			obj.GetOwnProperty = Buffer_GetOwnProperty;
+			obj.enumerator = Buffer_enumerator;
+			obj.DefineOwnProperty = Buffer_DefineOwnProperty;
+			obj.writeObject = Buffer_writeObject;
+			obj.readObject = Buffer_readObject;
+			Class_Buffer = freeze(obj);
 		}
-		var obj = Object.create(VMBufferClass);
+		var obj = Object.create(Class_Buffer);
 		obj.wrappedBuffer = undefined;
 		break;
 	case CLASSID_IOPort:
-		if (VMIOPortClass === undefined) {
+		if (Class_IOPort === undefined) {
 			var obj = setAlltheInternalMethod("IOPort", ClassID);
-			VMIOPortClass = freeze(obj);
+			Class_IOPort = freeze(obj);
 		}
-		var obj = Object.create(VMIOPortClass);
+		var obj = Object.create(Class_IOPort);
 		obj.handler = undefined;
 		obj.txid = undefined;
 		obj.callback = undefined;
 		break;
 	case CLASSID_vm:
-		if (vmClass === undefined) {
+		if (Class_vm === undefined) {
 			var obj = setAlltheInternalMethod("vm", ClassID);
 			obj.walkObject = vm_walkObject;
 			obj.writeObject = vm_writeObject;
 			obj.readObject = vm_readObject;
-			vmClass = freeze(obj);
+			Class_vm = freeze(obj);
 		}
-		var obj = Object.create(vmClass);
+		var obj = Object.create(Class_vm);
 		for ( var name in vmTemplate) {
 			obj[name] = undefined;
 		}
 		break;
 	case CLASSID_Script:
-		if (ScriptClass === undefined) {
+		if (Class_Script === undefined) {
 			var obj = setAlltheInternalMethod("Script", ClassID);
 			obj.walkObject = Script_walkObject;
 			obj.writeObject = Script_writeObject;
 			obj.readObject = Script_readObject;
-			ScriptClass = freeze(obj);
+			Class_Script = freeze(obj);
 		}
-		var obj = Object.create(ScriptClass);
+		var obj = Object.create(Class_Script);
 		obj.Code = undefined;
 		break;
 	default:
@@ -696,9 +696,9 @@ function default_Put(P, V, Throw) {
 			intrinsic_set_value(O, P, V, ownDesc);
 			return;
 		}
-		if (O.DefineOwnProperty === ArrayObject_DefineOwnProperty) {
+		if (O.DefineOwnProperty === Array_DefineOwnProperty) {
 			//shortcut optimization
-			ArrayObject_DefineOwnProperty_Value(O, P, V, ownDesc);
+			Array_DefineOwnProperty_Value(O, P, V, ownDesc);
 			return;
 		}
 		var valueDesc = PropertyDescriptor({

@@ -72,7 +72,7 @@ function Function_Construct(argumentsList) {
 		}
 		throw e;
 	}
-	return FunctionObject(parameters, body, vm.theGlobalEnvironment, body.strict);
+	return VMFunction(parameters, body, vm.theGlobalEnvironment, body.strict);
 }
 
 function Function_prototype_toString(thisValue, argumentsList) {
@@ -91,7 +91,7 @@ function Function_prototype_toString(thisValue, argumentsList) {
 		var codeText = source.substring(startPos, endPos);
 		return "function " + name + "(" + param + "){" + codeText + "}";
 	}
-	return "function " + getIntrinsicFunctionName(func.Call) + "{ native }";
+	return "function " + getIntrinsicFunctionName(func._Call) + "{ native }";
 }
 
 function get_Function_prototype_name(thisValue, argumentsList) {
@@ -153,7 +153,7 @@ function Function_prototype_bind(thisValue, argumentsList) {
 	F.TargetFunction = Target;
 	F.BoundThis = thisArg;
 	F.BoundArgs = A;
-	F.Prototype = vm.builtin_Function_prototype;
+	F.Prototype = vm.Function_prototype;
 	if (Target.Class === "Function") {
 		var L = Target.Get("length") - A.length;
 		defineFinal(F, "length", max(0, L));
@@ -205,14 +205,14 @@ function BindFunction_HasInstance(V) {
 	return target.HasInstance(V);
 }
 
-function FunctionObject_Get(P) {
+function Function_Get(P) {
 	var F = this;
 	var v = default_Get.call(F, P);
 	if (P === "caller" && Type(v) === TYPE_Object && v.Class === "Function" && v.Code !== undefined && v.Code.strict) throw VMTypeError();
 	return v;
 }
 
-function FunctionObject_HasInstance(V) {
+function Function_HasInstance(V) {
 	var F = this;
 	if (Type(V) !== TYPE_Object) return false;
 	var O = F.Get("prototype");

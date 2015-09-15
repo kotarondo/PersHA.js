@@ -412,14 +412,14 @@ function default_readObject(istream) {
 	intrinsic_readObject(this, istream);
 }
 
-function BuiltinFunctionObject_writeObject(ostream) {
+function BuiltinFunction_writeObject(ostream) {
 	intrinsic_writeObject(this, ostream);
 	ostream.writeString(getIntrinsicFunctionName(this._Call));
 	ostream.writeString(getIntrinsicFunctionName(this._Construct));
 	ostream.writeValue(this.vm);
 }
 
-function BuiltinFunctionObject_readObject(istream) {
+function BuiltinFunction_readObject(istream) {
 	intrinsic_readObject(this, istream);
 	this._Call = getIntrinsicFunction(istream.readString());
 	this._Construct = getIntrinsicFunction(istream.readString());
@@ -429,14 +429,14 @@ function BuiltinFunctionObject_readObject(istream) {
 	istream.assert(this.vm.ClassID === CLASSID_vm);
 }
 
-function FunctionObject_walkObject(mark) {
+function Function_walkObject(mark) {
 	intrinsic_walkObject(this, mark);
 	mark(this.Scope);
 	mark(this.Code.sourceObject);
 	mark(this.vm);
 }
 
-function FunctionObject_writeObject(ostream) {
+function Function_writeObject(ostream) {
 	intrinsic_writeObject(this, ostream);
 	ostream.writeValue(this.vm);
 	ostream.writeValue(this.Scope);
@@ -449,7 +449,7 @@ function FunctionObject_writeObject(ostream) {
 	}
 }
 
-function FunctionObject_readObject(istream) {
+function Function_readObject(istream) {
 	intrinsic_readObject(this, istream);
 	this.vm = istream.readValue();
 	this.Scope = istream.readValue();
@@ -500,12 +500,12 @@ function BindFunction_readObject(istream) {
 	istream.assert(Type(this.TargetFunction) === TYPE_Object && this.TargetFunction.Class === "Function");
 }
 
-function PrimitiveObject_writeObject(ostream) {
+function Primitive_writeObject(ostream) {
 	intrinsic_writeObject(this, ostream);
 	ostream.writeValue(this.PrimitiveValue);
 }
 
-function PrimitiveObject_readObject(istream) {
+function Primitive_readObject(istream) {
 	intrinsic_readObject(this, istream);
 	this.PrimitiveValue = istream.readValue();
 	this.Class === "String" && istream.assert(Type(this.PrimitiveValue) === TYPE_String);
@@ -679,12 +679,12 @@ function SourceObject_readObject(istream) {
 	return sourceObject;
 }
 
-function BufferObject_writeObject(ostream) {
+function Buffer_writeObject(ostream) {
 	intrinsic_writeObject(this, ostream);
 	ostream.writeBuffer(this.wrappedBuffer);
 }
 
-function BufferObject_readObject(istream) {
+function Buffer_readObject(istream) {
 	intrinsic_readObject(this, istream);
 	this.wrappedBuffer = istream.readBuffer();
 }

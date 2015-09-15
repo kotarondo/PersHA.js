@@ -80,14 +80,14 @@ function NewSourceObject(source, strict, filename) {
 	if (filename === undefined) {
 		filename = "<unknown>";
 	}
-	if (SourceObjectClass === undefined) {
-		SourceObjectClass = freeze({
+	if (Class_SourceObject === undefined) {
+		Class_SourceObject = freeze({
+			ClassID : CLASSID_SourceObject,
 			writeObject : SourceObject_writeObject,
 			readObject : undefined,
-			ClassID : CLASSID_SourceObject,
 		});
 	}
-	var obj = Object.create(SourceObjectClass);
+	var obj = Object.create(Class_SourceObject);
 	obj.source = source;
 	obj.strict = strict;
 	obj.filename = ToString(filename);

@@ -44,7 +44,7 @@ function String_Call(thisValue, argumentsList) {
 function String_Construct(argumentsList) {
 	var value = String_Call(null, argumentsList);
 	var obj = VMObject(CLASSID_String);
-	obj.Prototype = vm.builtin_String_prototype;
+	obj.Prototype = vm.String_prototype;
 	obj.Extensible = true;
 	obj.PrimitiveValue = value;
 	defineFinal(obj, "length", value.length);
@@ -472,7 +472,7 @@ function String_prototype_split(thisValue, argumentsList) {
 
 	function SplitMatch(S, q, R) {
 		if (Type(R) === TYPE_Object && R.Class === "RegExp") return R.Match(S, q);
-		assertEquals(Type(R) , TYPE_String, R);
+		assertEquals(Type(R), TYPE_String, R);
 		var r = R.length;
 		var s = S.length;
 		if (q + r > s) return failure;
@@ -566,7 +566,7 @@ function String_prototype_substr(thisValue, argumentsList) {
 	return Result1.substring(Result5, Result5 + Result6);
 }
 
-function StringObject_GetOwnProperty(P) {
+function String_GetOwnProperty(P) {
 	var S = this;
 	var desc = default_GetOwnProperty.call(S, P);
 	if (desc !== undefined) return desc;
@@ -584,7 +584,7 @@ function StringObject_GetOwnProperty(P) {
 	});
 }
 
-function StringObject_enumerator(ownOnly, enumerableOnly) {
+function String_enumerator(ownOnly, enumerableOnly) {
 	var S = this;
 	var next = intrinsic_enumerator(S, ownOnly, enumerableOnly);
 	var str = S.PrimitiveValue;
