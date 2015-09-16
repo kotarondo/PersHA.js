@@ -33,7 +33,12 @@
 
 'use strict';
 
-var process = {};
+Object.defineProperty(this, "process", {
+	value : {},
+	writable : true,
+	enumerable : false,
+	configurable : true
+});
 
 process.binding = (function() {
 	var bindings = {

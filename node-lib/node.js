@@ -25,6 +25,7 @@
 // bootstrapping the node.js core. Special caution is given to the performance
 // of the startup process, so many dependencies are invoked lazily.
 (function(process) {
+  delete this.process; // modified for PersHA.js
   this.global = this;
 
   function startup() {
