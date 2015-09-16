@@ -174,7 +174,8 @@ process.binding('contextify').makeContext = function(sandbox) {
 };
 
 process.binding('contextify').isContext = function(sandbox) {
-	return sandbox && sandbox.__vm__;
+	if (typeof sandbox !== 'object') throw TypeError();
+	return !!(sandbox && sandbox.__vm__);
 };
 
 process.binding('natives').config = "\n{}";
