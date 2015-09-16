@@ -145,7 +145,15 @@ function PropertyAccessor(base, name, strict) {
 		var baseValue = GetValue(baseReference);
 		var propertyNameReference = name();
 		var propertyNameValue = GetValue(propertyNameReference);
-		CheckObjectCoercible(baseValue);
+		// CheckObjectCoercible(baseValue);
+		switch (Type(baseValue)) {
+		case TYPE_Undefined:
+		case TYPE_Null:
+			if (Type(propertyNameValue) === TYPE_Object) {
+				throw VMTypeError("Cannot read property of " + baseValue);
+			}
+			throw VMTypeError("Cannot read property '" + propertyNameValue + "' of " + baseValue);
+		}
 		var propertyNameString = ToString(propertyNameValue);
 		return ReferenceValue(baseValue, propertyNameString, strict);
 	};
