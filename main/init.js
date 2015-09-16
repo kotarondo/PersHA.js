@@ -69,7 +69,7 @@ try {
 			'console', 'fs', 'path', 'net', 'repl', 'readline', 'domain', 'string_decoder', '_stream_readable',
 			'_stream_writable', '_stream_duplex', '_stream_transform', '_stream_passthrough', 'http', '_http_agent',
 			'_http_client', '_http_common', '_http_incoming', '_http_outgoing', '_http_server', 'freelist', '_linklist', 'url',
-			'punycode', 'querystring', 'dns', 'dgram', 'tty', 'crypto', 'cluster' ];
+			'punycode', 'querystring', 'dns', 'dgram', 'tty', 'crypto', 'cluster', 'os'];
 	for (var i = 0; i < natives_list.length; i++) {
 		var n = natives_list[i];
 		var text = fs.readFileSync(NODE_INIT_SCRIPT_DIR + n + '.js').toString();
