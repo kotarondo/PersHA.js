@@ -195,9 +195,29 @@ function IOPort_unwrap(A, stack) {
 	stack.push(A);
 	if (A.Class === 'Array' || A.Class === 'Arguments') {
 		var a = [];
+		a.length = A.Get("length");
 	}
 	else if (A.Class === 'Error') {
-		var a = new Error();
+		try {
+			var name = ToString(A.Get("name"));
+			var message = ToString(A.Get("message"));
+		} catch (e) {
+			//TODO
+		}
+		switch (name) {
+		case "TypeError":
+			var a = new TypeError(message);
+			break;
+		case "ReferenceError":
+			var a = new ReferenceError(message);
+			break;
+		case "RangeError":
+			var a = new RangeError(message);
+			break;
+		default:
+			var a = new Error(message);
+			break;
+		}
 	}
 	else {
 		var a = {};
@@ -264,7 +284,7 @@ function IOPort_wrap(a, stack) {
 		}
 	}
 	else if (a instanceof Array) {
-		var A = Array_Construct([]);
+		var A = Array_Construct([ a.length ]);
 	}
 	else {
 		var A = Object_Construct([]);
