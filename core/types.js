@@ -413,7 +413,9 @@ function IsUnresolvableReference(V) {
 function GetValue(V) {
 	if (Type(V) !== TYPE_Reference) return V;
 	var base = GetBase(V);
-	if (IsUnresolvableReference(V)) throw VMReferenceError(GetReferencedName(V));
+	if (IsUnresolvableReference(V)) {
+		throw VMReferenceError(GetReferencedName(V) + " is not defined");
+	}
 	if (IsPropertyReference(V)) {
 		if (HasPrimitiveBase(V) === false) return base.Get(GetReferencedName(V));
 		else return specialGet(base, GetReferencedName(V));
