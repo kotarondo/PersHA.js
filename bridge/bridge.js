@@ -50,6 +50,7 @@ process.binding = (function() {
 		uv : {},
 		http_parser : {},
 		crypto : {},
+		os : {},
 		tty_wrap : {},
 		timer_wrap : {},
 		pipe_wrap : {},
