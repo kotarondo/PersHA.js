@@ -178,7 +178,7 @@ function Function_prototype_bind(thisValue, argumentsList) {
 	return F;
 }
 
-function BindFunction_Call(thisValue, argumentsList) {
+function BindFunction_ClassCall(thisValue, argumentsList) {
 	var F = this;
 	var ExtraArgs = argumentsList;
 	var boundArgs = F.BoundArgs;
@@ -188,7 +188,7 @@ function BindFunction_Call(thisValue, argumentsList) {
 	return target.Call(boundThis, args);
 }
 
-function BindFunction_Construct(argumentsList) {
+function BindFunction_ClassConstruct(argumentsList) {
 	var F = this;
 	var ExtraArgs = argumentsList;
 	var target = F.TargetFunction;

@@ -116,7 +116,7 @@ function defineConstruct(obj, func) {
 	obj._Construct = func;
 }
 
-function default_Call(thisValue, argumentsList) {
+function vm_wrapper_ClassCall(thisValue, argumentsList) {
 	var callingVM = vm;
 	vm = this.vm;
 	assert(vm);
@@ -130,7 +130,7 @@ function default_Call(thisValue, argumentsList) {
 	}
 }
 
-function default_Construct(argumentsList) {
+function vm_wrapper_ClassConstruct(argumentsList) {
 	var callingVM = vm;
 	vm = this.vm;
 	assert(vm);

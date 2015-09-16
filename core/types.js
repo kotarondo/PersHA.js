@@ -128,8 +128,8 @@ function setAlltheInternalMethod(Class, ClassID) {
 	obj.Delete = default_Delete;
 	obj.DefaultValue = default_DefaultValue;
 	obj.DefineOwnProperty = default_DefineOwnProperty;
-	obj.Call = default_Call;
-	obj.Construct = default_Construct;
+	obj.Call = vm_wrapper_ClassCall;
+	obj.Construct = vm_wrapper_ClassConstruct;
 	obj.enumerator = default_enumerator;
 	obj.walkObject = default_walkObject;
 	obj.writeObject = default_writeObject;
@@ -164,8 +164,8 @@ function VMObject(ClassID) {
 		if (Class_Function === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
 			obj.Get = Function_Get;
-			obj._Call = Function_Call;
-			obj._Construct = Function_Construct;
+			obj._Call = Function_ClassCall;
+			obj._Construct = Function_ClassConstruct;
 			obj.HasInstance = Function_HasInstance;
 			obj.walkObject = Function_walkObject;
 			obj.writeObject = Function_writeObject;
@@ -182,8 +182,8 @@ function VMObject(ClassID) {
 		if (Class_BindFunction === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
 			obj.Get = Function_Get;
-			obj._Call = BindFunction_Call;
-			obj._Construct = BindFunction_Construct;
+			obj._Call = BindFunction_ClassCall;
+			obj._Construct = BindFunction_ClassConstruct;
 			obj.HasInstance = BindFunction_HasInstance;
 			obj.walkObject = BindFunction_walkObject;
 			obj.writeObject = BindFunction_writeObject;

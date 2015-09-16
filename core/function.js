@@ -115,7 +115,7 @@ function VMFunction(parameters, body, Scope, Strict) {
 	return F;
 }
 
-function Function_Call(thisValue, argumentsList) {
+function Function_ClassCall(thisValue, argumentsList) {
 	var F = this;
 	enterExecutionContextForFunctionCode(F, thisValue, argumentsList);
 	if (F.Code === undefined) {
@@ -131,7 +131,7 @@ function Function_Call(thisValue, argumentsList) {
 	return undefined;
 }
 
-function Function_Construct(argumentsList) {
+function Function_ClassConstruct(argumentsList) {
 	var F = this;
 	var obj = VMObject(CLASSID_Object);
 	obj.Extensible = true;
