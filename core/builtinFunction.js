@@ -101,9 +101,15 @@ function get_Function_prototype_name(thisValue, argumentsList) {
 		func = func.TargetFunction;
 	}
 	if (func.Code) {
-		return func.Code.functionName;
+		var name = func.Code.functionName || "";
 	}
-	return getIntrinsicFunctionName(func._Call);
+	else {
+		var name = getIntrinsicFunctionName(func._Call);
+	}
+	if (!name) {
+		return "";
+	}
+	return name;
 }
 
 function Function_prototype_apply(thisValue, argumentsList) {
