@@ -51,6 +51,21 @@ function open(name, callback) {
 	if (name === 'Hash') {
 		return new Hash();
 	}
+	if (name === 'ECDH') {
+		return new ECDH();
+	}
+	if (name === 'Hmac') {
+		return new Hmac();
+	}
+	if (name === 'Sign') {
+		return new Sign();
+	}
+	if (name === 'Verify') {
+		return new Verify();
+	}
+	if (name === 'Certificate') {
+		return new Certificate();
+	}
 	console.log("[unhandled] crypto open: " + name);
 }
 
@@ -65,7 +80,6 @@ function asyncIO(func, args, callback) {
 
 function CipherBase() {
 	var obj;
-
 	this.syncIO = function(func, args) {
 		if (func === 'restart') {
 			obj = new binding.CipherBase(args[0]);
@@ -77,7 +91,6 @@ function CipherBase() {
 
 function DiffieHellman(args, callback) {
 	var obj;
-
 	this.syncIO = function(func, args) {
 		if (func === 'restart') {
 			obj = new binding.DiffieHellman(args[0], args[1]);
@@ -89,10 +102,64 @@ function DiffieHellman(args, callback) {
 
 function Hash(args, callback) {
 	var obj;
-
 	this.syncIO = function(func, args) {
 		if (func === 'restart') {
 			obj = new binding.Hash(args[0]);
+			return;
+		}
+		return obj[func].apply(obj, args);
+	};
+}
+
+function ECDH(args, callback) {
+	var obj;
+	this.syncIO = function(func, args) {
+		if (func === 'restart') {
+			obj = new binding.ECDH(args[0]);
+			return;
+		}
+		return obj[func].apply(obj, args);
+	};
+}
+
+function Hmac(args, callback) {
+	var obj;
+	this.syncIO = function(func, args) {
+		if (func === 'restart') {
+			obj = new binding.Hmac();
+			return;
+		}
+		return obj[func].apply(obj, args);
+	};
+}
+
+function Sign(args, callback) {
+	var obj;
+	this.syncIO = function(func, args) {
+		if (func === 'restart') {
+			obj = new binding.Sign();
+			return;
+		}
+		return obj[func].apply(obj, args);
+	};
+}
+
+function Verify(args, callback) {
+	var obj;
+	this.syncIO = function(func, args) {
+		if (func === 'restart') {
+			obj = new binding.Verify();
+			return;
+		}
+		return obj[func].apply(obj, args);
+	};
+}
+
+function Certificate(args, callback) {
+	var obj;
+	this.syncIO = function(func, args) {
+		if (func === 'restart') {
+			obj = new binding.Certificate();
 			return;
 		}
 		return obj[func].apply(obj, args);

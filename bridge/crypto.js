@@ -179,35 +179,97 @@ function ECDH() {
 	this._port.asyncIO('restart', arguments);
 }
 
-//TODO ECDH.prototype
+ECDH.prototype.generateKeys = function() {
+	return this._port.syncIO('generateKeys', arguments);
+};
+
+ECDH.prototype.computeSecret = function() {
+	return this._port.syncIO('computeSecret', arguments);
+};
+
+ECDH.prototype.getPublicKey = function() {
+	return this._port.syncIO('getPublicKey', arguments);
+};
+
+ECDH.prototype.getPrivateKey = function() {
+	return this._port.syncIO('getPrivateKey', arguments);
+};
+
+ECDH.prototype.setPublicKey = function() {
+	return this._port.syncIO('setPublicKey', arguments);
+};
+
+ECDH.prototype.setPrivateKey = function() {
+	return this._port.syncIO('setPrivateKey', arguments);
+};
 
 function Hmac() {
 	this._port = basePort.open('Hmac');
 	this._port.asyncIO('restart', arguments);
 }
 
-//TODO Hmac.prototype
+Hmac.prototype.init = function() {
+	return this._port.syncIO('init', arguments);
+};
+
+Hmac.prototype.update = function() {
+	return this._port.syncIO('update', arguments);
+};
+
+Hmac.prototype.digest = function() {
+	return this._port.syncIO('digest', arguments);
+};
 
 function Sign() {
 	this._port = basePort.open('Sign');
 	this._port.asyncIO('restart', arguments);
 }
 
-//TODO Sign.prototype
+Sign.prototype.init = function() {
+	return this._port.syncIO('init', arguments);
+};
+
+Sign.prototype.update = function() {
+	return this._port.syncIO('update', arguments);
+};
+
+Sign.prototype.sign = function() {
+	return this._port.syncIO('sign', arguments);
+};
 
 function Verify() {
 	this._port = basePort.open('Verify');
 	this._port.asyncIO('restart', arguments);
 }
 
-//TODO Verify.prototype
+Verify.prototype.init = function() {
+	return this._port.syncIO('init', arguments);
+};
+
+Verify.prototype.update = function() {
+	return this._port.syncIO('update', arguments);
+};
+
+Verify.prototype.verify = function() {
+	return this._port.syncIO('verify', arguments);
+};
 
 function Certificate() {
 	this._port = basePort.open('Certificate');
 	this._port.asyncIO('restart', arguments);
 }
 
-//TODO Certificate.prototype
+Certificate.prototype.verifySpkac = function() {
+	return this._port.syncIO('verifySpkac', arguments);
+};
+
+Certificate.prototype.exportPublicKey = function() {
+	return this._port.syncIO('exportPublicKey', arguments);
+};
+
+Certificate.prototype.exportChallenge = function() {
+	return this._port.syncIO('exportChallenge', arguments);
+};
 
 function retryCall(func, args, callback) {
 	if (!callback) {
