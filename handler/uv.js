@@ -40,8 +40,5 @@ module.exports = {
 };
 
 function syncIO(func, args) {
-	if (func === 'errname') {
-		return binding.errname.apply(binding, args);
-	}
-	console.log("[unhandled] uv syncIO: " + func);
+	return binding[func].apply(binding, args);
 }

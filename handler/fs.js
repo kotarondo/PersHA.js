@@ -52,97 +52,14 @@ function open(name, callback) {
 }
 
 function syncIO(func, args) {
-	if (func === 'stat') {
-		return binding.stat(args[0]);
-	}
-	if (func === 'lstat') {
-		return binding.lstat(args[0]);
-	}
-	if (func === 'access') {
-		return binding.access(args[0], args[1]);
-	}
-	if (func === 'chmod') {
-		return binding.chmod(args[0], args[1]);
-	}
-	if (func === 'chown') {
-		return binding.chown(args[0], args[1], args[2]);
-	}
-	if (func === 'utimes') {
-		return binding.utimes(args[0], args[1], args[2]);
-	}
-	if (func === 'link') {
-		return binding.link(args[0], args[1]);
-	}
-	if (func === 'symlink') {
-		return binding.symlink(args[0], args[1], args[2]);
-	}
-	if (func === 'unlink') {
-		return binding.unlink(args[0]);
-	}
-	if (func === 'mkdir') {
-		return binding.mkdir(args[0], args[1]);
-	}
-	if (func === 'readdir') {
-		return binding.readdir(args[0]);
-	}
-	if (func === 'readlink') {
-		return binding.readlink(args[0]);
-	}
-	if (func === 'rename') {
-		return binding.rename(args[0], args[1]);
-	}
-	if (func === 'rmdir') {
-		return binding.rmdir(args[0]);
-	}
-	console.log("[unhandled] fs syncIO: " + func);
+	return binding[func].apply(binding, args);
 }
 
 function asyncIO(func, args, callback) {
 	var req = new binding.FSReqWrap();
 	req.oncomplete = callback;
-	if (func === 'stat') {
-		return binding.stat(args[0], req);
-	}
-	if (func === 'lstat') {
-		return binding.lstat(args[0], req);
-	}
-	if (func === 'access') {
-		return binding.access(args[0], args[1], req);
-	}
-	if (func === 'chmod') {
-		return binding.chmod(args[0], args[1], req);
-	}
-	if (func === 'chown') {
-		return binding.chown(args[0], args[1], args[2], req);
-	}
-	if (func === 'utimes') {
-		return binding.utimes(args[0], args[1], args[2], req);
-	}
-	if (func === 'link') {
-		return binding.link(args[0], args[1], req);
-	}
-	if (func === 'symlink') {
-		return binding.symlink(args[0], args[1], args[2], req);
-	}
-	if (func === 'unlink') {
-		return binding.unlink(args[0], req);
-	}
-	if (func === 'mkdir') {
-		return binding.mkdir(args[0], args[1], req);
-	}
-	if (func === 'readdir') {
-		return binding.readdir(args[0], req);
-	}
-	if (func === 'readlink') {
-		return binding.readlink(args[0], req);
-	}
-	if (func === 'rename') {
-		return binding.rename(args[0], args[1], req);
-	}
-	if (func === 'rmdir') {
-		return binding.rmdir(args[0], req);
-	}
-	console.log("[unhandled] fs asyncIO: " + func);
+	args.push(req);
+	return binding[func].apply(binding, args);
 }
 
 function FilePort(callback) {
@@ -157,9 +74,6 @@ function FilePort(callback) {
 			fd = binding.open(args[0], args[1], args[2]);
 			return;
 		}
-		if (func === 'close') {
-			return binding.close(fd);
-		}
 		if (func === 'read') {
 			var length = args[0];
 			var position = args[1];
@@ -167,34 +81,8 @@ function FilePort(callback) {
 			var transferred = binding.read(fd, buffer, 0, length, position);
 			return buffer.slice(0, transferred);
 		}
-		if (func === 'writeBuffer') {
-			return binding.writeBuffer(fd, args[0], args[1], args[2], args[3]);
-		}
-		if (func === 'writeString') {
-			return binding.writeString(fd, args[0], args[1], args[2]);
-		}
-		if (func === 'fstat') {
-			return binding.fstat(fd);
-		}
-		if (func === 'fchmod') {
-			return binding.fchmod(fd, args[0]);
-		}
-		if (func === 'fchown') {
-			return binding.fchown(fd, args[0], args[1]);
-		}
-		if (func === 'fsync') {
-			return binding.fsync(fd);
-		}
-		if (func === 'fdatasync') {
-			return binding.fdatasync(fd);
-		}
-		if (func === 'ftruncate') {
-			return binding.ftruncate(fd, args[0]);
-		}
-		if (func === 'futimes') {
-			return binding.futimes(fd, args[0], args[1]);
-		}
-		console.log("[unhandled] FilePort syncIO: " + func);
+		args.unshift(fd);
+		return binding[func].apply(binding, args);
 	};
 
 	this.asyncIO = function(func, args, callback) {
@@ -206,9 +94,6 @@ function FilePort(callback) {
 				callback(err);
 			};
 			return binding.open(args[0], args[1], args[2], req);
-		}
-		if (func === 'close') {
-			return binding.close(fd, req);
 		}
 		if (func === 'read') {
 			var length = args[0];
@@ -224,34 +109,9 @@ function FilePort(callback) {
 			};
 			return binding.read(fd, buffer, 0, length, position, req);
 		}
-		if (func === 'writeBuffer') {
-			return binding.writeBuffer(fd, args[0], args[1], args[2], args[3], req);
-		}
-		if (func === 'writeString') {
-			return binding.writeString(fd, args[0], args[1], args[2], req);
-		}
-		if (func === 'fstat') {
-			return binding.fstat(fd, req);
-		}
-		if (func === 'fchmod') {
-			return binding.fchmod(fd, args[0], req);
-		}
-		if (func === 'fchown') {
-			return binding.fchown(fd, args[0], args[1], req);
-		}
-		if (func === 'fsync') {
-			return binding.fsync(fd, req);
-		}
-		if (func === 'fdatasync') {
-			return binding.fdatasync(fd, req);
-		}
-		if (func === 'ftruncate') {
-			return binding.ftruncate(fd, args[0], req);
-		}
-		if (func === 'futimes') {
-			return binding.futimes(fd, args[0], args[1], req);
-		}
-		console.log("[unhandled] FilePort syncIO: " + func);
+		args.unshift(fd);
+		args.push(req);
+		return binding[func].apply(binding, args);
 	};
 }
 
@@ -275,12 +135,6 @@ function StatWatcherPort(callback) {
 			}
 			return;
 		}
-		if (func === 'start') {
-			return handle.start.apply(handle, args);
-		}
-		if (func === 'stop') {
-			return handle.stop();
-		}
-		console.log("[unhandled] StatWatcher syncIO: " + func);
+		return handle[func].apply(handle, args);
 	};
 }

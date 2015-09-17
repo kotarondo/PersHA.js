@@ -43,19 +43,7 @@ var GetAddrInfoReqWrap = binding.GetAddrInfoReqWrap;
 var GetNameInfoReqWrap = binding.GetNameInfoReqWrap;
 
 function syncIO(func, args) {
-	if (func === 'isIP') {
-		return binding.isIP.apply(binding, args);
-	}
-	if (func === 'strerror') {
-		return binding.strerror.apply(binding, args);
-	}
-	if (func === 'getServers') {
-		return binding.getServers.apply(binding, args);
-	}
-	if (func === 'setServers') {
-		return binding.setServers.apply(binding, args);
-	}
-	console.log("[unhandled] cares_wrap syncIO: " + func);
+	return binding[func].apply(binding, args);
 }
 
 function asyncIO(func, args, callback) {

@@ -53,48 +53,27 @@ function open(name, callback) {
 function HTTPParserPort(callback) {
 	var parser;
 
-	function restart(type) {
-		parser = new binding.HTTPParser(type);
-		parser[kOnHeaders] = function() {
-			var args = Array.prototype.slice.call(arguments);
-			callback(kOnHeaders, args);
-		};
-		parser[kOnHeadersComplete] = function() {
-			var args = Array.prototype.slice.call(arguments);
-			callback(kOnHeadersComplete, args);
-		};
-		parser[kOnBody] = function() {
-			var args = Array.prototype.slice.call(arguments);
-			callback(kOnBody, args);
-		};
-		parser[kOnMessageComplete] = function() {
-			var args = Array.prototype.slice.call(arguments);
-			callback(kOnMessageComplete, args);
-		};
-	}
-
 	this.syncIO = function(func, args) {
 		if (func === 'restart') {
-			return restart(args[0]);
+			parser = new binding.HTTPParser(args[0]);
+			parser[kOnHeaders] = function() {
+				var args = Array.prototype.slice.call(arguments);
+				callback(kOnHeaders, args);
+			};
+			parser[kOnHeadersComplete] = function() {
+				var args = Array.prototype.slice.call(arguments);
+				callback(kOnHeadersComplete, args);
+			};
+			parser[kOnBody] = function() {
+				var args = Array.prototype.slice.call(arguments);
+				callback(kOnBody, args);
+			};
+			parser[kOnMessageComplete] = function() {
+				var args = Array.prototype.slice.call(arguments);
+				callback(kOnMessageComplete, args);
+			};
+			return;
 		}
-		if (func === 'close') {
-			return parser.close();
-		}
-		if (func === 'execute') {
-			return parser.execute(args[0]);
-		}
-		if (func === 'finish') {
-			return parser.finish();
-		}
-		if (func === 'reinitialize') {
-			return parser.reinitialize(args[0]);
-		}
-		if (func === 'pause') {
-			return parser.pause();
-		}
-		if (func === 'resume') {
-			return parser.resume();
-		}
-		console.log("[unhandled] HTTPParser syncIO: " + func);
+		return parser[func].apply(parser, args);
 	};
 }

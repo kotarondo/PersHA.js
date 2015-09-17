@@ -42,34 +42,7 @@ function syncIO(func, args) {
 	if (func === 'debug') {
 		return console.log("debug: " + args);
 	}
-	if (func === 'cwd') {
-		return process.cwd();
-	}
-	if (func === 'chdir') {
-		return process.chdir.apply(process, args);
-	}
-	if (func === 'getuid') {
-		return process.getuid.apply(process, args);
-	}
-	if (func === 'setuid') {
-		return process.setuid.apply(process, args);
-	}
-	if (func === 'umask') {
-		return process.umask.apply(process, args);
-	}
-	if (func === 'hrtime') {
-		return process.hrtime.apply(process, args);
-	}
-	if (func === 'memoryUsage') {
-		return process.memoryUsage.apply(process, args);
-	}
-	if (func === 'abort') {
-		return process.abort();
-	}
-	if (func === 'exit') {
-		return process.exit(args[0]);
-	}
-	console.log("[unhandled] process syncIO: " + func);
+	return process[func].apply(process, args);
 }
 
 function asyncIO(func, args, callback) {

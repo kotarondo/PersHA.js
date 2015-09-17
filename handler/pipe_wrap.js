@@ -89,51 +89,15 @@ function PipePort(handle, callback) {
 			}
 			return;
 		}
-		if (func === 'readStart') {
-			return handle.readStart();
-		}
-		if (func === 'readStop') {
-			return handle.readStop();
-		}
-		if (func === 'ref') {
-			return handle.ref();
-		}
-		if (func === 'unref') {
-			return handle.unref();
-		}
-		if (func === 'close') {
-			return handle.close();
-		}
-		if (func === 'bind') {
-			return handle.bind.apply(handle, args);
-		}
-		if (func === 'listen') {
-			return handle.listen.apply(handle, args);
-		}
-		console.log("[unhandled] Pipe syncIO: " + func);
+		return handle[func].apply(handle, args);
 	};
 
 	this.asyncIO = function(func, args, callback) {
 		if (func === 'write') {
 			var req = new WriteWrap();
 			req.async = false;
-			switch (args[0]) {
-			case 'writeUtf8String':
-				handle.writeUtf8String(req, args[1]);
-				break;
-			case 'writeBinaryString':
-				handle.writeBinaryString(req, args[1]);
-				break;
-			case 'writeBuffer':
-				handle.writeBuffer(req, args[1]);
-				break;
-			case 'writeAsciiString':
-				handle.writeAsciiString(req, args[1]);
-				break;
-			case 'writeUcs2String':
-				handle.writeUcs2String(req, args[1]);
-				break;
-			}
+			var func = args[0];
+			handle[func].call(handle, req, args[1]);
 			if (!req.async) {
 				callback(0);
 			}

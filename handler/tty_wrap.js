@@ -61,41 +61,24 @@ function syncIO(func, args) {
 function TTYPort(callback) {
 	var handle;
 
-	function restart(state){
-		handle = new binding.TTY(state.fd, state.flag);
-		if (state.rawMode) {
-			handle.setRawMode(state.rawMode);
-		}
-		if (state.reading) {
-			handle.readStart();
-		}
-		if (state.unref) {
-			handle.unref();
-		}
-		handle.onread = function() {
-			var args = Array.prototype.slice.call(arguments);
-			callback('onread', args);
-		};
-	}
-
 	this.syncIO = function(func, args) {
 		if (func === 'restart') {
-			return restart(args[0]);
-		}
-		if (func === 'close') {
-			return handle.close();
-		}
-		if (func === 'unref') {
-			return handle.unref();
-		}
-		if (func === 'readStart') {
-			return handle.readStart();
-		}
-		if (func === 'readStop') {
-			return handle.readStop();
-		}
-		if (func === 'setRawMode') {
-			return handle.setRawMode(args[0]);
+			var state = args[0];
+			handle = new binding.TTY(state.fd, state.flag);
+			if (state.rawMode) {
+				handle.setRawMode(state.rawMode);
+			}
+			if (state.reading) {
+				handle.readStart();
+			}
+			if (state.unref) {
+				handle.unref();
+			}
+			handle.onread = function() {
+				var args = Array.prototype.slice.call(arguments);
+				callback('onread', args);
+			};
+			return;
 		}
 		if (func === 'getWindowSize') {
 			var winSize = [];
@@ -105,7 +88,7 @@ function TTYPort(callback) {
 			}
 			return winSize;
 		}
-		console.log("[unhandled] TTY syncIO:" + func);
+		return handle[func].apply(handle, args);
 	};
 
 	this.asyncIO = function(func, args, callback) {
@@ -114,20 +97,8 @@ function TTYPort(callback) {
 			req.oncomplete = function(status, self, req, err) {
 				callback(status, err);
 			};
-			switch (args[0]) {
-			case 'writeUtf8String':
-				return handle.writeUtf8String(req, args[1]);
-			case 'writeBinaryString':
-				return handle.writeBinaryString(req, args[1]);
-			case 'writeBuffer':
-				return handle.writeBuffer(req, args[1]);
-			case 'writeAsciiString':
-				return handle.writeAsciiString(req, args[1]);
-			case 'writeUcs2String':
-				return handle.writeUcs2String(req, args[1]);
-			case 'writev':
-				return handle.writev(req, args[1]);
-			}
+			var func = args[0];
+			return handle[func].call(handle, req, args[1]);
 		}
 		console.log("[unhandled] TTY asyncIO:" + func);
 	};

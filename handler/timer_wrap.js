@@ -74,21 +74,6 @@ function TimerPort(callback) {
 			}
 			return;
 		}
-		if (func === 'close') {
-			return handle.close();
-		}
-		if (func === 'ref') {
-			return handle.ref();
-		}
-		if (func === 'unref') {
-			return handle.unref();
-		}
-		if (func === 'start') {
-			return handle.start.apply(handle, args);
-		}
-		if (func === 'stop') {
-			return handle.stop();
-		}
-		console.log("[unhandled] Timer syncIO: " + func);
+		return handle[func].apply(handle, args);
 	};
 }

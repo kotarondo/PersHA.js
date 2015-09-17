@@ -62,12 +62,6 @@ function FSEventPort(callback) {
 			}
 			return;
 		}
-		if (func === 'start') {
-			return handle.start.apply(handle, args);
-		}
-		if (func === 'close') {
-			return handle.close();
-		}
-		console.log("[unhandled] FSEvent syncIO:" + func);
+		return handle[func].apply(handle, args);
 	};
 }

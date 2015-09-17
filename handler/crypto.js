@@ -55,30 +55,12 @@ function open(name, callback) {
 }
 
 function syncIO(func, args) {
-	if (func === 'PBKDF2') {
-		return binding.PBKDF2.apply(binding, args);
-	}
-	if (func === 'randomBytes') {
-		return binding.randomBytes(args[0]);
-	}
-	if (func === 'pseudoRandomBytes') {
-		return binding.pseudoRandomBytes(args[0]);
-	}
-	console.log("[unhandled] crypto syncIO: " + func);
+	return binding[func].apply(binding, args);
 }
 
 function asyncIO(func, args, callback) {
-	if (func === 'PBKDF2') {
-		args.push(callback);
-		return binding.PBKDF2.apply(binding, args);
-	}
-	if (func === 'randomBytes') {
-		return binding.randomBytes(args[0], callback);
-	}
-	if (func === 'pseudoRandomBytes') {
-		return binding.pseudoRandomBytes(args[0], callback);
-	}
-	console.log("[unhandled] crypto asyncIO: " + func);
+	args.push(callback);
+	return binding[func].apply(binding, args);
 }
 
 function CipherBase() {
@@ -89,31 +71,7 @@ function CipherBase() {
 			obj = new binding.CipherBase(args[0]);
 			return;
 		}
-		if (func === 'init') {
-			return obj.init.apply(obj, args);
-		}
-		if (func === 'initiv') {
-			return obj.initiv.apply(obj, args);
-		}
-		if (func === 'update') {
-			return obj.update.apply(obj, args);
-		}
-		if (func === 'final') {
-			return obj.final.apply(obj, args);
-		}
-		if (func === 'setAutoPadding') {
-			return obj.setAutoPadding.apply(obj, args);
-		}
-		if (func === 'getAuthTag') {
-			return obj.getAuthTag.apply(obj, args);
-		}
-		if (func === 'setAuthTag') {
-			return obj.setAuthTag.apply(obj, args);
-		}
-		if (func === 'setAAD') {
-			return obj.setAAD.apply(obj, args);
-		}
-		console.log("[unhandled] CipherBase syncIO: " + func);
+		return obj[func].apply(obj, args);
 	};
 }
 
@@ -125,31 +83,7 @@ function DiffieHellman(args, callback) {
 			obj = new binding.DiffieHellman(args[0], args[1]);
 			return;
 		}
-		if (func === 'generateKeys') {
-			return obj.generateKeys.apply(obj, args);
-		}
-		if (func === 'computeSecret') {
-			return obj.computeSecret.apply(obj, args);
-		}
-		if (func === 'getPrime') {
-			return obj.getPrime.apply(obj, args);
-		}
-		if (func === 'getGenerator') {
-			return obj.getGenerator.apply(obj, args);
-		}
-		if (func === 'getPublicKey') {
-			return obj.getPublicKey.apply(obj, args);
-		}
-		if (func === 'getPrivateKey') {
-			return obj.getPrivateKey.apply(obj, args);
-		}
-		if (func === 'setPublicKey') {
-			return obj.setPublicKey.apply(obj, args);
-		}
-		if (func === 'setPrivateKey') {
-			return obj.setPrivateKey.apply(obj, args);
-		}
-		console.log("[unhandled] CipherBase syncIO: " + func);
+		return obj[func].apply(obj, args);
 	};
 }
 
@@ -161,12 +95,6 @@ function Hash(args, callback) {
 			obj = new binding.Hash(args[0]);
 			return;
 		}
-		if (func === 'update') {
-			return obj.update.apply(obj, args);
-		}
-		if (func === 'digest') {
-			return obj.digest.apply(obj, args);
-		}
-		console.log("[unhandled] Hash syncIO: " + func);
+		return obj[func].apply(obj, args);
 	};
 }
