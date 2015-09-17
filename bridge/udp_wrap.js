@@ -34,4 +34,115 @@
 'use strict';
 
 var binding = process.binding('udp_wrap');
-//var basePort = new IOPort('udp_wrap');
+var basePort = new IOPort('udp_wrap');
+
+binding.SendWrap = function() {
+	this.domain = process.domain;
+};
+
+binding.UDP = UDP;
+
+function UDP() {
+	var self = this;
+	self._state = {};
+	self._port = basePort.open('UDP', function(event, args) {
+		if (event instanceof IOPortError) {
+			if (event.message === 'restart') {
+				args.asyncIO('restart', [ self._state ]);
+			}
+			return;
+		}
+		self[event].apply(self, args);
+	});
+}
+
+UDP.prototype.close = function() {
+	return this._port.syncIO('close', []);
+};
+
+UDP.prototype.ref = function() {
+	this._port.syncIO('ref', []);
+	this._state.unref = false;
+};
+
+UDP.prototype.unref = function() {
+	this._port.syncIO('unref', []);
+	this._state.unref = true;
+};
+
+UDP.prototype.recvStart = function() {
+	return this._port.syncIO('recvStart', []);
+};
+
+UDP.prototype.recvStop = function() {
+	return this._port.syncIO('recvStop', []);
+};
+
+UDP.prototype.bind = function() {
+	var err = this._port.syncIO('bind', arguments);
+	if (!err) {
+		this._state.bindArgs = arguments;
+	}
+	return err;
+};
+
+UDP.prototype.bind6 = function() {
+	var err = this._port.syncIO('bind6', arguments);
+	if (!err) {
+		this._state.bind6Args = arguments;
+	}
+	return err;
+};
+
+UDP.prototype.getsockname = function(out) {
+	var res = this._port.syncIO('getsockname', []);
+	for ( var n in res.out) {
+		out[n] = res.out[n];
+	}
+	return res.err;
+};
+
+UDP.prototype.setBroadcast = function() {
+	return this._port.syncIO('setBroadcast', arguments);
+};
+
+UDP.prototype.setTTL = function() {
+	return this._port.syncIO('setTTL', arguments);
+};
+
+UDP.prototype.addMembership = function() {
+	return this._port.syncIO('addMembership', arguments);
+};
+
+UDP.prototype.dropMembership = function() {
+	return this._port.syncIO('dropMembership', arguments);
+};
+
+UDP.prototype.setMulticastTTL = function() {
+	return this._port.syncIO('setMulticastTTL', arguments);
+};
+
+UDP.prototype.setMulticastLoopback = function() {
+	return this._port.syncIO('setMulticastLoopback', arguments);
+};
+
+function sendCall(self, req, func, buffer, offset, length, port, ip) {
+	var data = buffer.slice(offset, length - offset);
+	self._port.asyncIO('send', [ func, data, port, ip ], function(err) {
+		if (err instanceof IOPortError) {
+			err = -1;
+		}
+		process._MakeCallback(req.domain, function() {
+			req.oncomplete(err);
+		});
+	});
+	return 0;
+};
+
+UDP.prototype.send = function(req, buffer, offset, length, port, ip, isCallback) {
+	return sendCall(this, req, 'send', buffer, offset, length, port, ip);
+};
+
+UDP.prototype.send6 = function(req, buffer, offset, length, port, ip, isCallback) {
+	return sendCall(this, req, 'send6', buffer, offset, length, port, ip);
+};
