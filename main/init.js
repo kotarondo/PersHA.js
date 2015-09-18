@@ -63,6 +63,8 @@ try {
 	var _process_env = Global_eval(undefined, [ "process.env" ]);
 	_process_env.Put('HOME', process.env['HOME'], false);
 	_process_env.Put('NODE_PATH', process.env['NODE_PATH'], false);
+	_process_env.Put('PATH', process.env['PATH'], false);
+	_process_env.Put('NODE_DEBUG', process.env['PERSHA_DEBUG'], false);
 
 	var _natives = Global_eval(undefined, [ "process.binding('natives')" ]);
 	var natives_list = [ 'events', 'constants', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream',
@@ -131,7 +133,7 @@ try {
 		console.log("FATAL: " + e.stack);
 	}
 	else {
-		if (Type(e) === TYPE_Object && e.Class === "Error") {
+		if (Type(e) === TYPE_Object && e.HasProperty('stack')) {
 			console.log("FATAL: " + e.Get('stack'));
 		}
 		else {
