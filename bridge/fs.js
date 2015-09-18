@@ -37,7 +37,7 @@ var binding = process.binding('fs');
 var basePort = new IOPort('fs');
 var Stats;
 
-var maxFD = 10;
+var maxFD = 15;
 var mapFD = [];
 
 for (var fd = 0; fd < 3; fd++) {
@@ -129,6 +129,7 @@ function generalCall(port, name, args, req, retry, filter) {
 }
 
 binding.open = function(path, flags, mode, req) {
+	if (typeof path !== 'string') throw new Error("path must be a string");
 	var port = basePort.open('general');
 	return generalCall(port, 'open', [ path, flags, mode ], req, false, function(value) {
 		return bindPort(port);
@@ -168,10 +169,12 @@ function statFilter(value) {
 }
 
 binding.stat = function(path, req) {
+	if (typeof path !== 'string') throw new Error("path must be a string");
 	return retryCall('stat', [ path ], req, statFilter);
 };
 
 binding.lstat = function(path, req) {
+	if (typeof path !== 'string') throw new Error("path must be a string");
 	return retryCall('lstat', [ path ], req, statFilter);
 };
 
@@ -180,14 +183,17 @@ binding.fstat = function(fd, req) {
 };
 
 binding.access = function(path, mode, req) {
+	if (typeof path !== 'string') throw new Error("path must be a string");
 	return retryCall('access', [ path, mode ], req);
 };
 
 binding.chmod = function(path, mode, req) {
+	if (typeof path !== 'string') throw new Error("path must be a string");
 	return onceCall('chmod', [ path, mode ], req);
 };
 
 binding.chown = function(path, uid, gid, req) {
+	if (typeof path !== 'string') throw new Error("path must be a string");
 	return onceCall('chown', [ path, uid, gid ], req);
 };
 
@@ -212,6 +218,7 @@ binding.ftruncate = function(fd, len, req) {
 };
 
 binding.utimes = function(path, atime, mtime, req) {
+	if (typeof path !== 'string') throw new Error("path must be a string");
 	return onceCall('utimes', [ path, atime, mtime ], req);
 };
 
@@ -220,26 +227,33 @@ binding.futimes = function(fd, atime, mtime, req) {
 };
 
 binding.link = function(srcpath, dstpath, req) {
+	if (typeof srcpath !== 'string') throw new Error("src path must be a string");
+	if (typeof dstpath !== 'string') throw new Error("dst path must be a string");
 	return onceCall('link', [ srcpath, dstpath ], req);
 };
 
 binding.symlink = function(destination, path, type, req) {
+	if (typeof path !== 'string') throw new Error("path must be a string");
 	return onceCall('symlink', [ destination, path, type ], req);
 };
 
 binding.unlink = function(path, req) {
+	if (typeof path !== 'string') throw new Error("path must be a string");
 	return onceCall('unlink', [ path ], req);
 };
 
 binding.mkdir = function(path, mode, req) {
+	if (typeof path !== 'string') throw new Error("path must be a string");
 	return onceCall('mkdir', [ path, mode ], req);
 };
 
 binding.readdir = function(path, req) {
+	if (typeof path !== 'string') throw new Error("path must be a string");
 	return retryCall('readdir', [ path ], req);
 };
 
 binding.readlink = function(path, req) {
+	if (typeof path !== 'string') throw new Error("path must be a string");
 	return retryCall('readlink', [ path ], req);
 };
 
@@ -248,6 +262,7 @@ binding.rename = function(oldPath, newPath, req) {
 };
 
 binding.rmdir = function(path, req) {
+	if (typeof path !== 'string') throw new Error("path must be a string");
 	return onceCall('rmdir', [ path ], req);
 };
 

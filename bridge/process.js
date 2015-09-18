@@ -48,6 +48,10 @@ process.moduleLoadList = [];
 process.features = {};
 process.versions = {};
 
+process.dlopen = function() {
+	throw new Error("NOT SUPPORTED: file too short");
+};
+
 process.cwd = function() {
 	return basePort.syncIO('cwd', arguments);
 };
@@ -70,6 +74,12 @@ process.umask = function() {
 
 process.hrtime = function() {
 	return basePort.syncIO('hrtime', arguments);
+};
+
+process.pid = 0;
+
+process._kill = function() {
+	return basePort.syncIO('_kill', arguments);
 };
 
 process.memoryUsage = function() {
@@ -149,6 +159,10 @@ process.binding('contextify').ContextifyScript = function(code, options) {
 		}
 		return vm.global.evaluateProgram(prog, filename);
 	};
+};
+
+process.binding('contextify').runInDebugContext = function(code) {
+	return evaluateProgram(code);
 };
 
 process.binding('contextify').makeContext = function(sandbox) {

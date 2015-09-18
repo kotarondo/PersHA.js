@@ -158,23 +158,26 @@ function task_callbackUncaughtError(e) {
 	try {
 		var callback = vm.theGlobalObject.Get('_uncaughtErrorCallback');
 		if (IsCallable(callback)) {
-			callback.Call(undefined, [ e ]);
-			return;
+			var caught = callback.Call(undefined, [ e ]);
+			if (caught) return;
 		}
 	} catch (ee) {
 		if (isInternalError(ee)) throw ee;
 		e = ee;
 	}
-	try {
-		if (Type(e) === TYPE_Object && e.Class === "Error") {
-			var err = ToString(e.Get('stack'));
+	var err = "";
+	for (var i = 0; i < 3; i++) {
+		try {
+			if (Type(e) === TYPE_Object && e.HasProperty('stack')) {
+				var err = ToString(e.Get('stack'));
+			}
+			else {
+				var err = ToString(e);
+			}
+		} catch (ee) {
+			if (isInternalError(ee)) throw ee;
+			e = ee;
 		}
-		else {
-			var err = ToString(e);
-		}
-	} catch (ee) {
-		if (isInternalError(ee)) throw ee;
-		var err = "non-printable error";
 	}
 	if (IOManager_state !== 'recovery') {
 		console.error("Uncaught: " + err);

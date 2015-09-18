@@ -46,6 +46,7 @@ process.binding = (function() {
 		natives : {},
 		smalloc : {},
 		constants : {},
+		buffer : {},
 		fs : {},
 		uv : {},
 		http_parser : {},
@@ -62,16 +63,18 @@ process.binding = (function() {
 		fs_event_wrap : {},
 	};
 	return function(name) {
-		return bindings[name];
-	}
+		var b = bindings[name];
+		if (!b) throw new Error("No such module: " + name);
+		return b;
+	};
 })();
 
 Object.defineProperty(this, "_uncaughtErrorCallback", {
 	value : function(e) {
 		if (!process._fatalException) {
-			throw e;
+			return false;
 		}
-		process._fatalException(e);
+		return process._fatalException(e);
 	},
 	writable : true,
 	enumerable : false,
@@ -81,7 +84,9 @@ Object.defineProperty(this, "_uncaughtErrorCallback", {
 Object.defineProperty(Object.prototype, "__defineGetter__", {
 	value : function(n, getter) {
 		Object.defineProperty(this, n, {
-			get : getter
+			get : getter,
+			enumerable : true,
+			configurable : true
 		});
 	},
 	writable : true,

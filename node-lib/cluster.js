@@ -33,3 +33,6 @@
 
 exports.isMaster = true;
 exports.isWorker = false;
+exports.fork = function(){
+	throw new Error("NOT SUPPORTED: cluster.fork");
+};
