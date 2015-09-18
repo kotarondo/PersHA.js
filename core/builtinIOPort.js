@@ -101,6 +101,7 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	if (IsCallable(argumentsList[2])) {
 		var callback = argumentsList[2];
 	}
+	taskPendingError = undefined;
 	do {
 		task_pause();
 		var entry = IOManager_syncIO(port, func, args, callback);
@@ -108,6 +109,9 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	} while (!noRetry && entry.error === 'restart');
 	if (entry.success) {
 		return IOPort_wrap(entry.value);
+	}
+	if (taskPendingError) {
+		throw taskPendingError;
 	}
 	if (entry.error) {
 		assert(isPrimitiveValue(entry.error));
@@ -131,6 +135,7 @@ function IOPort_portEvent(entry, callback, port) {
 	} catch (e) {
 		if (taskDepth >= 2) {
 			if (isInternalError(e)) throw e;
+			taskPendingError = e;
 			return IOPort_unwrap(e);
 		}
 		else {
@@ -214,6 +219,9 @@ function IOPort_unwrap(A, stack) {
 		case "RangeError":
 			var a = new RangeError(message);
 			break;
+		case "SyntaxError":
+			var a = new SyntaxError(message);
+			break;
 		default:
 			var a = new Error(message);
 			break;
@@ -222,7 +230,7 @@ function IOPort_unwrap(A, stack) {
 	else {
 		var a = {};
 	}
-	var next = A.enumerator(false, true);
+	var next = A.enumerator(true, true);
 	var P;
 	while ((P = next()) !== undefined) {
 		if (P === 'caller' || P === 'callee' || P === 'arguments') {
@@ -270,17 +278,21 @@ function IOPort_wrap(a, stack) {
 	}
 	stack.push(a);
 	if (a instanceof Error) {
+		var message = String(a.message);
 		if (a instanceof TypeError) {
-			var A = TypeError_Construct([]);
+			var A = TypeError_Construct([ message ]);
 		}
 		else if (a instanceof ReferenceError) {
-			var A = ReferenceError_Construct([]);
+			var A = ReferenceError_Construct([ message ]);
 		}
 		else if (a instanceof RangeError) {
-			var A = RangeError_Construct([]);
+			var A = RangeError_Construct([ message ]);
+		}
+		else if (a instanceof SyntaxError) {
+			var A = RangeError_Construct([ message ]);
 		}
 		else {
-			var A = Error_Construct([]);
+			var A = Error_Construct([ message ]);
 		}
 	}
 	else if (a instanceof Array) {
@@ -289,10 +301,13 @@ function IOPort_wrap(a, stack) {
 	else {
 		var A = Object_Construct([]);
 	}
-	var keys = Object.getOwnPropertyNames(a);
+	var keys = Object.getOwnPropertyNames(a).sort();
 	var length = keys.length;
 	for (var i = 0; i < length; i++) {
 		var P = keys[i];
+		if (a.propertyIsEnumerable(P) === false) {
+			continue;
+		}
 		if (P === 'caller' || P === 'callee' || P === 'arguments') {
 			continue;
 		}

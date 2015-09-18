@@ -39,6 +39,7 @@ var taskPaused = true;
 var taskInterruptible = true;
 var taskResumedTime = 0;
 var taskAccumulatedTime = 0;
+var taskPendingError;
 
 function task_enter() {
 	assert(taskPaused && taskInterruptible);

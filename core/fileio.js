@@ -190,27 +190,35 @@ function FileOutputStream(filename, openExists) {
 			else if (x instanceof RangeError) {
 				writeInt(93);
 			}
+			else if (x instanceof SyntaxError) {
+				writeInt(94);
+			}
 			else {
 				writeInt(9);
 			}
+			writeString(String(x.message));
 		}
 		else if (x instanceof Array) {
 			writeInt(10);
+			writeInt(x.length);
 		}
 		else {
 			writeInt(11);
 		}
-		var keys = Object.getOwnPropertyNames(x);
+		var keys = Object.getOwnPropertyNames(x).sort();
 		var length = keys.length;
-		writeInt(length);
 		for (var i = 0; i < length; i++) {
 			var P = keys[i];
-			writeString(P);
+			if (x.propertyIsEnumerable(P) === false) {
+				continue;
+			}
 			if (P === 'caller' || P === 'callee' || P === 'arguments') {
 				continue;
 			}
+			writeString(P);
 			writeAny(x[P], stack);
 		}
+		writeString("");
 		stack.pop();
 	}
 
@@ -367,19 +375,23 @@ function FileInputStream(filename) {
 		case 8:
 			return new Date(readNumber());
 		case 91:
-			var a = new TypeError();
+			var a = new TypeError(readString());
 			break;
 		case 92:
-			var a = new ReferenceError();
+			var a = new ReferenceError(readString());
 			break;
 		case 93:
-			var a = new RangeError();
+			var a = new RangeError(readString());
+			break;
+		case 94:
+			var a = new SyntaxError(readString());
 			break;
 		case 9:
-			var a = new Error();
+			var a = new Error(readString());
 			break;
 		case 10:
 			var a = [];
+			a.length = readInt();
 			break;
 		case 11:
 			var a = {};
@@ -387,11 +399,10 @@ function FileInputStream(filename) {
 		default:
 			throw Error("file broken: type=" + type);
 		}
-		var length = readInt();
-		for (var i = 0; i < length; i++) {
+		while (true) {
 			var P = readString();
-			if (P === 'caller' || P === 'callee' || P === 'arguments') {
-				continue;
+			if (P === '') {
+				break;
 			}
 			a[P] = readAny();
 		}
