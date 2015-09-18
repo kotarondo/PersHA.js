@@ -1618,6 +1618,7 @@ var theParser = function() {
 		}
 		if (pos >= source.length) {
 			this.message = "Unexpected end of input: " + sourceObject.filename;
+			return;
 		}
 		var info = {};
 		convertToLineColumn(source, pos, info);

@@ -103,7 +103,7 @@ function TCPPort(handle, callback) {
 			var res = {
 				out : {}
 			};
-			res.err = handle.getsockname(res.out);
+			res.err = handle.getpeername(res.out);
 			return res;
 		}
 		return handle[func].apply(handle, args);
