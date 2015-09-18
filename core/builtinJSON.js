@@ -120,7 +120,7 @@ function JSONParser() {
 		skipJSONWhiteSpaces();
 		var value = readJSONValue();
 		skipJSONWhiteSpaces();
-		if (current !== undefined) throw VMSyntaxError();
+		if (current !== undefined) throw SyntaxError();
 		return value;
 	}
 
@@ -197,7 +197,7 @@ function JSONParser() {
 		expecting('"');
 		var buffer = [];
 		while (true) {
-			if (current === undefined) throw VMSyntaxError();
+			if (current === undefined) throw SyntaxError();
 			else if (current === '"') {
 				proceed();
 				return join(buffer);
@@ -206,7 +206,7 @@ function JSONParser() {
 				var c = readJSONEscapeSequence();
 				buffer.push(c);
 			}
-			else if (toCharCode(current) <= 0x001F) throw VMSyntaxError();
+			else if (toCharCode(current) <= 0x001F) throw SyntaxError();
 			else {
 				buffer.push(current);
 				proceed();
@@ -235,13 +235,13 @@ function JSONParser() {
 		case 'u':
 			var x = 0;
 			for (var i = 0; i < 4; i++) {
-				if (!isHexDigitChar(current)) throw VMSyntaxError();
+				if (!isHexDigitChar(current)) throw SyntaxError();
 				x = (x << 4) + mvDigitChar(current);
 				proceed();
 			}
 			return fromCharCode(x);
 		}
-		throw VMSyntaxError();
+		throw SyntaxError();
 	}
 
 	function readJSONNumber() {
@@ -251,10 +251,10 @@ function JSONParser() {
 		}
 		if (current === '0') {
 			proceed();
-			if (isDecimalDigitChar(current)) throw VMSyntaxError();
+			if (isDecimalDigitChar(current)) throw SyntaxError();
 		}
 		else {
-			if (!isDecimalDigitChar(current)) throw VMSyntaxError();
+			if (!isDecimalDigitChar(current)) throw SyntaxError();
 			while (isDecimalDigitChar(current)) {
 				proceed();
 			}
@@ -270,12 +270,12 @@ function JSONParser() {
 			if (current === '+' || current === '-') {
 				proceed();
 			}
-			if (!isDecimalDigitChar(current)) throw VMSyntaxError();
+			if (!isDecimalDigitChar(current)) throw SyntaxError();
 			while (isDecimalDigitChar(current)) {
 				proceed();
 			}
 		}
-		if (startPos === currentPos) throw VMSyntaxError();
+		if (startPos === currentPos) throw SyntaxError();
 		return ToNumber(source.substring(startPos, currentPos));
 	}
 
@@ -284,7 +284,7 @@ function JSONParser() {
 			proceed(4);
 			return null;
 		}
-		throw VMSyntaxError();
+		throw SyntaxError();
 	}
 
 	function readJSONBooleanLiteral() {
@@ -296,7 +296,7 @@ function JSONParser() {
 			proceed(5);
 			return false;
 		}
-		throw VMSyntaxError();
+		throw SyntaxError();
 	}
 
 	function skipJSONWhiteSpaces() {
@@ -315,7 +315,7 @@ function JSONParser() {
 	}
 
 	function expecting(c) {
-		if (c !== current) throw VMSyntaxError();
+		if (c !== current) throw SyntaxError();
 		proceed();
 	}
 
@@ -325,10 +325,14 @@ function JSONParser() {
 			count = 1;
 		}
 		for (var i = 0; i < count; i++) {
-			if (current === undefined) throw VMSyntaxError();
+			if (current === undefined) throw SyntaxError();
 			current = source[++currentPos];
 		}
 		return c;
+	}
+
+	function SyntaxError() {
+		return new VMSyntaxError("at " + currentPos);
 	}
 }
 
@@ -483,7 +487,7 @@ function JSON_stringify(thisValue, argumentsList) {
 	}
 
 	function JO(value) {
-		if (isIncluded(value, stack)) throw VMTypeError();
+		if (isIncluded(value, stack)) throw TypeError();
 		stack.push(value);
 		var stepback = indent;
 		indent = indent + gap;
@@ -530,7 +534,7 @@ function JSON_stringify(thisValue, argumentsList) {
 	}
 
 	function JA(value) {
-		if (isIncluded(value, stack)) throw VMTypeError();
+		if (isIncluded(value, stack)) throw TypeError();
 		stack.push(value);
 		var stepback = indent;
 		indent = indent + gap;
@@ -564,4 +568,7 @@ function JSON_stringify(thisValue, argumentsList) {
 		return final;
 	}
 
+	function TypeError() {
+		return new VMTypeError("at " + currentPos);
+	}
 }
