@@ -284,6 +284,24 @@ function IOManager_date_now() {
 	return now;
 }
 
+function IOManager_date_parse(str) {
+	if (IOManager_state !== 'online') {
+		if (IOManager_state !== 'recovery') {
+			return Date.parse(str);
+		}
+		var entry = Journal_read();
+		if (entry !== undefined) {
+			assert(entry.parse !== undefined);
+			return entry.parse;
+		}
+	}
+	var parse = Date.parse(str);
+	Journal_write({
+		parse : parse
+	});
+	return parse;
+}
+
 function IOManager_math_random() {
 	if (IOManager_state !== 'online') {
 		if (IOManager_state !== 'recovery') {

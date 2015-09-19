@@ -331,91 +331,7 @@ function Date_Construct(argumentsList) {
 function Date_parse(thisValue, argumentsList) {
 	var string = argumentsList[0];
 	var s = ToString(string);
-	var i = 0;
-	var y = NaN;
-	var m = 0;
-	var d = 1;
-	var h = 0;
-	var min = 0;
-	var sec = 0;
-	var ms = 0;
-	parseDate();
-	if (isNaN(y) || isNaN(m) || isNaN(d)) {
-		return NaN;
-	}
-	if (s[i] === 'T' || s[i] === ' ') {
-		i++;
-		parseTime();
-		if (isNaN(h) || isNaN(min) || isNaN(sec) || isNaN(ms)) {
-			return NaN;
-		}
-	}
-	if (s[i] === ' ') {
-		i++;
-	}
-	var TZstr = s.substring(i);
-	if (TZstr === LocalTZAString) {
-		var tza = LocalTZA;
-	}
-	else if (TZstr === "" || TZstr === "Z" || TZstr === "UTC" || TZstr === "GMT") {
-		var tza = 0;
-	}
-	else {
-		return NaN;
-	}
-	return TimeClip(MakeDate(MakeDay(y, m, d), MakeTime(h, min, sec, ms)) - tza);
-
-	function parseDate() {
-		if (s[i] === '+') {
-			i++;
-			y = parseDigits(6);
-		}
-		else if (s[i] === '-') {
-			i++;
-			y = -parseDigits(6);
-		}
-		else {
-			y = parseDigits(4);
-		}
-		if (s[i] !== '-') {
-			return;
-		}
-		i++;
-		m = parseDigits(2) - 1;
-		if (s[i] !== '-') {
-			return;
-		}
-		i++;
-		d = parseDigits(2);
-	}
-
-	function parseTime() {
-		h = parseDigits(2);
-		if (s[i] !== ':') {
-			return;
-		}
-		i++;
-		min = parseDigits(2);
-		if (s[i] !== ':') {
-			return;
-		}
-		i++;
-		sec = parseDigits(2);
-		if (s[i] !== '.') {
-			return;
-		}
-		ms = parseDigits(3);
-	}
-
-	function parseDigits(n) {
-		var x = 0;
-		while (n-- > 0) {
-			if (!isDecimalDigitChar(s[i])) return NaN;
-			x = x * 10 + mvDigitChar(s[i]);
-			i++;
-		}
-		return x;
-	}
+	return IOManager_date_parse(s);
 }
 
 function Date_UTC(thisValue, argumentsList) {
@@ -474,18 +390,21 @@ function Date_now(thisValue, argumentsList) {
 function Date_prototype_toString(thisValue, argumentsList) {
 	var thisTimeValue = Date_prototype_valueOf(thisValue);
 	var t = LocalTime(thisTimeValue);
+	if (isFinite(t) === false) return "Invalid Date";
 	return toISODateString(t) + " " + toISOTimeString(t) + " " + LocalTZAString;
 }
 
 function Date_prototype_toDateString(thisValue, argumentsList) {
 	var thisTimeValue = Date_prototype_valueOf(thisValue);
 	var t = LocalTime(thisTimeValue);
+	if (isFinite(t) === false) return "Invalid Date";
 	return toISODateString(t);
 }
 
 function Date_prototype_toTimeString(thisValue, argumentsList) {
 	var thisTimeValue = Date_prototype_valueOf(thisValue);
 	var t = LocalTime(thisTimeValue);
+	if (isFinite(t) === false) return "Invalid Date";
 	return toISOTimeString(t);
 }
 
