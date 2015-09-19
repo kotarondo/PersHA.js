@@ -199,8 +199,7 @@ TCP.prototype.setKeepAlive = function() {
 };
 
 function writeCall(self, req, func, data) {
-	req.async = true;
-	self._port.asyncIO('write', [ func, data ], function(status, err) {
+	var ret = self._port.syncIO('write', [ func, data ], function(status, err) {
 		if (status instanceof IOPortError) {
 			err = status.message;
 			status = -1;
@@ -209,8 +208,9 @@ function writeCall(self, req, func, data) {
 			req.oncomplete(status, self, req, err);
 		});
 	});
-	//TODO req.bytes
-	return 0;
+	req.async = ret.async;
+	req.bytes = ret.bytes;
+	return ret.err;
 };
 
 TCP.prototype.writeBuffer = function(req, data) {

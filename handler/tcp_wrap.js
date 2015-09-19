@@ -111,19 +111,17 @@ function TCPPort(handle, callback) {
 
 	this.asyncIO = function(func, args, callback) {
 		if (func === 'write') {
+			var ret = {};
 			var req = new WriteWrap();
+			req.oncomplete = function(status, self, req, err) {
+				callback(status, err);
+			};
 			req.async = false;
 			var func = args[0];
-			handle[func].call(handle, req, args[1]);
-			if (!req.async) {
-				callback(0);
-			}
-			else {
-				req.oncomplete = function(status, self, req, err) {
-					callback(status, err);
-				};
-			}
-			return;
+			ret.err = handle[func].call(handle, req, args[1]);
+			ret.async = req.async;
+			ret.bytes = req.bytes;
+			return ret;
 		}
 		if (func === 'connect') {
 			var req = new TCPConnectWrap();
