@@ -52,6 +52,13 @@ function UDP() {
 			}
 			return;
 		}
+		if (event === 'onmessage') {
+			var nread = args[0];
+			var buf = args[1];
+			var rinfo = args[2];
+			self.onmessage(nread, self, buf, rinfo);
+			return;
+		}
 		self[event].apply(self, args);
 	});
 }
@@ -132,9 +139,11 @@ function sendCall(self, req, func, buffer, offset, length, port, ip) {
 		if (err instanceof IOPortError) {
 			err = -1;
 		}
-		process._MakeCallback(req.domain, function() {
-			req.oncomplete(err);
-		});
+		if (req.oncomplete) {
+			process._MakeCallback(req.domain, function() {
+				req.oncomplete(err);
+			});
+		}
 	});
 	return 0;
 };
