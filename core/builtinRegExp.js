@@ -510,6 +510,7 @@ function RegExpFactory() {
 			var greedy = false;
 		}
 		if (isFinite(max) && (max < min)) throw SyntaxError();
+		if (isIncluded(current, "{}")) throw SyntaxError();
 		return function(x, c) {
 			return RepeatMatcher(m, min, max, greedy, x, c, parenIndex, parenCount);
 		};
@@ -567,9 +568,9 @@ function RegExpFactory() {
 			};
 		}
 		if (STRICT_CONFORMANCE) {
-			if (current === ']') return undefined;
+			if (isIncluded(current, "*+?)]{}|")) return undefined;
 		}
-		if (isIncluded(current, "*+?){}|")) return undefined;
+		if (isIncluded(current, "*+?)|")) return undefined;
 		var A = oneElementCharSet(proceed());
 		return CharacterSetMatcher(A, false);
 	}
