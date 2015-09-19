@@ -44,8 +44,8 @@ process.moduleLoadList = [];
 process.features = {};
 process.versions = {};
 
-process.dlopen = function() {
-	throw new Error("NOT SUPPORTED: file too short");
+process.dlopen = function(module, filename) {
+	throw new Error(filename + ": file too short");
 };
 
 process.cwd = function() {
