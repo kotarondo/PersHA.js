@@ -31,7 +31,7 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-var stopIfFailed = true;
+var stopIfFailed = false;
 var skipVeryHeavyTests = true;
 var skipHeavyTests = true;
 
@@ -40,8 +40,8 @@ if (process.argv.length >= 3) {
 }
 
 // for Tests S15.9.3.1_A5_T*.js
-LocalTZA = -8 * 3600000;
-LocalTZAString = "PDT";
+setSystemProperty("LocalTZA", -8 * 3600000);
+setSystemProperty("LocalTZAString", "PDT");
 
 var vm = require('vm');
 var fs = require('fs');
@@ -202,7 +202,7 @@ function doTest(test) {
 				return true;
 			}
 		}
-		console.log("ERROR: " + e.stack);
+		console.log("ERROR: " + e);
 	}
 	console.log(test.description);
 	console.log(test.path);
