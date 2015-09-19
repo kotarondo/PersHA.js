@@ -35,10 +35,6 @@
 
 var basePort = new IOPort('process');
 
-process._debug = function() {
-	basePort.asyncIO('debug', arguments);
-};
-
 process.execArgv = [];
 process.argv = [ 'node' ];
 process.env = {};
@@ -91,11 +87,11 @@ process.abort = function() {
 };
 
 process.reallyExit = function() {
-	basePort.syncIO('exit', arguments);
+	basePort.syncIO('reallyExit', arguments);
 };
 
 process.suspendExit = function() {
-	basePort.asyncIO('exit', arguments);
+	basePort.asyncIO('reallyExit', arguments);
 };
 
 var tickCallback;

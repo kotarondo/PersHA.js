@@ -122,7 +122,7 @@ function rmdirSync(path) {
 		if (IOManager_state !== 'online') {
 			return;
 		}
-		IOManager_evaluate("process.emit('exit')", "");
+		IOManager_evaluate("process.exit(0)", "");
 	});
 
 })();

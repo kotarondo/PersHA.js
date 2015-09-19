@@ -196,7 +196,15 @@ function IOManager_syncIO(port, func, args, callback) {
 				}
 				return entry;
 			}
-			IOManager_portEvent(entry);
+			if (entry.type === 'portEvent') {
+				IOManager_portEvent(entry);
+				continue;
+			}
+			if (entry.type === 'evaluate') {
+				IOManager_evaluate(entry.text, entry.filename);
+				continue;
+			}
+			assert(false);
 		}
 	}
 	var entry = {
