@@ -62,7 +62,11 @@ function Global_eval(thisValue, argumentsList, direct, strict) {
 function Global_evaluateProgram(thisValue, argumentsList) {
 	var x = argumentsList[0];
 	var filename = ToString(argumentsList[1]);
-	if (Type(x) === TYPE_String) {
+	if (Type(x) === TYPE_Object && x.Class === "Script") {
+		var prog = x.Code;
+	}
+	else {
+		x = ToString(x);
 		try {
 			var prog = theParser.readProgram(x, false, [], filename);
 		} catch (e) {
@@ -75,12 +79,6 @@ function Global_evaluateProgram(thisValue, argumentsList) {
 			throw e;
 		}
 	}
-	else if (Type(x) === TYPE_Object && x.Class === "Script") {
-		var prog = x.Code;
-	}
-	else {
-		return x;
-	}
 	enterExecutionContextForGlobalCode(prog);
 	var result = prog.evaluate();
 	exitExecutionContext();
@@ -91,9 +89,8 @@ function Global_evaluateProgram(thisValue, argumentsList) {
 }
 
 function Global_parseProgram(thisValue, argumentsList) {
-	var x = argumentsList[0];
+	var x = ToString(argumentsList[0]);
 	var filename = ToString(argumentsList[1]);
-	if (Type(x) !== TYPE_String) return;
 	try {
 		var prog = theParser.readProgram(x, false, [], filename);
 	} catch (e) {
