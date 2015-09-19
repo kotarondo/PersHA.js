@@ -1,7 +1,32 @@
 #!/bin/sh
 
-pushd `dirname $0` > /dev/null
+pushd `dirname $0` >/dev/null
 SCRIPTPATH=`pwd -P`
-popd > /dev/null
+popd >/dev/null
 
-exec node ${SCRIPTPATH}/persha.js $*
+if [ -z "$PERSHA_DATA" ]; then
+	PERSHA_DATA=~/.persha
+fi
+
+mkdir -p "$PERSHA_DATA" >/dev/null
+if [ ! -d "$PERSHA_DATA" ]; then
+	echo "$PERSHA_DATA" is not a directory
+	exit
+fi
+
+pushd "$PERSHA_DATA" >/dev/null
+PERSHA_DATA=`pwd -P`
+popd >/dev/null
+
+LOCKFILE="$PERSHA_DATA/locking_pid"
+
+if shlock -p $$ -f "$LOCKFILE"; then
+	node ${SCRIPTPATH}/persha.js $*
+	EXITCODE=$?
+	rm "$LOCKFILE"
+	exit $EXITCODE
+else
+	echo already running with PERSHA_DATA=$PERSHA_DATA
+	exit 1
+fi
+

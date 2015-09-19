@@ -40,17 +40,12 @@ var NODE_INIT_SCRIPT_DIR;
 var BRIDGE_SCRIPT_DIR;
 var HANDLER_SCRIPT_DIR;
 
-function rmdirSync(path) {
+function cleanDirSync(path) {
 	fs.readdirSync(path).forEach(function(file) {
-		var p = path + "/" + file;
-		if (fs.lstatSync(p).isDirectory()) {
-			rmdirSync(p);
-		}
-		else {
-			fs.unlinkSync(p);
+		if (file.indexOf("journal") === 0) {
+			fs.unlinkSync(path + "/" + file);
 		}
 	});
-	fs.rmdirSync(path);
 }
 
 (function() {
@@ -75,6 +70,10 @@ function rmdirSync(path) {
 		console.log("ERROR: PERSHA_DATA must be absolute path: " + PERSHA_DATA);
 		process.exit(1);
 	}
+	if (!fs.existsSync(PERSHA_DATA)) {
+		console.log("ERROR: PERSHA_DATA does not exist: " + PERSHA_DATA);
+		process.exit(1);
+	}
 
 	PERSHA_HOME = path.dirname(path.dirname(process.argv[1]));
 	NODE_INIT_SCRIPT_DIR = PERSHA_HOME + "/node-lib/";
@@ -83,22 +82,10 @@ function rmdirSync(path) {
 
 	var cmd = process.argv[2];
 	if (cmd === '-init') {
-		if (fs.existsSync(PERSHA_DATA)) {
-			rmdirSync(PERSHA_DATA);
-		}
-		try {
-			fs.mkdirSync(PERSHA_DATA);
-		} catch (e) {
-			console.log("ERROR: cannot create directory: " + PERSHA_DATA);
-			process.exit(1);
-		}
+		cleanDirSync(PERSHA_DATA);
 		node_init();
 	}
 	else if (cmd === '-restart') {
-		if (!fs.existsSync(PERSHA_DATA)) {
-			console.log("ERROR: does not exist: " + PERSHA_DATA);
-			process.exit(1);
-		}
 		if (!Journal_start()) {
 			console.log("ERROR: invalid: " + PERSHA_DATA);
 			process.exit(1);
