@@ -33,7 +33,6 @@
 
 'use strict';
 
-var taskCount = 0;
 var taskDepth = 0;
 var taskPaused = true;
 var taskInterruptible = true;
@@ -45,7 +44,6 @@ function task_enter() {
 	assert(taskPaused && taskInterruptible);
 	taskPaused = false;
 	taskDepth++;
-	taskCount++;
 	resumeTaskTimer();
 }
 

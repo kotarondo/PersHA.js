@@ -111,20 +111,18 @@ function rmdirSync(path) {
 		process.exit(1);
 	}
 
-	var prevTaskCount;
 	process.on('beforeExit', function() {
 		if (IOManager_state !== 'online') {
 			return;
 		}
-		if (prevTaskCount === taskCount) {
-			IOManager_evaluate("process.exit()", "");
-			process.exit();
+		IOManager_evaluate("process.emit('beforeExit')", "");
+	});
+
+	process.on('exit', function() {
+		if (IOManager_state !== 'online') {
 			return;
 		}
-		IOManager_evaluate("process.emit('beforeExit')", "");
-		prevTaskCount = taskCount;
-		setTimeout(function() {
-		}, 1);
+		IOManager_evaluate("process.emit('exit')", "");
 	});
 
 })();
