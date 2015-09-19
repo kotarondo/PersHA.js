@@ -165,7 +165,7 @@ function NewOperator(expression, args) {
 		var constructor = GetValue(ref);
 		var argList = evaluateArguments(args);
 		if (Type(constructor) !== TYPE_Object) throw VMTypeError();
-		if (constructor.Construct === undefined) throw VMTypeError();
+		if (constructor._Construct === undefined) throw VMTypeError();
 		return constructor.Construct(argList);
 	};
 }

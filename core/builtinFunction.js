@@ -198,7 +198,7 @@ function BindFunction_ClassConstruct(argumentsList) {
 	var F = this;
 	var ExtraArgs = argumentsList;
 	var target = F.TargetFunction;
-	if (target.Construct === undefined) throw VMTypeError();
+	if (target._Construct === undefined) throw VMTypeError();
 	var boundArgs = F.BoundArgs;
 	var args = boundArgs.concat(ExtraArgs);
 	return target.Construct(args);
