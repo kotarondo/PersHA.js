@@ -401,7 +401,7 @@ function Global_setSystemProperty(thisValue, argumentsList) {
 		stackDepthLimit = ToUint32(value);
 	}
 	if (name === "LocalTZA") {
-		LocalTZA = ToUint32(value);
+		LocalTZA = ToInteger(value);
 	}
 	if (name === "LocalTZAString") {
 		LocalTZAString = ToString(value);

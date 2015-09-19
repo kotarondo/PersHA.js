@@ -569,6 +569,6 @@ function JSON_stringify(thisValue, argumentsList) {
 	}
 
 	function TypeError() {
-		return new VMTypeError("at " + currentPos);
+		return new VMTypeError();
 	}
 }
