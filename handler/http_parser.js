@@ -74,6 +74,12 @@ function HTTPParserPort(callback) {
 			};
 			return;
 		}
+		if (!parser) {
+			if (func === 'reinitialize') {
+				return this.syncIO('restart', args);
+			}
+			return new Error("parser not initialized");
+		}
 		return parser[func].apply(parser, args);
 	};
 }
