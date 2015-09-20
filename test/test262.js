@@ -33,7 +33,7 @@
 
 var stopIfFailed = false;
 var skipVeryHeavyTests = true;
-var skipHeavyTests = true;
+var skipHeavyTests = false;
 
 if (process.argv.length >= 3) {
 	var specificTest = process.argv[2];
@@ -92,37 +92,46 @@ function nextTestSuite() {
 			console.error("cannot read: " + filename);
 			return;
 		}
-		doTestSuite(data);
+		tests = JSON.parse(data).testsCollection.tests;
+		currentTestIndex = 0;
+		nextTest();
 	});
 }
 
-function doTestSuite(data) {
-	var tests = JSON.parse(data).testsCollection.tests;
-	for (var i = 0; i < tests.length; i++) {
-		var test = tests[i];
-		var begin = Date.now();
-		var ok = doTest(test);
-		var end = Date.now();
-		if (end - begin > 3000) {
-			console.log("elapsed: " + (end - begin) + " ms");
+var tests;
+var currentTestIndex;
+
+function nextTest() {
+	for(;;skipCount++){
+		var test = tests[currentTestIndex++];
+		if(!test){
+			nextTestSuite();
+			return;
 		}
-		if (ok === true) {
-			passCount++;
-		}
-		else if (ok === false) {
-			failCount++;
-			fails += "FAILED: " + test.path + '\n';
-			if (stopIfFailed) {
-				testSuites = [];
-				nextTestSuite();
-				return;
-			}
-		}
-		else {
-			skipCount++;
+		if (specificTest && !test.path.match(specificTest)) continue;
+		if (skipVeryHeavyTests && VeryHeavyTests.indexOf(test.path) >= 0) continue;
+		if (skipHeavyTests && HeavyTests.indexOf(test.path) >= 0) continue;
+		break;
+	}
+	var begin = Date.now();
+	var ok = doTest(test);
+	var end = Date.now();
+	if (end - begin > 3000) {
+		console.log("elapsed: " + (end - begin) + " ms");
+	}
+	if (ok === true) {
+		passCount++;
+	}
+	else{
+		failCount++;
+		fails += "FAILED: " + test.path + '\n';
+		if (stopIfFailed) {
+			testSuites = [];
+			nextTestSuite();
+			return;
 		}
 	}
-	nextTestSuite();
+	setImmediate(nextTest);
 }
 
 var VeryHeavyTests = [ //
@@ -172,9 +181,6 @@ var HeavyTests = [ //
 ];
 
 function doTest(test) {
-	if (specificTest && !test.path.match(specificTest)) return undefined;
-	if (skipVeryHeavyTests && VeryHeavyTests.indexOf(test.path) >= 0) return undefined;
-	if (skipHeavyTests && HeavyTests.indexOf(test.path) >= 0) return undefined;
 	console.log(test.path);
 	try {
 		var source = atob(test.code);
