@@ -21,10 +21,7 @@ popd >/dev/null
 LOCKFILE="$PERSHA_DATA/locking_pid"
 
 if shlock -p $$ -f "$LOCKFILE"; then
-	node ${SCRIPTPATH}/persha.js $*
-	EXITCODE=$?
-	rm "$LOCKFILE"
-	exit $EXITCODE
+	exec node ${SCRIPTPATH}/persha.js $*
 else
 	echo already running with PERSHA_DATA=$PERSHA_DATA
 	exit 1
