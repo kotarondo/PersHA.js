@@ -109,6 +109,9 @@ function FilePort(callback) {
 			};
 			return binding.read(fd, buffer, 0, length, position, req);
 		}
+		if (func === 'writeBuffer' || func === 'writeString') {
+			req.buffer = args[0]; // must retain a reference
+		}
 		args.unshift(fd);
 		args.push(req);
 		return binding[func].apply(binding, args);

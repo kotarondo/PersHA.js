@@ -87,7 +87,7 @@ function UDPPort(handle, callback) {
 			var port = args[2];
 			var ip = args[3];
 			var req = new SendWrap();
-			req.buffer = data;
+			req.buffer = data; // must retain a reference
 			req.length = data.length;
 			req.callback = callback;
 			req.oncomplete = function(err) {

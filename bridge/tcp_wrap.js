@@ -199,17 +199,27 @@ TCP.prototype.setKeepAlive = function() {
 };
 
 function writeCall(self, req, func, data) {
-	var ret = self._port.syncIO('write', [ func, data ], function(status, err) {
-		if (status instanceof IOPortError) {
-			err = status.message;
-			status = -1;
-		}
-		process._MakeCallback(req.domain, function() {
-			req.oncomplete(status, self, req, err);
+	try {
+		var ret = self._port.syncIO('write', [ func, data ], function(status, err, writeQueueSize) {
+			if (status instanceof IOPortError) {
+				err = status.message;
+				writeQueueSize = 0;
+				status = -1;
+			}
+			self.writeQueueSize = writeQueueSize;
+			process._MakeCallback(req.domain, function() {
+				req.oncomplete(status, self, req, err);
+			});
 		});
-	});
+	} catch (e) {
+		if (!e.immediateCallback) {
+			throw e;
+		}
+		ret = e;
+	}
 	req.async = ret.async;
 	req.bytes = ret.bytes;
+	self.writeQueueSize = ret.writeQueueSize;
 	return ret.err;
 };
 

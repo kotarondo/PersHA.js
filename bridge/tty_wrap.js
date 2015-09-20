@@ -48,6 +48,7 @@ binding.TTY = TTY;
 
 function TTY(fd, flag) {
 	var self = this;
+	self.writeQueueSize = 0;
 	self._state = {
 		fd : fd,
 		flag : flag
@@ -94,34 +95,47 @@ TTY.prototype.setRawMode = function(mode) {
 };
 
 function writeCall(self, req, func, data) {
-	self._port.asyncIO('write', [ func, data ], function(status, err) {
-		if (status instanceof IOPortError) {
-			status = 0;
-		}
-		process._MakeCallback(req.domain, function() {
-			req.oncomplete(status, self, req, err);
+	try {
+		var ret = self._port.syncIO('write', [ func, data ], function(status, err, writeQueueSize) {
+			if (status instanceof IOPortError) {
+				writeQueueSize = 0;
+				status = 0;
+			}
+			self.writeQueueSize = writeQueueSize;
+			process._MakeCallback(req.domain, function() {
+				req.oncomplete(status, self, req, err);
+			});
 		});
-	});
-}
+	} catch (e) {
+		if (!e.immediateCallback) {
+			throw e;
+		}
+		ret = e;
+	}
+	req.async = ret.async;
+	req.bytes = ret.bytes;
+	self.writeQueueSize = ret.writeQueueSize;
+	return ret.err;
+};
 
 TTY.prototype.writeBuffer = function(req, data) {
-	writeCall(this, req, 'writeBuffer', data);
+	return writeCall(this, req, 'writeBuffer', data);
 };
 
 TTY.prototype.writeAsciiString = function(req, data) {
-	writeCall(this, req, 'writeAsciiString', data);
+	return writeCall(this, req, 'writeAsciiString', data);
 };
 
 TTY.prototype.writeUtf8String = function(req, data) {
-	writeCall(this, req, 'writeUtf8String', data);
+	return writeCall(this, req, 'writeUtf8String', data);
 };
 
 TTY.prototype.writeUcs2String = function(req, data) {
-	writeCall(this, req, 'writeUcs2String', data);
+	return writeCall(this, req, 'writeUcs2String', data);
 };
 
 TTY.prototype.writeBinaryString = function(req, data) {
-	writeCall(this, req, 'writeBinaryString', data);
+	return writeCall(this, req, 'writeBinaryString', data);
 };
 
 TTY.prototype.getWindowSize = function(winSize) {

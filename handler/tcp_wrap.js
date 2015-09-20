@@ -114,13 +114,20 @@ function TCPPort(handle, callback) {
 			var ret = {};
 			var req = new WriteWrap();
 			req.oncomplete = function(status, self, req, err) {
-				callback(status, err);
+				callback(status, err, handle.writeQueueSize);
 			};
 			req.async = false;
 			var func = args[0];
-			ret.err = handle[func].call(handle, req, args[1]);
+			var buffer = args[1];
+			req.buffer = buffer; // must retain a reference
+			ret.err = handle[func].call(handle, req, buffer);
 			ret.async = req.async;
 			ret.bytes = req.bytes;
+			ret.writeQueueSize = handle.writeQueueSize;
+			if (!ret.async) {
+				ret.immediateCallback = true;
+				throw ret;
+			}
 			return ret;
 		}
 		if (func === 'connect') {

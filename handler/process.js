@@ -39,6 +39,10 @@ module.exports = {
 };
 
 function syncIO(func, args) {
+	if (func === 'debug') {
+		console.error(args[0]);
+		return;
+	}
 	return process[func].apply(process, args);
 }
 

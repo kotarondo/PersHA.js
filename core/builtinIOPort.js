@@ -97,7 +97,7 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	var port = thisValue;
 	var func = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList[1]);
-	var noRetry = ToBoolean(argumentsList[2]);
+	var noRetry = false;
 	if (IsCallable(argumentsList[2])) {
 		var callback = argumentsList[2];
 	}

@@ -48,6 +48,10 @@ process.dlopen = function(module, filename) {
 	throw new Error(filename + ": file too short");
 };
 
+process.debug = function() {
+	return basePort.syncIO('debug', arguments);
+};
+
 process.cwd = function() {
 	return basePort.syncIO('cwd', arguments);
 };
