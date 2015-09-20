@@ -147,6 +147,7 @@
           opts.useColors = false;
         }
         var repl = Module.requireRepl().start(opts);
+        repl.close = function(){process.suspendExit()} // modified for PersHA.js
         repl.on('exit', function() {
           process.exit();
         });

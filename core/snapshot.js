@@ -749,5 +749,5 @@ function mirror_writeObject(ostream) {
 
 function mirror_readObject(istream) {
 	this.__proto__.readObject.call(this, istream);
-	this.mirror = istream.writeValue();
+	this.mirror = istream.readValue();
 }
