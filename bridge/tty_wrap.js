@@ -80,13 +80,13 @@ TTY.prototype.unref = function() {
 };
 
 TTY.prototype.readStart = function() {
-	this._port.asyncIO('readStart', arguments);
 	this._state.reading = true;
+	return this._port.syncIO('readStart', arguments);
 };
 
 TTY.prototype.readStop = function() {
-	this._port.asyncIO('readStop', arguments);
 	this._state.reading = false;
+	return this._port.syncIO('readStop', arguments);
 };
 
 TTY.prototype.setRawMode = function(mode) {
