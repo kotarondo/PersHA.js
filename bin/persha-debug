@@ -1,7 +1,0 @@
-#!/bin/sh
-
-pushd `dirname $0` > /dev/null
-SCRIPTPATH=`pwd -P`
-popd > /dev/null
-
-exec node-debug ${SCRIPTPATH}/persha.js $*

@@ -18,12 +18,22 @@ pushd "$PERSHA_DATA" >/dev/null
 PERSHA_DATA=`pwd -P`
 popd >/dev/null
 
-LOCKFILE="$PERSHA_DATA/locking_pid"
-
-if shlock -p $$ -f "$LOCKFILE"; then
-	exec node ${SCRIPTPATH}/persha.js $*
-else
+lockerror(){
 	echo already running with PERSHA_DATA=$PERSHA_DATA
 	exit 1
+}
+
+LOCKFILE="$PERSHA_DATA/lockfile"
+
+if type flock >/dev/null 2>&1; then
+
+	exec 9>"$LOCKFILE"
+	flock -n 9 || lockerror
+
+elif type shlock >/dev/null 2>&1; then
+
+	shlock -p $$ -f "$LOCKFILE" || lockerror
+
 fi
 
+exec node ${SCRIPTPATH}/persha.js $*
