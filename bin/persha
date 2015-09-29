@@ -1,7 +1,14 @@
 #!/bin/sh
 
-pushd `dirname $0` >/dev/null
-SCRIPTPATH=`pwd -P`
+CMDPATH=$0
+CMDNAME=$(basename "$CMDPATH")
+pushd $(dirname "$CMDPATH") >/dev/null
+while [ -h "$CMDNAME" ]; do
+    CMDPATH=$(readlink "$CMDNAME")
+	CMDNAME=$(basename "$CMDPATH")
+    cd $(dirname "$CMDPATH")
+done
+SCRIPTPATH=$(pwd -P)
 popd >/dev/null
 
 if [ -z "$PERSHA_DATA" ]; then
@@ -15,7 +22,7 @@ if [ ! -d "$PERSHA_DATA" ]; then
 fi
 
 pushd "$PERSHA_DATA" >/dev/null
-PERSHA_DATA=`pwd -P`
+PERSHA_DATA=$(pwd -P)
 popd >/dev/null
 
 lockerror(){
