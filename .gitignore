@@ -1,1 +1,6 @@
 bin/persha.js
+.project
+.settings
+test/test262-harness/
+test/test262-json/
+

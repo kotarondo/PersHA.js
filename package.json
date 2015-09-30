@@ -1,6 +1,6 @@
 {
   "name": "persha",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Persistent and Highly Available javascript engine",
   "homepage": "http://github.com/kotarondo/PersHA.js",
   "author": "Kotaro Endo <kotarondo@gmail.com>",
@@ -10,7 +10,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kotarondo/PersHA.js.git"
+    "url": "https://github.com/kotarondo/PersHA.js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kotarondo/PersHA.js/issues"
   },
   "files": [
     "bin",
@@ -26,11 +29,7 @@
   },
   "dependencies": {},
   "devDependencies": {},
+  "directories": {},
   "scripts": {},
-  "preferGlobal": true,
-  "bugs": {
-    "url": "https://github.com/kotarondo/PersHA.js/issues"
-  },
-  "directories": {
-  }
+  "preferGlobal": true
 }
