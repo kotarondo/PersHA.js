@@ -29,7 +29,7 @@
  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+*/
 
 var stopIfFailed = false;
 var skipVeryHeavyTests = true;
@@ -45,7 +45,6 @@ setSystemProperty("LocalTZAString", "PDT");
 
 var vm = require('vm');
 var fs = require('fs');
-var atob = require('atob');
 var passCount = 0;
 var failCount = 0;
 var skipCount = 0;
@@ -102,9 +101,9 @@ var tests;
 var currentTestIndex;
 
 function nextTest() {
-	for(;;skipCount++){
+	for (;; skipCount++) {
 		var test = tests[currentTestIndex++];
-		if(!test){
+		if (!test) {
 			nextTestSuite();
 			return;
 		}
@@ -122,7 +121,7 @@ function nextTest() {
 	if (ok === true) {
 		passCount++;
 	}
-	else{
+	else {
 		failCount++;
 		fails += "FAILED: " + test.path + '\n';
 		if (stopIfFailed) {
@@ -183,14 +182,14 @@ var HeavyTests = [ //
 function doTest(test) {
 	console.log(test.path);
 	try {
-		var source = atob(test.code);
+		var source = new Buffer(test.code, 'base64').toString('binary');
 		source = decodeURIComponent(escape(source)); // UTF-8 decoding trick
 		var sandbox = vm.createContext();
 		vm.runInContext(includeCache["sta.js"], sandbox, "sta.js");
-		var includes = source.match(/\$INCLUDE\(([^\)]+)\)/g);
+		var includes = source.match(/\$INCLUDE\(.*?\)/g);
 		if (includes !== null) {
 			for (var i = 0; i < includes.length; i++) {
-				var filename = includes[i].replace(/.*\(('|")(.*)('|")\)/, "$2");
+				var filename = includes[i].replace(/.*\(('|")(.*?)\1\)/, "$2");
 				if (includeCache[filename] === undefined) {
 					console.error("unknown included script: " + filename);
 					return false;
