@@ -108,7 +108,16 @@ Pipe.prototype.readStop = function() {
 };
 
 Pipe.prototype.open = function(fd) {
+	if (0 <= fd && fd <= 2) {
+		this._port.asyncIO('open', [ fd ]);
+		this._state.fd = fd;
+		return;
+	}
 	throw new Error("not implemented");
+};
+
+Pipe.prototype.setBlocking = function(blocking) {
+	return this._port.syncIO('setBlocking', [ blocking ]);
 };
 
 Pipe.prototype.listen = function() {

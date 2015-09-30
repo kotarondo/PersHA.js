@@ -84,6 +84,9 @@ function PipePort(handle, callback) {
 			if (state.listenArgs) {
 				handle.listen.apply(handle, state.listenArgs);
 			}
+			if (state.fd) {
+				handle.open(state.fd);
+			}
 			if (state.unref) {
 				handle.unref();
 			}
