@@ -79,7 +79,7 @@ process.hrtime = function() {
 process.pid = 0;
 
 process._kill = function() {
-	return basePort.syncIO('_kill', arguments);
+	return basePort.syncIO('_kill', arguments, true);
 };
 
 process.memoryUsage = function() {

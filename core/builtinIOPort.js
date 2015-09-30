@@ -97,16 +97,19 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	var port = thisValue;
 	var func = ToString(argumentsList[0]);
 	var args = IOPort_unwrapArgs(argumentsList[1]);
-	var noRetry = false;
 	if (IsCallable(argumentsList[2])) {
 		var callback = argumentsList[2];
+		var noRestartRetry = ToBoolean(argumentsList[3]);
+	}
+	else {
+		var noRestartRetry = ToBoolean(argumentsList[2]);
 	}
 	taskPendingError = undefined;
 	do {
 		task_pause();
 		var entry = IOManager_syncIO(port, func, args, callback);
 		task_resume();
-	} while (!noRetry && entry.error === 'restart');
+	} while (!noRestartRetry && entry.error === 'restart');
 	if (entry.success) {
 		return IOPort_wrap(entry.value);
 	}
