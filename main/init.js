@@ -29,7 +29,7 @@
  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+*/
 
 'use strict'
 
@@ -41,8 +41,9 @@ try {
 	var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + 'bridge.js').toString();
 	IOManager_evaluate(text, 'bridge/bridge.js');
 
-	var bridge_list = [ 'process', 'fs', 'uv', 'os', 'http_parser', 'crypto', 'tcp_wrap', 'udp_wrap', 'tty_wrap', 'timer_wrap',
-			'pipe_wrap', 'cares_wrap', 'stream_wrap', 'signal_wrap', 'fs_event_wrap' ];
+	var bridge_list = [ 'process', 'fs', 'uv', 'os', 'http_parser', 'crypto',//
+	'tcp_wrap', 'udp_wrap', 'tty_wrap', 'timer_wrap', 'pipe_wrap', 'cares_wrap',//
+	'stream_wrap', 'signal_wrap', 'fs_event_wrap' ];
 	for (var i = 0; i < bridge_list.length; i++) {
 		var n = bridge_list[i];
 		var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + n + '.js').toString();
@@ -67,23 +68,16 @@ try {
 	_process_env.Put('NODE_DEBUG', process.env['PERSHA_DEBUG'], false);
 
 	var _natives = Global_eval(undefined, [ "process.binding('natives')" ]);
-	var natives_list = [ 'events', 'constants', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream',
-			'console', 'fs', 'path', 'net', 'repl', 'readline', 'domain', 'string_decoder', '_stream_readable',
-			'_stream_writable', '_stream_duplex', '_stream_transform', '_stream_passthrough', 'http', '_http_agent',
-			'_http_client', '_http_common', '_http_incoming', '_http_outgoing', '_http_server', 'freelist', '_linklist', 'url',
-			'punycode', 'querystring', 'dns', 'dgram', 'tty', 'crypto', 'cluster', 'os' ];
+	var natives_list = [ 'events', 'constants', 'module', 'buffer', 'smalloc', 'util', 'assert',//
+	'vm', 'timers', 'stream', 'console', 'fs', 'path', 'net', 'repl', 'readline', 'domain',//
+	'string_decoder', '_stream_readable', '_stream_writable', '_stream_duplex', '_stream_transform',//
+	'_stream_passthrough', 'http', '_http_agent', '_http_client', '_http_common', '_http_incoming',//
+	'_http_outgoing', '_http_server', 'freelist', '_linklist', 'url', 'punycode', 'querystring',//
+	'dns', 'dgram', 'tty', 'crypto', 'cluster', 'os' ];
 	for (var i = 0; i < natives_list.length; i++) {
 		var n = natives_list[i];
 		var text = fs.readFileSync(NODE_INIT_SCRIPT_DIR + n + '.js').toString();
 		_natives.Put(n, text, false);
-	}
-
-	var _smalloc = Global_eval(undefined, [ "process.binding('smalloc')" ]);
-	var smalloc = process.binding('smalloc');
-	for ( var P in smalloc) {
-		if (isPrimitiveValue(smalloc[P])) {
-			_smalloc.Put(P, smalloc[P], false);
-		}
 	}
 
 	var _constants = Global_eval(undefined, [ "process.binding('constants')" ]);

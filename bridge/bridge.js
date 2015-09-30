@@ -44,7 +44,9 @@ process.binding = (function() {
 	var bindings = {
 		contextify : {},
 		natives : {},
-		smalloc : {},
+		smalloc : {
+			kMaxLength : 1073741823
+		},
 		constants : {},
 		buffer : {},
 		fs : {},
