@@ -2,13 +2,13 @@
 
 TESTS="node test262"
 
-cd $(dirname "$0")
+cd $(dirname $0)
 WORKINGDIR=$(pwd -P)
-PATH=$WORKINGDIR/../bin:$PATH
+PATH=$PATH:$(dirname $WORKINGDIR)/bin
 export PATH
 
 doTest(){
-cd "$WORKINGDIR"
+cd $WORKINGDIR
 cd $1 || return 1
 ./test.sh
 }

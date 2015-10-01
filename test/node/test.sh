@@ -31,7 +31,8 @@ echo $j
 rm -rf test/tmp
 mkdir -p test/tmp
 timeout persha -init $i >results/$j 2>&1
-[ $? -ne 0 ] && failed=1 && echo FAILED: $j | tee -a results/failed
+[ $? -ne 0 ] && failed=1 && echo FAILED: $j >results/failed && cat results/$j
 done
 
+cat results/failed
 exit $failed
