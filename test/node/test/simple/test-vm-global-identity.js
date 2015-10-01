@@ -28,4 +28,4 @@ ctx.window = ctx;
 
 var thisVal = vm.runInContext('this;', ctx);
 var windowVal = vm.runInContext('window;', ctx);
-assert.strictEqual(thisVal, windowVal);
+assert.strictEqual(thisVal.window, windowVal);

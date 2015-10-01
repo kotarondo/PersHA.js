@@ -9,6 +9,7 @@ t=$(expr $t - 1)
 sleep 1
 kill -0 $1 >/dev/null 2>&1 || return
 done
+echo killing ...
 kill $1 >/dev/null 2>&1
 }
 
@@ -31,7 +32,9 @@ echo $j
 rm -rf test/tmp
 mkdir -p test/tmp
 timeout persha -init $i >results/$j 2>&1
-[ $? -ne 0 ] && failed=1 && echo FAILED: $j >results/failed && cat results/$j
+EXITCODE=$?
+[ $EXITCODE -ne 0 ] && failed=1 && echo FAILED: $j >>results/failed
+[ $EXITCODE -ne 0 ] && echo EXITCODE=$EXITCODE >>results/$j && cat results/$j
 done
 
 cat results/failed
