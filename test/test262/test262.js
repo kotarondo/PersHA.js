@@ -33,7 +33,7 @@
 
 var stopIfFailed = false;
 var skipVeryHeavyTests = true;
-var skipHeavyTests = true;
+var skipHeavyTests = false;
 
 if (process.argv.length >= 3) {
 	var specificTest = process.argv[2];

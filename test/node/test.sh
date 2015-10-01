@@ -1,7 +1,9 @@
 #!/bin/sh
 
+TIMEOUT=300
+
 killer(){
-t=30
+t=$TIMEOUT
 while (( t > 0 )); do
 (( t = t - 1 ))
 sleep 1
