@@ -1,4 +1,7 @@
+
 #PersHA.js v0.1
+
+[![Build Status](https://travis-ci.org/kotarondo/PersHA.js.svg?branch=master)](https://travis-ci.org/kotarondo/PersHA.js)
 
 PersHA.js is a persistent and higly available javascript engine. As a javascript interpreter, it has similar interface to Node.js. As non-functional features, the engine itself has persistence across restarts and can be configured as a part of highly available cluster of triple nodes.
 
