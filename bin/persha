@@ -4,11 +4,11 @@ WORKINGDIR=$(pwd -P)
 
 CMDPATH=$0
 CMDNAME=$(basename "$CMDPATH")
-cd $(dirname "$CMDPATH")
+cd "$(dirname "$CMDPATH")"
 while [ -h "$CMDNAME" ]; do
     CMDPATH=$(readlink "$CMDNAME")
 	CMDNAME=$(basename "$CMDPATH")
-    cd $(dirname "$CMDPATH")
+    cd "$(dirname "$CMDPATH")"
 done
 SCRIPTPATH=$(pwd -P)
 cd "$WORKINGDIR"
