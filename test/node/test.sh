@@ -1,6 +1,6 @@
 #!/bin/sh
 
-TIMEOUT=300
+TIMEOUT=30
 
 killer(){
 t=$TIMEOUT

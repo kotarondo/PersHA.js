@@ -39,9 +39,14 @@ var bufferSize = 5 * 1024 * 1024;
 /*
  * 5MB of random buffer.
  */
+var buffer2 = Buffer(1024);
+for (var i = 0; i < buffer2.length; i++) {
+  buffer2[i] = parseInt(Math.random() * 10000) % 256;
+}
+
 var buffer = Buffer(bufferSize);
-for (var i = 0; i < buffer.length; i++) {
-  buffer[i] = parseInt(Math.random() * 10000) % 256;
+for (var i = 0; i < buffer.length; i+=buffer2.length) {
+  buffer2.copy(buffer, i);
 }
 
 
