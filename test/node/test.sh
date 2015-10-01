@@ -5,7 +5,7 @@ TIMEOUT=300
 killer(){
 t=$TIMEOUT
 while [ $t -gt 0 ]; do
-let t=t-1
+t=$(expr $t - 1)
 sleep 1
 kill -0 $1 >/dev/null 2>&1 || return
 done
