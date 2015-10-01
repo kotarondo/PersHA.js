@@ -1,29 +1,29 @@
 #!/bin/sh
 
+WORKINGDIR=$(pwd -P)
+
 CMDPATH=$0
 CMDNAME=$(basename "$CMDPATH")
-pushd $(dirname "$CMDPATH") >/dev/null
+cd $(dirname "$CMDPATH")
 while [ -h "$CMDNAME" ]; do
     CMDPATH=$(readlink "$CMDNAME")
 	CMDNAME=$(basename "$CMDPATH")
     cd $(dirname "$CMDPATH")
 done
 SCRIPTPATH=$(pwd -P)
-popd >/dev/null
+cd "$WORKINGDIR"
 
 if [ -z "$PERSHA_DATA" ]; then
 	PERSHA_DATA=~/.persha
 fi
-
 mkdir -p "$PERSHA_DATA" >/dev/null
 if [ ! -d "$PERSHA_DATA" ]; then
 	echo "$PERSHA_DATA" is not a directory
 	exit
 fi
-
-pushd "$PERSHA_DATA" >/dev/null
+cd "$PERSHA_DATA"
 PERSHA_DATA=$(pwd -P)
-popd >/dev/null
+cd "$WORKINGDIR"
 
 lockerror(){
 	echo already running with PERSHA_DATA=$PERSHA_DATA
