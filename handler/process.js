@@ -43,6 +43,9 @@ function syncIO(func, args) {
 		console.error(args[0]);
 		return;
 	}
+	if (func === '_pid') {
+		return process.pid;
+	}
 	return process[func].apply(process, args);
 }
 

@@ -181,5 +181,6 @@ function task_callbackUncaughtError(e) {
 	}
 	if (IOManager_state !== 'recovery') {
 		console.error("Uncaught: " + err);
+		process.reallyExit(1);
 	}
 }

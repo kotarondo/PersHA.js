@@ -76,7 +76,13 @@ process.hrtime = function() {
 	return basePort.syncIO('hrtime', arguments);
 };
 
-process.pid = 0;
+Object.defineProperty(process, "pid", {
+	get : function() {
+		return basePort.syncIO('_pid', []);
+	},
+	enumerable : true,
+	configurable : true
+});
 
 process._kill = function() {
 	return basePort.syncIO('_kill', arguments, true);

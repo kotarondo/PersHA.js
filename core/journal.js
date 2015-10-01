@@ -50,9 +50,9 @@ function Journal_read() {
 		return Journal_inputStream.readAny();
 	} catch (e) {
 		if (e.message != 'end of file') {
-			console.log(e);
-			console.log(e.stack);
-			process.exit(1);
+			console.error(e);
+			console.error(e.stack);
+			process.reallyExit(1);
 		}
 		Journal_closeInputStream();
 		Journal_openLog(position);

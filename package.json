@@ -4,6 +4,7 @@
   "description": "Persistent and Highly Available javascript engine",
   "homepage": "http://github.com/kotarondo/PersHA.js",
   "author": "Kotaro Endo <kotarondo@gmail.com>",
+  "license": "BSD-3-Clause",
   "keywords": [
     "persistence",
     "high-availability"
@@ -30,6 +31,9 @@
   "dependencies": {},
   "devDependencies": {},
   "directories": {},
-  "scripts": {},
+  "scripts": {
+     "test": "test/test.sh",
+     "prepublish": "main/make.sh"
+  },
   "preferGlobal": true
 }

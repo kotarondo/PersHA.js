@@ -124,14 +124,14 @@ try {
 
 } catch (e) {
 	if (isInternalError(e)) {
-		console.log("FATAL: " + e.stack);
+		console.error("FATAL: " + e.stack);
 	}
 	else {
 		if (Type(e) === TYPE_Object && e.HasProperty('stack')) {
-			console.log("FATAL: " + e.Get('stack'));
+			console.error("FATAL: " + e.Get('stack'));
 		}
 		else {
-			console.log("FATAL: " + ToString(e));
+			console.error("FATAL: " + ToString(e));
 		}
 	}
 }

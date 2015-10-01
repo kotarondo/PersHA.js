@@ -33,7 +33,7 @@
 
 var stopIfFailed = false;
 var skipVeryHeavyTests = true;
-var skipHeavyTests = false;
+var skipHeavyTests = true;
 
 if (process.argv.length >= 3) {
 	var specificTest = process.argv[2];
@@ -49,28 +49,19 @@ var passCount = 0;
 var failCount = 0;
 var skipCount = 0;
 var fails = "";
+var sta;
 
-setImmediate(nextLoadInclude);
-
-var includes = [ "sta.js", "math_precision.js", "math_isequal.js", "environment.js",//
-"Date_constants.js", "Date_library.js", "numeric_conversion.js" ];
-var includeCache = {};
-
-function nextLoadInclude() {
-	var filename = includes.shift();
-	if (filename === undefined) {
-		nextTestSuite();
-		return;
-	}
-	fs.readFile("test262-harness/" + filename, function(err, data) {
+setImmediate( function() {
+	var filename = "sta.js";
+	fs.readFile(filename, function(err, data) {
 		if (err) {
-			console.error("cannot read: " + filename);
-			return;
+			console.log("cannot read: " + filename);
+			process.exit(1);
 		}
-		includeCache[filename] = data;
-		nextLoadInclude();
+		sta = data;
+		nextTestSuite();
 	});
-}
+});
 
 var testSuites = [ "ch06.json", "ch07.json", "ch08.json", "ch09.json", "ch10.json",//
 "ch11.json", "ch12.json", "ch13.json", "ch14.json", "ch15.json", ];
@@ -78,18 +69,17 @@ var testSuites = [ "ch06.json", "ch07.json", "ch08.json", "ch09.json", "ch10.jso
 function nextTestSuite() {
 	var filename = testSuites.shift();
 	if (filename === undefined) {
-		console.log("FAILED TESTS");
 		console.log(fails);
 		console.log("pass: " + passCount);
 		console.log("fail: " + failCount);
 		console.log("skip: " + skipCount);
 		console.log("ALL TESTS DONE");
-		return;
+		process.exit(failCount===0?0:1);
 	}
-	fs.readFile("test262-json/" + filename, function(err, data) {
+	fs.readFile(filename, function(err, data) {
 		if (err) {
-			console.error("cannot read: " + filename);
-			return;
+			console.log("cannot read: " + filename);
+			process.exit(1);
 		}
 		tests = JSON.parse(data).testsCollection.tests;
 		currentTestIndex = 0;
@@ -185,18 +175,7 @@ function doTest(test) {
 		var source = new Buffer(test.code, 'base64').toString('binary');
 		source = decodeURIComponent(escape(source)); // UTF-8 decoding trick
 		var sandbox = vm.createContext();
-		vm.runInContext(includeCache["sta.js"], sandbox, "sta.js");
-		var includes = source.match(/\$INCLUDE\(.*?\)/g);
-		if (includes !== null) {
-			for (var i = 0; i < includes.length; i++) {
-				var filename = includes[i].replace(/.*\(('|")(.*?)\1\)/, "$2");
-				if (includeCache[filename] === undefined) {
-					console.error("unknown included script: " + filename);
-					return false;
-				}
-				vm.runInContext(includeCache[filename], sandbox, filename);
-			}
-		}
+		vm.runInContext(sta, sandbox, "sta.js");
 		vm.runInContext(source, sandbox, test.path);
 		if (test.negative === undefined) {
 			return true;

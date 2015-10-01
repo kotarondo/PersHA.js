@@ -1,6 +1,8 @@
 bin/persha.js
 .project
 .settings
-test/test262-harness/
-test/test262-json/
+test/test262/*.json
+test/test262/sta.js
+test/node/results
+test/node/tmp
 
