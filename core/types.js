@@ -999,6 +999,15 @@ function intrinsic_enumerator(O, ownOnly, enumerableOnly) {
 		}
 		var names = Object.keys(all);
 	}
+	names.sort(function(x, y) {
+		var nx = Number(x);
+		var ny = Number(y);
+		if (nx < ny) return -1;
+		if (nx > ny) return 1;
+		if (x < y) return -1;
+		if (x > y) return 1;
+		return 0;
+	});
 	var i = 0;
 	var next = function() {
 		while (true) {
