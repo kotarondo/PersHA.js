@@ -37,8 +37,19 @@ else
 	timeout persha -init $i >results/$j 2>&1
 fi
 EXITCODE=$?
-[ $EXITCODE -ne 0 ] && failed=1 && echo FAILED: $j >>results/failed
 [ $EXITCODE -ne 0 ] && echo EXITCODE=$EXITCODE >>results/$j && cat results/$j
+[ $EXITCODE -ne 0 ] && failed=1 && echo FAILED: $j >>results/failed && continue
+
+timeout persha -restart $i >>results/$j 2>&1
+EXITCODE=$?
+[ $EXITCODE -ne 0 ] && echo EXITCODE=$EXITCODE >>results/$j && cat results/$j
+[ $EXITCODE -ne 0 ] && failed=1 && echo FAILED: $j >>results/failed && continue
+
+timeout persha -restart $i >>results/$j 2>&1
+EXITCODE=$?
+[ $EXITCODE -ne 0 ] && echo EXITCODE=$EXITCODE >>results/$j && cat results/$j
+[ $EXITCODE -ne 0 ] && failed=1 && echo FAILED: $j >>results/failed && continue
+
 done
 
 cat results/failed

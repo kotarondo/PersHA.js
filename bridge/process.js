@@ -101,7 +101,11 @@ process.reallyExit = function() {
 };
 
 process.suspendExit = function() {
-	basePort.asyncIO('reallyExit', arguments);
+	try {
+		basePort.syncIO('reallyExit', arguments, true);
+	} catch (e) {
+		// ignore restart error
+	}
 };
 
 var tickCallback;

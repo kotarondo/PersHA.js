@@ -100,6 +100,7 @@ var tests;
 var currentTestIndex;
 
 function nextTest() {
+	process.suspendExit(123);
 	for (;; skipCount++) {
 		var test = tests[currentTestIndex++];
 		if (!test) {
@@ -178,12 +179,14 @@ var HeavyTests = [ //
 "TestCases/ch15/15.1/15.1.3/15.1.3.4/S15.1.3.4_A2.5_T1.js",//
 ];
 
+var sandbox;
+
 function doTest(test) {
 	console.log(test.path);
 	try {
 		var source = new Buffer(test.code, 'base64').toString('binary');
 		source = decodeURIComponent(escape(source)); // UTF-8 decoding trick
-		var sandbox = vm.createContext();
+		sandbox = vm.createContext();
 		sta_script.runInContext(sandbox, "sta.js");
 		sta_patch_script.runInContext(sandbox, "sta.js");
 		vm.runInContext(source, sandbox, test.path);
