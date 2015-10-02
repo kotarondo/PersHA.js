@@ -56,8 +56,7 @@ function cleanDirSync(path) {
 		console.log("Usage:");
 		console.log("    persha -init [main module]");
 		console.log("    persha -restart");
-		console.log("  where data directory can be specified by "
-				+ "the environment variable PERSHA_DATA which defaults to $HOME/.persha");
+		console.log("  where data directory can be specified by the environment variable PERSHA_DATA which defaults to $HOME/.persha");
 	}
 
 	PERSHA_DATA = process.env.PERSHA_DATA;
@@ -91,7 +90,6 @@ function cleanDirSync(path) {
 			process.exit(1);
 		}
 		IOManager_start();
-		Journal_checkpoint();
 	}
 	else {
 		print_usage();

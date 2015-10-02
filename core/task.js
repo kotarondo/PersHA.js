@@ -86,7 +86,8 @@ function resumeTaskTimer() {
 
 function pauseTaskTimer() {
 	assert(taskResumedTime !== 0);
-	taskAccumulatedTime += Date.now() - taskResumedTime + 1;
+	var a = Date.now() - taskResumedTime;
+	taskAccumulatedTime += (a > 0) ? a : 1;
 	taskResumedTime = 0;
 }
 

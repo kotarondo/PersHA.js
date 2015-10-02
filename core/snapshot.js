@@ -146,7 +146,7 @@ function writeSnapshot(l_ostream) {
 	}
 	mark(vm);
 	for ( var name in systemProperties) {
-		mark(global[name]);
+		mark(eval(name));
 	}
 	for ( var txid in IOManager_asyncCallbacks) {
 		var callback = IOManager_asyncCallbacks[txid];
@@ -191,7 +191,7 @@ function writeSnapshot(l_ostream) {
 	ostream.writeString("SYSTEM");
 	for ( var name in systemProperties) {
 		ostream.writeString(name);
-		ostream.writeValue(global[name]);
+		ostream.writeValue(eval(name));
 	}
 	ostream.writeString("");
 
@@ -285,7 +285,8 @@ function readSnapshot(l_istream) {
 			break;
 		}
 		istream.assert(name in systemProperties);
-		global[name] = istream.readValue();
+		var value = istream.readValue();
+		eval(name + "=value");
 	}
 
 	istream.assert(istream.readString() === "IO");

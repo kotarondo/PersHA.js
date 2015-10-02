@@ -325,6 +325,7 @@ function IOManager_math_random() {
 function IOManager_online() {
 	if (IOManager_state === 'recovery') {
 		console.log('READY');
+		taskAccumulatedTime = Infinity;
 	}
 	IOManager_state = 'online';
 	for ( var txid in IOManager_openPorts) {
