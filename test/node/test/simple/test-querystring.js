@@ -34,14 +34,14 @@ var qsTestCases = [
    {'foo': '918854443121279438895193'}],
   ['foo=bar', 'foo=bar', {'foo': 'bar'}],
   ['foo=bar&foo=quux', 'foo=bar&foo=quux', {'foo': ['bar', 'quux']}],
-  ['foo=1&bar=2', 'foo=1&bar=2', {'foo': '1', 'bar': '2'}],
+  ['foo=1&bar=2', 'bar=2&foo=1', {'foo': '1', 'bar': '2'}],
   ['my+weird+field=q1%212%22%27w%245%267%2Fz8%29%3F',
    'my%20weird%20field=q1!2%22\'w%245%267%2Fz8)%3F',
    {'my weird field': 'q1!2"\'w$5&7/z8)?' }],
   ['foo%3Dbaz=bar', 'foo%3Dbaz=bar', {'foo=baz': 'bar'}],
   ['foo=baz=bar', 'foo=baz%3Dbar', {'foo': 'baz=bar'}],
   ['str=foo&arr=1&arr=2&arr=3&somenull=&undef=',
-   'str=foo&arr=1&arr=2&arr=3&somenull=&undef=',
+   'arr=1&arr=2&arr=3&somenull=&str=foo&undef=',
    { 'str': 'foo',
      'arr': ['1', '2', '3'],
      'somenull': '',
@@ -51,13 +51,13 @@ var qsTestCases = [
   ['foo=%EF%BF%BD', 'foo=%EF%BF%BD', {'foo': '\ufffd' }],
   // See: https://github.com/joyent/node/issues/1707
   ['hasOwnProperty=x&toString=foo&valueOf=bar&__defineGetter__=baz',
-    'hasOwnProperty=x&toString=foo&valueOf=bar&__defineGetter__=baz',
+    '__defineGetter__=baz&hasOwnProperty=x&toString=foo&valueOf=bar',
     { hasOwnProperty: 'x',
       toString: 'foo',
       valueOf: 'bar',
       __defineGetter__: 'baz' }],
   // See: https://github.com/joyent/node/issues/3058
-  ['foo&bar=baz', 'foo=&bar=baz', { foo: '', bar: 'baz' }],
+  ['foo&bar=baz', 'bar=baz&foo=', { foo: '', bar: 'baz' }],
   [null, '', {}],
   [undefined, '', {}]
 ];
@@ -67,7 +67,7 @@ var qsColonTestCases = [
   ['foo:bar', 'foo:bar', {'foo': 'bar'}],
   ['foo:bar;foo:quux', 'foo:bar;foo:quux', {'foo': ['bar', 'quux']}],
   ['foo:1&bar:2;baz:quux',
-   'foo:1%26bar%3A2;baz:quux',
+   'baz:quux;foo:1%26bar%3A2',
    {'foo': '1&bar:2', 'baz': 'quux'}],
   ['foo%3Abaz:bar', 'foo%3Abaz:bar', {'foo:baz': 'bar'}],
   ['foo:baz:bar', 'foo:baz%3Abar', {'foo': 'baz:bar'}]
@@ -102,10 +102,10 @@ var qsNoMungeTestCases = [
   ['foo=bar&foo=baz', {'foo': ['bar', 'baz']}],
   ['foo=bar&foo=baz', foreignObject],
   ['blah=burp', {'blah': 'burp'}],
-  ['gragh=1&gragh=3&goo=2', {'gragh': ['1', '3'], 'goo': '2'}],
+  ['goo=2&gragh=1&gragh=3', {'gragh': ['1', '3'], 'goo': '2'}],
   ['frappucino=muffin&goat%5B%5D=scone&pond=moose',
    {'frappucino': 'muffin', 'goat[]': 'scone', 'pond': 'moose'}],
-  ['trololol=yes&lololo=no', {'trololol': 'yes', 'lololo': 'no'}]
+  ['lololo=no&trololol=yes', {'trololol': 'yes', 'lololo': 'no'}]
 ];
 
 assert.strictEqual('918854443121279438895193',

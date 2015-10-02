@@ -43,4 +43,4 @@ assert(res);
 assert.equal(typeof res, 'object');
 assert.equal(res, x);
 assert.equal(o.f, res);
-assert.deepEqual(Object.keys(o), ['console', 'x', 'f', 'g']);
+assert.deepEqual(Object.keys(o), ['console', 'f', 'g', 'x']);

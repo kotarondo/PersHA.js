@@ -868,7 +868,7 @@ Buffer(Buffer(0), 0, 0);
   var buffer = new Buffer('test'),
       string = JSON.stringify(buffer);
 
-  assert.equal(string, '{"type":"Buffer","data":[116,101,115,116]}');
+  assert.equal(string, '{"data":[116,101,115,116],"type":"Buffer"}');
 
   assert.deepEqual(buffer, JSON.parse(string, function(key, value) {
     return value && value.type === 'Buffer'
