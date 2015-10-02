@@ -98,9 +98,9 @@ function nextTestSuite() {
 
 var tests;
 var currentTestIndex;
+var nextSuspend = Date.now() + 3000;
 
 function nextTest() {
-	process.suspendExit(123);
 	for (;; skipCount++) {
 		var test = tests[currentTestIndex++];
 		if (!test) {
@@ -113,6 +113,11 @@ function nextTest() {
 		break;
 	}
 	var begin = Date.now();
+	if(begin > nextSuspend){
+		process.suspendExit(123);
+		nextSuspend = begin + 3000;
+		sandboxes = [];
+	}
 	var ok = doTest(test);
 	var end = Date.now();
 	if (end - begin > 3000) {
@@ -179,14 +184,15 @@ var HeavyTests = [ //
 "TestCases/ch15/15.1/15.1.3/15.1.3.4/S15.1.3.4_A2.5_T1.js",//
 ];
 
-var sandbox;
+var sandboxes = [];
 
 function doTest(test) {
 	console.log(test.path);
 	try {
 		var source = new Buffer(test.code, 'base64').toString('binary');
 		source = decodeURIComponent(escape(source)); // UTF-8 decoding trick
-		sandbox = vm.createContext();
+		var sandbox = vm.createContext();
+		sandboxes.push(sandbox);
 		sta_script.runInContext(sandbox, "sta.js");
 		sta_patch_script.runInContext(sandbox, "sta.js");
 		vm.runInContext(source, sandbox, test.path);
