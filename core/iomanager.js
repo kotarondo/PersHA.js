@@ -84,7 +84,7 @@ function IOManager_bindPort(port) {
 		}
 		port.handler = root.handler.open(name, function() {
 			if (!port.txid) return;
-			var value = Array.prototype.slice.call(arguments);
+			var value = IOPort_prewrapArgs(arguments);
 			var entry = {
 				type : 'portEvent',
 				txid : port.txid,
@@ -147,7 +147,7 @@ function IOManager_asyncIO(port, func, args, callback) {
 		}
 		else {
 			port.handler.asyncIO(func, args, function() {
-				var value = Array.prototype.slice.call(arguments);
+				var value = IOPort_prewrapArgs(arguments);
 				var entry = {
 					type : 'completionEvent',
 					txid : txid,
@@ -222,6 +222,7 @@ function IOManager_syncIO(port, func, args, callback) {
 			}
 			else {
 				entry.value = port.handler.syncIO(func, args);
+				entry.value = IOPort_prewrap(entry.value);
 				entry.success = true;
 			}
 		}
@@ -230,7 +231,7 @@ function IOManager_syncIO(port, func, args, callback) {
 		}
 		else {
 			entry.value = port.handler.asyncIO(func, args, function() {
-				var value = Array.prototype.slice.call(arguments);
+				var value = IOPort_prewrapArgs(arguments);
 				var entry = {
 					type : 'completionEvent',
 					txid : txid,
@@ -238,6 +239,7 @@ function IOManager_syncIO(port, func, args, callback) {
 				};
 				scheduleTask(IOManager_completionEvent, entry);
 			});
+			entry.value = IOPort_prewrap(entry.value);
 			entry.success = true;
 		}
 	} catch (exception) {

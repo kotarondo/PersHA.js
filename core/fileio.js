@@ -139,7 +139,7 @@ function FileOutputStream(filename, openExists) {
 		cacheLen += 8;
 	}
 
-	function writeAny(x, stack) {
+	function writeAny(x) {
 		switch (typeof x) {
 		case "undefined":
 			writeInt(1);
@@ -174,12 +174,6 @@ function FileOutputStream(filename, openExists) {
 			writeNumber(x.getTime());
 			return;
 		}
-		if (stack === undefined) stack = [];
-		if (isIncluded(x, stack)) {
-			writeInt(6);
-			return;
-		}
-		stack.push(x);
 		if (x instanceof Error) {
 			if (x instanceof TypeError) {
 				writeInt(91);
@@ -205,21 +199,11 @@ function FileOutputStream(filename, openExists) {
 		else {
 			writeInt(11);
 		}
-		var keys = Object.getOwnPropertyNames(x).sort();
-		var length = keys.length;
-		for (var i = 0; i < length; i++) {
-			var P = keys[i];
-			if (x.propertyIsEnumerable(P) === false) {
-				continue;
-			}
-			if (P === 'caller' || P === 'callee' || P === 'arguments') {
-				continue;
-			}
+		for ( var P in x) {
 			writeString(P);
-			writeAny(x[P], stack);
+			writeAny(x[P]);
 		}
-		writeString("");
-		stack.pop();
+		writeString('');
 	}
 
 	function writeFully(fd, buffer, startPos, endPos) {

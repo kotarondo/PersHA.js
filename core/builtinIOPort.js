@@ -245,6 +245,73 @@ function IOPort_unwrap(A, stack) {
 	return a;
 }
 
+function IOPort_prewrapArgs(a) {
+	var length = a.length;
+	var A = [];
+	for (var i = 0; i < length; i++) {
+		A[i] = IOPort_prewrap(a[i]);
+	}
+	return A;
+}
+
+function IOPort_prewrap(a, stack) {
+	if (isPrimitiveValue(a)) {
+		return a;
+	}
+	if (a instanceof Function) {
+		return undefined;
+	}
+	if (a instanceof Buffer) {
+		return new Buffer(a); // safeguard
+	}
+	if (a instanceof Date) {
+		return new Date(a.getTime());
+	}
+	if (stack === undefined) stack = [];
+	if (isIncluded(a, stack)) {
+		return null;
+	}
+	stack.push(a);
+	if (a instanceof Error) {
+		var message = String(a.message);
+		if (a instanceof TypeError) {
+			var A = new TypeError(message);
+		}
+		else if (a instanceof ReferenceError) {
+			var A = new ReferenceError(message);
+		}
+		else if (a instanceof RangeError) {
+			var A = new RangeError(message);
+		}
+		else if (a instanceof SyntaxError) {
+			var A = new SyntaxError(message);
+		}
+		else {
+			var A = new Error(message);
+		}
+	}
+	else if (a instanceof Array) {
+		var A = new Array(a.length);
+	}
+	else {
+		var A = {};
+	}
+	var keys = Object.getOwnPropertyNames(a);
+	var length = keys.length;
+	for (var i = 0; i < length; i++) {
+		var P = keys[i];
+		if (a.propertyIsEnumerable(P) === false) {
+			continue;
+		}
+		if (P === 'caller' || P === 'callee' || P === 'arguments') {
+			continue;
+		}
+		A[P] = IOPort_prewrap(a[P], stack);
+	}
+	stack.pop();
+	return A;
+}
+
 function IOPort_wrapArgs(a) {
 	var length = a.length;
 	var A = [];
@@ -257,6 +324,7 @@ function IOPort_wrapArgs(a) {
 function IOPort_wrap(a, stack) {
 	// must be compatible with FileOutputStream.readAny/writeAny
 	// i.e. IOPort_wrap == IOPort_wrap ○ readAny ○ writeAny
+	//      on IOPort_prewrap image
 	if (isPrimitiveValue(a)) {
 		return a;
 	}
@@ -267,7 +335,7 @@ function IOPort_wrap(a, stack) {
 		var A = VMObject(CLASSID_Buffer);
 		A.Prototype = vm.Buffer_prototype;
 		A.Extensible = true;
-		A.wrappedBuffer = new Buffer(a); // safeguard
+		A.wrappedBuffer = a;
 		defineFinal(A, 'length', a.length);
 		defineFinal(A, 'parent', A);
 		return A;
@@ -275,11 +343,6 @@ function IOPort_wrap(a, stack) {
 	if (a instanceof Date) {
 		return Date_Construct([ a.getTime() ]);
 	}
-	if (stack === undefined) stack = [];
-	if (isIncluded(a, stack)) {
-		return null;
-	}
-	stack.push(a);
 	if (a instanceof Error) {
 		var message = String(a.message);
 		if (a instanceof TypeError) {
@@ -292,7 +355,7 @@ function IOPort_wrap(a, stack) {
 			var A = RangeError_Construct([ message ]);
 		}
 		else if (a instanceof SyntaxError) {
-			var A = RangeError_Construct([ message ]);
+			var A = SyntaxError_Construct([ message ]);
 		}
 		else {
 			var A = Error_Construct([ message ]);
@@ -304,19 +367,9 @@ function IOPort_wrap(a, stack) {
 	else {
 		var A = Object_Construct([]);
 	}
-	var keys = Object.getOwnPropertyNames(a).sort();
-	var length = keys.length;
-	for (var i = 0; i < length; i++) {
-		var P = keys[i];
-		if (a.propertyIsEnumerable(P) === false) {
-			continue;
-		}
-		if (P === 'caller' || P === 'callee' || P === 'arguments') {
-			continue;
-		}
-		A.Put(P, IOPort_wrap(a[P], stack), false);
+	for ( var P in a) {
+		A.Put(P, IOPort_wrap(a[P]), false);
 	}
-	stack.pop();
 	return A;
 }
 
