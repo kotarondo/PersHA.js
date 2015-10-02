@@ -45,11 +45,12 @@ while (write_str.length <= EXTERN_APEX) {
 write_str += write_str.substr(0, EXTERN_APEX - write_str.length);
 ucs2_control += ucs2_control.substr(0, EXTERN_APEX * 2 - ucs2_control.length);
 
+var SAMPLING=19;
 
 // check resultant buffer and output string
 var b = new Buffer(write_str, 'ucs2');
 // check fist Buffer created from write string
-for (var i = 0; i < b.length; i += 2) {
+for (var i = 0; i < b.length; i += 2*SAMPLING) {
   assert.equal(b[i], 0x61);
   assert.equal(b[i + 1], 0);
 }
@@ -64,7 +65,7 @@ var c_ucs = new Buffer(b_ucs, 'ucs2');
 // make sure they're the same length
 assert.equal(c_bin.length, c_ucs.length);
 // make sure Buffers from externals are the same
-for (var i = 0; i < c_bin.length; i++) {
+for (var i = 0; i < c_bin.length; i+= SAMPLING) {
   assert.equal(c_bin[i], c_ucs[i], c_bin[i] + ' == ' + c_ucs[i] +
                ' : index ' + i);
 }
@@ -81,7 +82,7 @@ var PRE_HALF_APEX = Math.ceil(EXTERN_APEX / 2) - RADIOS;
 var PRE_3OF4_APEX = Math.ceil((EXTERN_APEX / 4) * 3) - RADIOS;
 
 (function () {
-  for (var j = 0; j < RADIOS * 2; j += 1) {
+  for (var j = 0; j < RADIOS * 2; j += SAMPLING) {
     var datum = b;
     var slice = datum.slice(0, PRE_HALF_APEX + j);
     var slice2 = datum.slice(0, PRE_HALF_APEX + j + 2);
@@ -93,13 +94,13 @@ var PRE_3OF4_APEX = Math.ceil((EXTERN_APEX / 4) * 3) - RADIOS;
     metadata += pumped_string.length + '\n';
 
     // the string are the same?
-    for (var k = 0; k < pumped_string.length; ++k) {
+    for (var k = 0; k < pumped_string.length; k+=SAMPLING) {
       assert.equal(pumped_string[k], pumped_string2[k],
                    metadata + 'chars should be the same at ' + k);
     }
 
     // the recoded buffer is the same?
-    for (var i = 0; i < decoded.length; ++i) {
+    for (var i = 0; i < decoded.length; i+=SAMPLING) {
       assert.equal(datum[i], decoded[i],
                    metadata + 'bytes should be the same at ' + i);
     }
@@ -107,7 +108,7 @@ var PRE_3OF4_APEX = Math.ceil((EXTERN_APEX / 4) * 3) - RADIOS;
 })();
 
 (function () {
-  for (var j = 0; j < RADIOS * 2; j += 1) {
+  for (var j = 0; j < RADIOS * 2; j += SAMPLING) {
     var datum = b;
     var slice = datum.slice(0, PRE_3OF4_APEX + j);
     var slice2 = datum.slice(0, PRE_3OF4_APEX + j + 2);
@@ -119,14 +120,14 @@ var PRE_3OF4_APEX = Math.ceil((EXTERN_APEX / 4) * 3) - RADIOS;
     metadata += " pumped_string.length=" + pumped_string.length + '\n';
 
     // the string are the same?
-    for (var k = 0; k < pumped_string.length - 3; ++k) {
+    for (var k = 0; k < pumped_string.length - 3; k+=SAMPLING) {
       assert.equal(pumped_string[k], pumped_string2[k],
                    metadata + 'chars should be the same for two slices at '
                    + k + ' ' + pumped_string[k] + ' ' + pumped_string2[k]);
     }
 
     // the recoded buffer is the same?
-    for (var i = 0; i < decoded.length; ++i) {
+    for (var i = 0; i < decoded.length; i+=SAMPLING) {
       assert.equal(datum[i], decoded[i],
                    metadata + 'bytes should be the same at ' + i);
     }

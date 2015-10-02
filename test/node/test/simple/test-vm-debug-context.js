@@ -20,35 +20,29 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 var common = require('../common');
-var net = require('net');
 var assert = require('assert');
+var vm = require('vm');
 
-var sock = new net.Socket();
+assert.throws(function() {
+  vm.runInDebugContext('*');
+}, /SyntaxError/);
 
-var server = net.createServer().listen(common.PORT, function() {
-  assert(!sock.readable);
-  assert(!sock.writable);
-  assert.equal(sock.readyState, 'closed');
+assert.throws(function() {
+  vm.runInDebugContext({ toString: assert.fail });
+}, /AssertionError/);
 
-  sock.connect(common.PORT, function() {
-    assert.equal(sock.readable, true);
-    assert.equal(sock.writable, true);
-    assert.equal(sock.readyState, 'open');
+assert.throws(function() {
+  vm.runInDebugContext('throw URIError("BAM")');
+}, /URIError/);
 
-    sock.end();
-    assert(!sock.writable);
-    assert.equal(sock.readyState, 'readOnly');
+assert.throws(function() {
+  vm.runInDebugContext('(function(f) { f(f) })(function(f) { f(f) })');
+}, /RangeError/);
 
-    sock.on('close', function() {
-      assert(!sock.readable);
-      assert(!sock.writable);
-      assert.equal(sock.readyState, 'closed');
-    });
+assert.equal(typeof(vm.runInDebugContext('this')), 'object');
+//assert.equal(typeof(vm.runInDebugContext('Debug')), 'object');
 
-	setTimeout(function(){
-		server.close();
-	}, 100);
-  });
-
-  assert.equal(sock.readyState, 'opening');
-});
+assert.strictEqual(vm.runInDebugContext(), undefined);
+assert.strictEqual(vm.runInDebugContext(0), 0);
+assert.strictEqual(vm.runInDebugContext(null), null);
+assert.strictEqual(vm.runInDebugContext(undefined), undefined);

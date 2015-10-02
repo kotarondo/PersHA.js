@@ -1,6 +1,6 @@
 #!/bin/sh
 
-TIMEOUT=30
+TIMEOUT=300
 
 killer(){
 t=$TIMEOUT
@@ -31,7 +31,11 @@ j=${f%%.js}
 echo $j
 rm -rf test/tmp
 mkdir -p test/tmp
-timeout persha -init $i >results/$j 2>&1
+if [ "$j" == "test-stdout-close-unref" ]; then
+	persha -init $i >results/$j 2>&1
+else
+	timeout persha -init $i >results/$j 2>&1
+fi
 EXITCODE=$?
 [ $EXITCODE -ne 0 ] && failed=1 && echo FAILED: $j >>results/failed
 [ $EXITCODE -ne 0 ] && echo EXITCODE=$EXITCODE >>results/$j && cat results/$j

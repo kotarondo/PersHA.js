@@ -54,7 +54,7 @@ var result = vm.runInThisContext(
   'vmResult = "foo"; Object.prototype.toString.call(process);'
 );
 assert.strictEqual(global.vmResult, 'foo');
-assert.strictEqual(result, '[object process]');
+assert.strictEqual(result, '[object Object]');
 delete global.vmResult;
 
 // Test 4: vm.runInNewContext

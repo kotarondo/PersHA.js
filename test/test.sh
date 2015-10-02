@@ -4,8 +4,6 @@ TESTS="node test262"
 
 cd $(dirname $0)
 WORKINGDIR=$(pwd -P)
-PATH=$PATH:$(dirname $WORKINGDIR)/bin
-export PATH
 
 doTest(){
 cd $WORKINGDIR
@@ -16,7 +14,6 @@ cd $1 || return 1
 failed=0
 for i in $TESTS
 do
-echo testing $i
 doTest $i
 [ $? -ne 0 ] && failed=1
 done

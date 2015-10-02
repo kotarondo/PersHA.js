@@ -32,8 +32,8 @@
   "devDependencies": {},
   "directories": {},
   "scripts": {
-     "test": "test/test.sh",
-     "prepublish": "main/make.sh"
+    "test": "./test/test.sh",
+    "prepublish": "./main/make.sh"
   },
   "preferGlobal": true
 }

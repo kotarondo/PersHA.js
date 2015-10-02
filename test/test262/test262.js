@@ -49,16 +49,25 @@ var passCount = 0;
 var failCount = 0;
 var skipCount = 0;
 var fails = "";
-var sta;
+var sta_script;
+var sta_patch_script;
 
-setImmediate( function() {
+function sta_patch() {
+	var original = getPrecision;
+	getPrecision = function(a) {
+		return 1.5 * original(a);
+	};
+}
+
+setImmediate(function() {
 	var filename = "sta.js";
 	fs.readFile(filename, function(err, data) {
 		if (err) {
 			console.log("cannot read: " + filename);
 			process.exit(1);
 		}
-		sta = data;
+		sta_script = vm.createScript(data, "sta.js");
+		sta_patch_script = vm.createScript("(" + sta_patch + ")()", "sta.js");
 		nextTestSuite();
 	});
 });
@@ -73,8 +82,8 @@ function nextTestSuite() {
 		console.log("pass: " + passCount);
 		console.log("fail: " + failCount);
 		console.log("skip: " + skipCount);
-		console.log("ALL TESTS DONE");
-		process.exit(failCount===0?0:1);
+		console.log("TEST262: ALL CASES DONE");
+		process.exit(failCount === 0 ? 0 : 1);
 	}
 	fs.readFile(filename, function(err, data) {
 		if (err) {
@@ -175,7 +184,8 @@ function doTest(test) {
 		var source = new Buffer(test.code, 'base64').toString('binary');
 		source = decodeURIComponent(escape(source)); // UTF-8 decoding trick
 		var sandbox = vm.createContext();
-		vm.runInContext(sta, sandbox, "sta.js");
+		sta_script.runInContext(sandbox, "sta.js");
+		sta_patch_script.runInContext(sandbox, "sta.js");
 		vm.runInContext(source, sandbox, test.path);
 		if (test.negative === undefined) {
 			return true;

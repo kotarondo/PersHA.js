@@ -124,6 +124,6 @@ assert.equal('{ /123/gi aprop: 42 }', common.inspect(value));
 // Dates with properties
 value = new Date('Sun, 14 Feb 2010 11:48:40 GMT');
 value.aprop = 42;
-assert.equal('{ Sun, 14 Feb 2010 11:48:40 GMT aprop: 42 }',
+assert.equal('{ 2010-02-14 11:48:40 UTC aprop: 42 }',
              common.inspect(value)
 );
