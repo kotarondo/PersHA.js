@@ -1002,8 +1002,16 @@ function intrinsic_enumerator(O, ownOnly, enumerableOnly) {
 	names.sort(function(x, y) {
 		var nx = Number(x);
 		var ny = Number(y);
-		if (nx < ny) return -1;
-		if (nx > ny) return 1;
+		if (isFinite(nx)) {
+			if (!isFinite(ny)) {
+				return -1;
+			}
+			if (nx < ny) return -1;
+			if (nx > ny) return 1;
+		}
+		else if (isFinite(ny)) {
+			return 1;
+		}
 		if (x < y) return -1;
 		if (x > y) return 1;
 		return 0;
