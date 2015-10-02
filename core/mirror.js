@@ -53,12 +53,12 @@ function makeMirror(obj, dst) {
 function mirror_DefineOwnProperty(P, Desc, Throw) {
 	var obj = this;
 	var dst = obj.mirror;
-	var r = obj.__proto__.DefineOwnProperty.call(obj, P, Desc, false);
+	var r = Object.getPrototypeOf(obj).DefineOwnProperty.call(obj, P, Desc, false);
 	if (r === false) {
 		if (Throw) throw VMTypeError();
 	}
 	else {
-		dst.__proto__.DefineOwnProperty.call(dst, P, Desc, false);
+		Object.getPrototypeOf(dst).DefineOwnProperty.call(dst, P, Desc, false);
 	}
 	return r;
 }

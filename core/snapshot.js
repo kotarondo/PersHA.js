@@ -166,7 +166,7 @@ function writeSnapshot(l_ostream) {
 			obj.writeObject(ostream);
 		}
 		else if (obj.ClassID === CLASSID_mirror) {
-			ostream.writeInt(obj.__proto__.ClassID);
+			ostream.writeInt(Object.getPrototypeOf(obj).ClassID);
 			obj.walkObject(mark);
 		}
 		else {
@@ -737,17 +737,17 @@ function Script_readObject(istream) {
 }
 
 function mirror_walkObject(mark) {
-	this.__proto__.walkObject.call(this, mark);
+	Object.getPrototypeOf(this).walkObject.call(this, mark);
 	intrinsic_walkObject(this, mark);
 	mark(this.mirror);
 }
 
 function mirror_writeObject(ostream) {
-	this.__proto__.writeObject.call(this, ostream);
+	Object.getPrototypeOf(this).writeObject.call(this, ostream);
 	ostream.writeValue(this.mirror);
 }
 
 function mirror_readObject(istream) {
-	this.__proto__.readObject.call(this, istream);
+	Object.getPrototypeOf(this).readObject.call(this, istream);
 	this.mirror = istream.readValue();
 }
