@@ -35,9 +35,7 @@ where app.js is a name of your application program file. To stop your applicatio
 persha -restart
 ```
 
-After exiting PersHA.js, you can restart the engine again. It restarts with internal states preserved, and continues the suspended REPL or your app.js.
-
-Note that even in case of restarting app.js you don't need to specify the file name because the program was already loaded in the engine.
+After exiting PersHA.js, you can restart the engine again. It restarts with internal states preserved, and continues suspended REPL or your app.js.
 
 Persistence is assured even after killing the process or even after restarting the computer. 
 
@@ -69,7 +67,7 @@ undefined
 undefined
 > var id=setInterval(y, 1000)
 undefined
-> 1
+1
 2
 3
 4
@@ -81,11 +79,11 @@ READY
 5
 6
 7
-clearInterval(id)
+> clearInterval(id)
 undefined
 ```
 
-This is an another example showing persistence of the engine. All internal states including a variable 'x', a function 'y', and interval timer are persistent across restarts.
+This is an another example showing persistence of the engine. All internal states including a value of 'x', a function 'y', and interval timer are persistent across restarts.
 
 ##Practical Example
 
@@ -122,7 +120,7 @@ Hello 102
 Hello 103
 ```
 
-This is a more practical example. In app.js, the express module is loaded and a web server is launched at port 3000. You can check web server's 'Hello' responses using curl command. After killing the engine, you cannot get any responses. After restarting the engine, You can get 'Hello' responses again. Notice that a number in response is not initialized after restarting the engine.
+This is a more practical example. In app.js, the express module is loaded and a web server is launched at port 3000. You can check web server's 'Hello' responses using curl command. After killing the engine, you cannot get any responses. But after restarting the engine, You can get 'Hello' responses again. Notice that number sequence in response continues after restarting the engine, because a variable 'x' is persistent across restarts.
 
 In general, any pure javascript module can be loaded in PersHA.js provided that the module has been installed in node_modules directory. Module search order is same as Node's one. Once a module is loaded in the engine, it won't be re-read from installed files even after restarting the engine. 
 
@@ -135,6 +133,7 @@ This feature is not supported in this version.
 ```sh
 export PERSHA_DATA=path/to/datastore
 persha -init
+persha -restart
 ```
 
 By default, PersHA.js stores executing information in $HOME/.persha directory, and it reads the last executing information from this directory when it restarts. If you want multiple instances to run in parallel, you have to change this directory specifying the PERSHA_DATA enviroment variable.
@@ -142,7 +141,7 @@ By default, PersHA.js stores executing information in $HOME/.persha directory, a
 ##Supported native modules
 
 Currently following native modules are supported:
-'events', 'constants', 'module', 'buffer', 'smalloc', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs', 'path', 'net', 'repl', 'readline', 'domain', 'string_decoder', 'http', 'freelist', 'url', 'punycode', 'querystring', 'dns', 'dgram', 'tty', 'crypto', 'os'
+'events', 'constants', 'module', 'buffer', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs', 'path', 'net', 'repl', 'readline', 'domain', 'string_decoder', 'http', 'freelist', 'url', 'punycode', 'querystring', 'dns', 'dgram', 'tty', 'crypto', 'os'
 
 ##Any contribution is welcome
 
