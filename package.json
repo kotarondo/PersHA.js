@@ -1,6 +1,6 @@
 {
   "name": "persha",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Persistent and Highly Available javascript engine",
   "homepage": "http://github.com/kotarondo/PersHA.js",
   "author": "Kotaro Endo <kotarondo@gmail.com>",
