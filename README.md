@@ -1,5 +1,5 @@
 
-#PersHA.js v0.1
+# PersHA.js v0.1
 
 [![Build Status](https://travis-ci.org/kotarondo/PersHA.js.svg?branch=master)](https://travis-ci.org/kotarondo/PersHA.js)
 
@@ -7,14 +7,14 @@ PersHA.js is a persistent and higly available javascript engine. As a javascript
 
 PersHA.js is written in javascript, and works on Node.js.
 
-##Installation
+## Installation
 
 ```sh
 npm install -g persha
 ```
 Prerequisite: node v0.12.x, other versions do not work correctly.
 
-##Starting
+## Starting
 
 ```sh
 persha -init
@@ -22,14 +22,14 @@ persha -init
 
 It starts REPL(read-eval-print-loop) interfece. You can run any javascript programs, and results will be shown consequently. To stop REPL, hit ctrl-C twice.
 
-##Starting with an application program
+## Starting with an application program
 
 ```sh
 persha -init app.js
 ```
 where app.js is a name of your application program file. To stop your application, just kill the process by hitting ctrl-C.
 
-##Restarting
+## Restarting
 
 ```sh
 persha -restart
@@ -39,9 +39,9 @@ After exiting PersHA.js, you can restart the engine again. It restarts with inte
 
 Persistence is assured even after killing the process or even after restarting the computer. 
 
-##Example 1
+## Example 1
 
-```sh
+```
 persha -init
 > x="Hello World"
 'Hello World'
@@ -57,38 +57,34 @@ READY
 
 This is a simple example showing persistence of the engine. A variable 'x' has its value 'Hello World' persistent across restarts.
 
-##Example 2
+## Example 2
 
-```sh
+```
 persha -init
-> function y(){console.log(++x)}
-undefined
+> function y(){console.log("count " + ++x)}
 > var x=0
-undefined
 > var id=setInterval(y, 1000)
-undefined
-1
-2
-3
-4
+count 1
+count 2
+count 3
+count 4
 (^C again to quit)
 
 persha -restart
 RECOVERING ...
 READY
-5
-6
-7
+count 5
+count 6
+count 7
 > clearInterval(id)
-undefined
 ```
 
 This is an another example showing persistence of the engine. All internal states including a value of 'x', a function 'y', and interval timer are persistent across restarts.
 
-##Practical Example
+## Practical Example
 
 app.js:
-```sh
+```javascript
 var express=require('express');
 var app=express();
 var x=100;
@@ -112,8 +108,6 @@ Hello 101
 curl: (7) Failed to connect to localhost port 3000: Connection refused
 % persha -restart &
 [1] 2123
-RECOVERING ...
-READY
 % curl http://localhost:3000
 Hello 102
 % curl http://localhost:3000
@@ -124,11 +118,11 @@ This is a more practical example. In app.js, the express module is loaded and a 
 
 In general, any pure javascript module can be loaded in PersHA.js provided that the module has been installed in node_modules directory. Module search order is same as Node's one. Once a module is loaded in the engine, it won't be re-read from installed files even after restarting the engine. 
 
-##High Availability
+## High Availability
 
 This feature is not supported in this version.
 
-##Multiple Instances
+## Multiple Instances
 
 ```sh
 export PERSHA_DATA=path/to/datastore
@@ -138,12 +132,13 @@ persha -restart
 
 By default, PersHA.js stores executing information in $HOME/.persha directory, and it reads the last executing information from this directory when it restarts. If you want multiple instances to run in parallel, you have to change this directory specifying the PERSHA_DATA enviroment variable.
 
-##Supported native modules
+## Supported native modules
 
 Currently following native modules are supported:
+
 'events', 'constants', 'module', 'buffer', 'util', 'assert', 'vm', 'timers', 'stream', 'console', 'fs', 'path', 'net', 'repl', 'readline', 'domain', 'string_decoder', 'http', 'freelist', 'url', 'punycode', 'querystring', 'dns', 'dgram', 'tty', 'crypto', 'os'
 
-##Any contribution is welcome
+## Any contribution is welcome
 
 Please let me know bugs/opinions/ideas.
 Thank you for your contribution.
