@@ -47,12 +47,7 @@ function Buffer_GetOwnProperty(P) {
 	var len = buf.length;
 	if (len <= index) return undefined;
 	var result = buf[index];
-	return PropertyDescriptor({
-		Value : result,
-		Enumerable : true,
-		Writable : true,
-		Configurable : false
-	});
+	return DataPropertyDescriptor(result, true, true, false);
 }
 
 function Buffer_enumerator(ownOnly, enumerableOnly) {

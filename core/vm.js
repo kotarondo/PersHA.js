@@ -38,39 +38,19 @@
 var vm;
 
 function define(obj, name, value) {
-	intrinsic_createData(obj, name, PropertyDescriptor({
-		Value : value,
-		Writable : true,
-		Enumerable : false,
-		Configurable : true
-	}));
+	intrinsic_createData(obj, name, value, true, false, true);
 }
 
 function defineFinal(obj, name, value) {
-	intrinsic_createData(obj, name, PropertyDescriptor({
-		Value : value,
-		Writable : false,
-		Enumerable : false,
-		Configurable : false
-	}));
+	intrinsic_createData(obj, name, value, false, false, false);
 }
 
 function defineFree(obj, name, value) {
-	intrinsic_createData(obj, name, PropertyDescriptor({
-		Value : value,
-		Writable : true,
-		Enumerable : true,
-		Configurable : true
-	}));
+	intrinsic_createData(obj, name, value, true, true, true);
 }
 
 function defineWritable(obj, name, value) {
-	intrinsic_createData(obj, name, PropertyDescriptor({
-		Value : value,
-		Writable : true,
-		Enumerable : false,
-		Configurable : false
-	}));
+	intrinsic_createData(obj, name, value, true, false, false);
 }
 
 function defineFunction(obj, name, length, func) {
@@ -98,12 +78,7 @@ function defineAccessor(obj, name, get, set) {
 		defineCall(Set, set);
 		defineFinal(Set, "length", 1);
 	}
-	intrinsic_createAccessor(obj, name, PropertyDescriptor({
-		Get : Get,
-		Set : Set,
-		Enumerable : false,
-		Configurable : true
-	}));
+	intrinsic_createAccessor(obj, name, Get, Set, false, true);
 }
 
 function defineCall(obj, func) {

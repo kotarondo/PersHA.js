@@ -113,12 +113,7 @@ var Class_ObjectEnvironmentRecord = ({
 		else {
 			var configValue = false;
 		}
-		bindings.DefineOwnProperty(N, PropertyDescriptor({
-			Value : undefined,
-			Writable : true,
-			Enumerable : true,
-			Configurable : configValue
-		}), true);
+		bindings.DefineOwnProperty(N, DataPropertyDescriptor(undefined, true, true, configValue), true);
 	},
 
 	SetMutableBinding : function(N, V, S) {
@@ -367,12 +362,7 @@ function DeclarationBindingInstantiation(code, args, func) {
 			var go = vm.theGlobalObject;
 			var existingProp = go.GetProperty(fn);
 			if (existingProp.Configurable === true) {
-				go.DefineOwnProperty(fn, PropertyDescriptor({
-					Value : undefined,
-					Writable : true,
-					Enumerable : true,
-					Configurable : configurableBindings
-				}), true);
+				go.DefineOwnProperty(fn, DataPropertyDescriptor(undefined, true, true, configurableBindings), true);
 			}
 			else if (IsAccessorDescriptor(existingProp)
 					|| !(existingProp.Writable === true && existingProp.Enumerable === true)) throw VMTypeError();
@@ -412,23 +402,13 @@ function CreateArgumentsObject(func, names, args, env, strict) {
 	}
 	obj.Prototype = vm.Object_prototype;
 	obj.Extensible = true;
-	default_DefineOwnProperty.call(obj, "length", PropertyDescriptor({
-		Value : len,
-		Writable : true,
-		Enumerable : false,
-		Configurable : true
-	}), false);
+	default_DefineOwnProperty.call(obj, "length", DataPropertyDescriptor(len, true, false, true), false);
 	var map = [];
 	var mappedNames = [];
 	var indx = len - 1;
 	while (indx >= 0) {
 		var val = args[indx];
-		default_DefineOwnProperty.call(obj, ToString(indx), PropertyDescriptor({
-			Value : val,
-			Writable : true,
-			Enumerable : true,
-			Configurable : true
-		}), false);
+		default_DefineOwnProperty.call(obj, ToString(indx), DataPropertyDescriptor(val, true, true, true), false);
 		if (indx < names.length) {
 			var name = names[indx];
 			if (strict === false && isIncluded(name, mappedNames) === false) {
@@ -443,27 +423,12 @@ function CreateArgumentsObject(func, names, args, env, strict) {
 		obj.ArgumentsScope = env;
 	}
 	if (strict === false) {
-		obj.DefineOwnProperty("callee", PropertyDescriptor({
-			Value : func,
-			Writable : true,
-			Enumerable : false,
-			Configurable : true
-		}), false);
+		obj.DefineOwnProperty("callee", DataPropertyDescriptor(func, true, false, true), false);
 	}
 	else {
 		var thrower = vm.theThrowTypeError;
-		obj.DefineOwnProperty("caller", PropertyDescriptor({
-			Get : thrower,
-			Set : thrower,
-			Enumerable : false,
-			Configurable : false
-		}), false);
-		obj.DefineOwnProperty("callee", PropertyDescriptor({
-			Get : thrower,
-			Set : thrower,
-			Enumerable : false,
-			Configurable : false
-		}), false);
+		obj.DefineOwnProperty("caller", AccessorPropertyDescriptor(thrower, thrower, false, false), false);
+		obj.DefineOwnProperty("callee", AccessorPropertyDescriptor(thrower, thrower, false, false), false);
 	}
 	return obj;
 }
@@ -485,7 +450,8 @@ function Arguments_Get(P) {
 	}
 	if (isMapped === undefined) {
 		var v = default_Get.call(this, P);
-		if (P === "caller" && Type(v) === TYPE_Object && v.Class === "Function" && v.Code !== undefined && v.Code.strict) throw VMTypeError();
+		if (P === "caller" && Type(v) === TYPE_Object && v.Class === "Function" && v.Code !== undefined && v.Code.strict)
+			throw VMTypeError();
 		return v;
 	}
 	else {
@@ -501,12 +467,7 @@ function Arguments_GetOwnProperty(P) {
 		var isMapped = map[P];
 	}
 	if (isMapped !== undefined) {
-		desc = PropertyDescriptor({
-			Value : ArgGet(this.ArgumentsScope, isMapped),
-			Writable : desc.Writable,
-			Configurable : desc.Configurable,
-			Enumerable : desc.Enumerable,
-		});
+		desc = DataPropertyDescriptor(ArgGet(this.ArgumentsScope, isMapped), desc.Writable, desc.Enumerable, desc.Configurable);
 	}
 	return desc;
 }

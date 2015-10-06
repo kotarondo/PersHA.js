@@ -489,27 +489,37 @@ function CompletionValue(type, value, target) {
 	});
 }
 
-function PropertyDescriptor(Desc) {
-	if (!Desc.hasOwnProperty("Value")) {
-		Desc.Value = absent;
-	}
-	if (!Desc.hasOwnProperty("Writable")) {
-		Desc.Writable = absent;
-	}
-	if (!Desc.hasOwnProperty("Get")) {
-		Desc.Get = absent;
-	}
-	if (!Desc.hasOwnProperty("Set")) {
-		Desc.Set = absent;
-	}
-	if (!Desc.hasOwnProperty("Configurable")) {
-		Desc.Configurable = absent;
-	}
-	if (!Desc.hasOwnProperty("Enumerable")) {
-		Desc.Enumerable = absent;
-	}
-	assert((Desc.Get === absent && Desc.Set === absent) || (Desc.Value === absent && Desc.Writable === absent), Desc);
-	return Desc;
+function FullPropertyDescriptor(Value, Writable, Get, Set, Enumerable, Configurable) {
+	return ({
+		Value : Value,
+		Writable : Writable,
+		Get : Get,
+		Set : Set,
+		Enumerable : Enumerable,
+		Configurable : Configurable
+	});
+}
+
+function DataPropertyDescriptor(Value, Writable, Enumerable, Configurable) {
+	return ({
+		Value : Value,
+		Writable : Writable,
+		Get : absent,
+		Set : absent,
+		Enumerable : Enumerable,
+		Configurable : Configurable
+	});
+}
+
+function AccessorPropertyDescriptor(Get, Set, Enumerable, Configurable) {
+	return ({
+		Value : absent,
+		Writable : absent,
+		Get : Get,
+		Set : Set,
+		Enumerable : Enumerable,
+		Configurable : Configurable
+	});
 }
 
 function IsAccessorDescriptor(Desc) {
@@ -536,50 +546,20 @@ function FromPropertyDescriptor(Desc) {
 	if (IsDataDescriptor(Desc) === true) {
 		assert(Desc.Value !== absent, Desc);
 		assert(Desc.Writable !== absent, Desc);
-		obj.DefineOwnProperty("value", PropertyDescriptor({
-			Value : Desc.Value,
-			Writable : true,
-			Enumerable : true,
-			Configurable : true
-		}), false);
-		obj.DefineOwnProperty("writable", PropertyDescriptor({
-			Value : Desc.Writable,
-			Writable : true,
-			Enumerable : true,
-			Configurable : true
-		}), false);
+		obj.DefineOwnProperty("value", DataPropertyDescriptor(Desc.Value, true, true, true), false);
+		obj.DefineOwnProperty("writable", DataPropertyDescriptor(Desc.Writable, true, true, true), false);
 	}
 	else {
 		assert(IsAccessorDescriptor(Desc), Desc);
 		assert(Desc.Get !== absent, Desc);
 		assert(Desc.Set !== absent, Desc);
-		obj.DefineOwnProperty("get", PropertyDescriptor({
-			Value : Desc.Get,
-			Writable : true,
-			Enumerable : true,
-			Configurable : true
-		}), false);
-		obj.DefineOwnProperty("set", PropertyDescriptor({
-			Value : Desc.Set,
-			Writable : true,
-			Enumerable : true,
-			Configurable : true
-		}), false);
+		obj.DefineOwnProperty("get", DataPropertyDescriptor(Desc.Get, true, true, true), false);
+		obj.DefineOwnProperty("set", DataPropertyDescriptor(Desc.Set, true, true, true), false);
 	}
 	assert(Desc.Enumerable !== absent, Desc);
 	assert(Desc.Configurable !== absent, Desc);
-	obj.DefineOwnProperty("enumerable", PropertyDescriptor({
-		Value : Desc.Enumerable,
-		Writable : true,
-		Enumerable : true,
-		Configurable : true
-	}), false);
-	obj.DefineOwnProperty("configurable", PropertyDescriptor({
-		Value : Desc.Configurable,
-		Writable : true,
-		Enumerable : true,
-		Configurable : true
-	}), false);
+	obj.DefineOwnProperty("enumerable", DataPropertyDescriptor(Desc.Enumerable, true, true, true), false);
+	obj.DefineOwnProperty("configurable", DataPropertyDescriptor(Desc.Configurable, true, true, true), false);
 	return obj;
 }
 
@@ -620,14 +600,7 @@ function ToPropertyDescriptor(Obj) {
 	if (Get !== absent || Set !== absent) {
 		if (Value !== absent || Writable !== absent) throw VMTypeError();
 	}
-	var desc = PropertyDescriptor({
-		Enumerable : Enumerable,
-		Configurable : Configurable,
-		Value : Value,
-		Writable : Writable,
-		Get : Get,
-		Set : Set,
-	});
+	var desc = FullPropertyDescriptor(Value, Writable, Get, Set, Enumerable, Configurable);
 	return desc;
 }
 
@@ -703,9 +676,7 @@ function default_Put(P, V, Throw) {
 			Array_DefineOwnProperty_Value(O, P, V, ownDesc);
 			return;
 		}
-		var valueDesc = PropertyDescriptor({
-			Value : V
-		});
+		var valueDesc = DataPropertyDescriptor(V, absent, absent, absent);
 		O.DefineOwnProperty(P, valueDesc, Throw);
 		return;
 	}
@@ -720,12 +691,7 @@ function default_Put(P, V, Throw) {
 		setter.Call(O, [ V ]);
 	}
 	else {
-		var newDesc = PropertyDescriptor({
-			Value : V,
-			Writable : true,
-			Enumerable : true,
-			Configurable : true
-		});
+		var newDesc = DataPropertyDescriptor(V, true, true, true);
 		O.DefineOwnProperty(P, newDesc, Throw);
 	}
 	return;
@@ -788,7 +754,7 @@ function default_DefaultValue(hint) {
 	}
 }
 
-var emptyPropertyDescriptor = PropertyDescriptor({});
+var emptyPropertyDescriptor = FullPropertyDescriptor(absent, absent, absent, absent, absent, absent);
 
 function default_DefineOwnProperty(P, Desc, Throw) {
 	var O = this;
@@ -800,11 +766,11 @@ function default_DefineOwnProperty(P, Desc, Throw) {
 	}
 	if (current === undefined && extensible === true) {
 		if (IsGenericDescriptor(Desc) === true || IsDataDescriptor(Desc) === true) {
-			intrinsic_createData(O, P, Desc);
+			intrinsic_createData(O, P, Desc.Value, Desc.Writable, Desc.Enumerable, Desc.Configurable);
 		}
 		else {
 			assert(IsAccessorDescriptor(Desc), Desc);
-			intrinsic_createAccessor(O, P, Desc);
+			intrinsic_createAccessor(O, P, Desc.Get, Desc.Set, Desc.Enumerable, Desc.Configurable);
 		}
 		return true;
 	}
@@ -828,16 +794,10 @@ function default_DefineOwnProperty(P, Desc, Throw) {
 			else return false;
 		}
 		if (IsDataDescriptor(current) === true) {
-			intrinsic_createAccessor(O, P, PropertyDescriptor({
-				Configurable : current.Configurable,
-				Enumerable : current.Enumerable,
-			}));
+			intrinsic_createAccessor(O, P, absent, absent, current.Enumerable, current.Configurable);
 		}
 		else {
-			intrinsic_createData(O, P, PropertyDescriptor({
-				Configurable : current.Configurable,
-				Enumerable : current.Enumerable,
-			}));
+			intrinsic_createData(O, P, absent, absent, current.Enumerable, current.Configurable);
 		}
 	}
 	else if (IsDataDescriptor(current) === true && IsDataDescriptor(Desc) === true) {
@@ -935,52 +895,26 @@ function intrinsic_remove(O, P) {
 	delete O.$properties[P];
 }
 
-function intrinsic_createData(O, P, Desc) {
-	var x = {
-		Value : undefined,
-		Writable : false,
+function intrinsic_createData(O, P, Value, Writable, Enumerable, Configurable) {
+	O.$properties[P] = ({
+		Value : (Value !== absent) ? Value : undefined,
+		Writable : (Writable !== absent) ? Writable : false,
 		Get : absent,
 		Set : absent,
-		Enumerable : false,
-		Configurable : false,
-	};
-	if (Desc.Value !== absent) {
-		x.Value = Desc.Value;
-	}
-	if (Desc.Writable !== absent) {
-		x.Writable = Desc.Writable;
-	}
-	if (Desc.Configurable !== absent) {
-		x.Configurable = Desc.Configurable;
-	}
-	if (Desc.Enumerable !== absent) {
-		x.Enumerable = Desc.Enumerable;
-	}
-	O.$properties[P] = x;
+		Enumerable : (Enumerable !== absent) ? Enumerable : false,
+		Configurable : (Configurable !== absent) ? Configurable : false,
+	});
 }
 
-function intrinsic_createAccessor(O, P, Desc) {
-	var x = {
+function intrinsic_createAccessor(O, P, Get, Set, Enumerable, Configurable) {
+	O.$properties[P] = ({
 		Value : absent,
 		Writable : absent,
-		Get : undefined,
-		Set : undefined,
-		Enumerable : false,
-		Configurable : false,
-	};
-	if (Desc.Get !== absent) {
-		x.Get = Desc.Get;
-	}
-	if (Desc.Set !== absent) {
-		x.Set = Desc.Set;
-	}
-	if (Desc.Configurable !== absent) {
-		x.Configurable = Desc.Configurable;
-	}
-	if (Desc.Enumerable !== absent) {
-		x.Enumerable = Desc.Enumerable;
-	}
-	O.$properties[P] = x;
+		Get : (Get !== absent) ? Get : undefined,
+		Set : (Set !== absent) ? Set : undefined,
+		Enumerable : (Enumerable !== absent) ? Enumerable : false,
+		Configurable : (Configurable !== absent) ? Configurable : false,
+	});
 }
 
 function intrinsic_enumerator(O, ownOnly, enumerableOnly) {

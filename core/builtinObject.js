@@ -79,12 +79,7 @@ function Object_getOwnPropertyNames(thisValue, argumentsList) {
 	var next = O.enumerator(true, false);
 	var name;
 	while ((name = next()) !== undefined) {
-		array.DefineOwnProperty(ToString(n), PropertyDescriptor({
-			Value : name,
-			Writable : true,
-			Enumerable : true,
-			Configurable : true
-		}), false);
+		array.DefineOwnProperty(ToString(n), DataPropertyDescriptor(name, true, true, true), false);
 		n++;
 	}
 	return array;
@@ -143,14 +138,7 @@ function Object_seal(thisValue, argumentsList) {
 	while ((P = next()) !== undefined) {
 		var desc = O.GetOwnProperty(P);
 		if (desc.Configurable === true) {
-			var desc = PropertyDescriptor({
-				Value : desc.Value,
-				Writable : desc.Writable,
-				Get : desc.Get,
-				Set : desc.Set,
-				Enumerable : desc.Enumerable,
-				Configurable : false,
-			});
+			var desc = FullPropertyDescriptor(desc.Value, desc.Writable, desc.Get, desc.Set, desc.Enumerable, false);
 		}
 		O.DefineOwnProperty(P, desc, true);
 	}
@@ -165,14 +153,8 @@ function Object_freeze(thisValue, argumentsList) {
 	var P;
 	while ((P = next()) !== undefined) {
 		var desc = O.GetOwnProperty(P);
-		var desc = PropertyDescriptor({
-			Value : desc.Value,
-			Writable : (desc.Writable === true) ? false : desc.Writable,
-			Get : desc.Get,
-			Set : desc.Set,
-			Enumerable : desc.Enumerable,
-			Configurable : false,
-		});
+		var desc = FullPropertyDescriptor(desc.Value, (desc.Writable === true) ? false : desc.Writable, desc.Get, desc.Set,
+				desc.Enumerable, false);
 		O.DefineOwnProperty(P, desc, true);
 	}
 	O.Extensible = false;
@@ -230,12 +212,7 @@ function Object_keys(thisValue, argumentsList) {
 	var index = 0;
 	var P;
 	while ((P = next()) !== undefined) {
-		array.DefineOwnProperty(ToString(index), PropertyDescriptor({
-			Value : P,
-			Writable : true,
-			Enumerable : true,
-			Configurable : true
-		}), false);
+		array.DefineOwnProperty(ToString(index), DataPropertyDescriptor(P, true, true, true), false);
 		index++;
 	}
 	return array;

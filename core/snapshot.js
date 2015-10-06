@@ -376,13 +376,7 @@ function intrinsic_readObject(O, istream) {
 		if ((flag & 8) === 0) {
 			var Value = istream.readValue();
 			var P = istream.readString();
-			var prop = PropertyDescriptor({
-				Value : Value,
-				Writable : ((flag & 4) === 0),
-				Configurable : ((flag & 1) === 0),
-				Enumerable : ((flag & 2) === 0),
-			});
-			intrinsic_createData(O, P, prop);
+			intrinsic_createData(O, P, Value, ((flag & 4) === 0), ((flag & 2) === 0), ((flag & 1) === 0));
 		}
 		else {
 			var Get = istream.readValue();
@@ -390,13 +384,7 @@ function intrinsic_readObject(O, istream) {
 			istream.assert(Get === undefined || (Type(Get) === TYPE_Object && Get.Class === "Function"));
 			istream.assert(Set === undefined || (Type(Set) === TYPE_Object && Set.Class === "Function"));
 			var P = istream.readString();
-			var prop = PropertyDescriptor({
-				Get : Get,
-				Set : Set,
-				Configurable : ((flag & 1) === 0),
-				Enumerable : ((flag & 2) === 0),
-			});
-			intrinsic_createAccessor(O, P, prop);
+			intrinsic_createAccessor(O, P, Get, Set, ((flag & 2) === 0), ((flag & 1) === 0));
 		}
 	}
 }

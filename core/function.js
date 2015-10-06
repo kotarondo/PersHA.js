@@ -78,39 +78,14 @@ function CreateFunction(parameters, body, Scope, Strict) {
 	F.Code = body;
 	F.Extensible = true;
 	var len = parameters.length;
-	F.DefineOwnProperty("length", PropertyDescriptor({
-		Value : len,
-		Writable : false,
-		Enumerable : false,
-		Configurable : false
-	}), false);
+	F.DefineOwnProperty("length", DataPropertyDescriptor(len, false, false, false), false);
 	var proto = Object_Construct([]);
-	proto.DefineOwnProperty("constructor", PropertyDescriptor({
-		Value : F,
-		Writable : true,
-		Enumerable : false,
-		Configurable : true
-	}), false);
-	F.DefineOwnProperty("prototype", PropertyDescriptor({
-		Value : proto,
-		Writable : true,
-		Enumerable : false,
-		Configurable : false
-	}), false);
+	proto.DefineOwnProperty("constructor", DataPropertyDescriptor(F, true, false, true), false);
+	F.DefineOwnProperty("prototype", DataPropertyDescriptor(proto, true, false, false), false);
 	if (Strict === true) {
 		var thrower = vm.theThrowTypeError;
-		F.DefineOwnProperty("caller", PropertyDescriptor({
-			Get : thrower,
-			Set : thrower,
-			Enumerable : false,
-			Configurable : false
-		}), false);
-		F.DefineOwnProperty("arguments", PropertyDescriptor({
-			Get : thrower,
-			Set : thrower,
-			Enumerable : false,
-			Configurable : false
-		}), false);
+		F.DefineOwnProperty("caller", AccessorPropertyDescriptor(thrower, thrower, false, false), false);
+		F.DefineOwnProperty("arguments", AccessorPropertyDescriptor(thrower, thrower, false, false), false);
 	}
 	return F;
 }

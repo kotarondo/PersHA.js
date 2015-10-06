@@ -42,12 +42,7 @@ function JSON_parse(thisValue, argumentsList) {
 	var unfiltered = theJSONParser.readJSONText(JText);
 	if (IsCallable(reviver) === true) {
 		var root = Object_Construct([]);
-		root.DefineOwnProperty("", PropertyDescriptor({
-			Value : unfiltered,
-			Writable : true,
-			Enumerable : true,
-			Configurable : true
-		}), false);
+		root.DefineOwnProperty("", DataPropertyDescriptor(unfiltered, true, true, true), false);
 		return Walk(root, "");
 	}
 	else return unfiltered;
@@ -64,12 +59,7 @@ function JSON_parse(thisValue, argumentsList) {
 						val.Delete(ToString(I), false);
 					}
 					else {
-						val.DefineOwnProperty(ToString(I), PropertyDescriptor({
-							Value : newElement,
-							Writable : true,
-							Enumerable : true,
-							Configurable : true
-						}), false);
+						val.DefineOwnProperty(ToString(I), DataPropertyDescriptor(newElement, true, true, true), false);
 					}
 					I++;
 				}
@@ -88,12 +78,7 @@ function JSON_parse(thisValue, argumentsList) {
 						val.Delete(P, false);
 					}
 					else {
-						val.DefineOwnProperty(P, PropertyDescriptor({
-							Value : newElement,
-							Writable : true,
-							Enumerable : true,
-							Configurable : true
-						}), false);
+						val.DefineOwnProperty(P, DataPropertyDescriptor(newElement, true, true, true), false);
 					}
 				}
 			}
@@ -148,12 +133,7 @@ function JSONParser() {
 			expecting(':');
 			skipJSONWhiteSpaces();
 			var value = readJSONValue();
-			var desc = PropertyDescriptor({
-				Value : value,
-				Writable : true,
-				Enumerable : true,
-				Configurable : true
-			});
+			var desc = DataPropertyDescriptor(value, true, true, true);
 			obj.DefineOwnProperty(key, desc, false);
 			skipJSONWhiteSpaces();
 			if (current === '}') {
@@ -176,12 +156,7 @@ function JSONParser() {
 		while (true) {
 			skipJSONWhiteSpaces();
 			var value = readJSONValue();
-			var desc = PropertyDescriptor({
-				Value : value,
-				Writable : true,
-				Enumerable : true,
-				Configurable : true
-			});
+			var desc = DataPropertyDescriptor(value, true, true, true);
 			obj.DefineOwnProperty(ToString(index), desc, false);
 			index++;
 			skipJSONWhiteSpaces();
@@ -402,12 +377,7 @@ function JSON_stringify(thisValue, argumentsList) {
 		var gap = "";
 	}
 	var wrapper = Object_Construct([]);
-	wrapper.DefineOwnProperty("", PropertyDescriptor({
-		Value : value,
-		Writable : true,
-		Enumerable : true,
-		Configurable : true
-	}), false);
+	wrapper.DefineOwnProperty("", DataPropertyDescriptor(value, true, true, true), false);
 	return Str("", wrapper);
 
 	function Str(key, holder) {

@@ -169,18 +169,8 @@ function Function_prototype_bind(thisValue, argumentsList) {
 	}
 	F.Extensible = true;
 	var thrower = vm.theThrowTypeError;
-	F.DefineOwnProperty("caller", PropertyDescriptor({
-		Get : thrower,
-		Set : thrower,
-		Enumerable : false,
-		Configurable : false
-	}), false);
-	F.DefineOwnProperty("arguments", PropertyDescriptor({
-		Get : thrower,
-		Set : thrower,
-		Enumerable : false,
-		Configurable : false
-	}), false);
+	F.DefineOwnProperty("caller", AccessorPropertyDescriptor(thrower, thrower, false, false), false);
+	F.DefineOwnProperty("arguments", AccessorPropertyDescriptor(thrower, thrower, false, false), false);
 	return F;
 }
 

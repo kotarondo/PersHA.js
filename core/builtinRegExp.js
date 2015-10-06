@@ -117,36 +117,14 @@ function RegExp_prototype_exec(thisValue, argumentsList) {
 	var n = R.NCapturingParens;
 	var A = Array_Construct([]);
 	var matchIndex = i;
-	A.DefineOwnProperty("index", PropertyDescriptor({
-		Value : matchIndex,
-		Writable : true,
-		Enumerable : true,
-		Configurable : true
-	}), true);
-	A.DefineOwnProperty("input", PropertyDescriptor({
-		Value : S,
-		Writable : true,
-		Enumerable : true,
-		Configurable : true
-	}), true);
-	A.DefineOwnProperty("length", PropertyDescriptor({
-		Value : n + 1
-	}), true);
+	A.DefineOwnProperty("index", DataPropertyDescriptor(matchIndex, true, true, true), true);
+	A.DefineOwnProperty("input", DataPropertyDescriptor(S, true, true, true), true);
+	A.DefineOwnProperty("length", DataPropertyDescriptor(n + 1, absent, absent, absent), true);
 	var matchedSubstr = S.substring(i, e);
-	A.DefineOwnProperty("0", PropertyDescriptor({
-		Value : matchedSubstr,
-		Writable : true,
-		Enumerable : true,
-		Configurable : true
-	}), true);
+	A.DefineOwnProperty("0", DataPropertyDescriptor(matchedSubstr, true, true, true), true);
 	for (var i = 1; i <= n; i++) {
 		var captureI = r.captures[i];
-		A.DefineOwnProperty(ToString(i), PropertyDescriptor({
-			Value : captureI,
-			Writable : true,
-			Enumerable : true,
-			Configurable : true
-		}), true);
+		A.DefineOwnProperty(ToString(i), DataPropertyDescriptor(captureI, true, true, true), true);
 	}
 	return A;
 }

@@ -135,24 +135,14 @@ function Array_prototype_concat(thisValue, argumentsList) {
 				var exists = E.HasProperty(P);
 				if (exists === true) {
 					var subElement = E.Get(P);
-					A.DefineOwnProperty(ToString(n), PropertyDescriptor({
-						Value : subElement,
-						Writable : true,
-						Enumerable : true,
-						Configurable : true
-					}), false);
+					A.DefineOwnProperty(ToString(n), DataPropertyDescriptor(subElement, true, true, true), false);
 				}
 				n++;
 				k++;
 			}
 		}
 		else {
-			A.DefineOwnProperty(ToString(n), PropertyDescriptor({
-				Value : E,
-				Writable : true,
-				Enumerable : true,
-				Configurable : true
-			}), false);
+			A.DefineOwnProperty(ToString(n), DataPropertyDescriptor(E, true, true, true), false);
 			n++;
 		}
 	}
@@ -320,12 +310,7 @@ function Array_prototype_slice(thisValue, argumentsList) {
 		var kPresent = O.HasProperty(Pk);
 		if (kPresent === true) {
 			var kValue = O.Get(Pk);
-			A.DefineOwnProperty(ToString(n), PropertyDescriptor({
-				Value : kValue,
-				Writable : true,
-				Enumerable : true,
-				Configurable : true
-			}), false);
+			A.DefineOwnProperty(ToString(n), DataPropertyDescriptor(kValue, true, true, true), false);
 		}
 		k++;
 		n++;
@@ -442,12 +427,7 @@ function Array_prototype_splice(thisValue, argumentsList) {
 		var fromPresent = O.HasProperty(from);
 		if (fromPresent === true) {
 			var fromValue = O.Get(from);
-			A.DefineOwnProperty(ToString(k), PropertyDescriptor({
-				Value : fromValue,
-				Writable : true,
-				Enumerable : true,
-				Configurable : true
-			}), false);
+			A.DefineOwnProperty(ToString(k), DataPropertyDescriptor(fromValue, true, true, true), false);
 		}
 		k++;
 	}
@@ -702,12 +682,7 @@ function Array_prototype_map(thisValue, argumentsList) {
 		if (kPresent === true) {
 			var kValue = O.Get(Pk);
 			var mappedValue = callbackfn.Call(T, [ kValue, k, O ]);
-			A.DefineOwnProperty(Pk, PropertyDescriptor({
-				Value : mappedValue,
-				Writable : true,
-				Enumerable : true,
-				Configurable : true
-			}), false);
+			A.DefineOwnProperty(Pk, DataPropertyDescriptor(mappedValue, true, true, true), false);
 		}
 		k++;
 	}
@@ -737,12 +712,7 @@ function Array_prototype_filter(thisValue, argumentsList) {
 			var kValue = O.Get(Pk);
 			var selected = callbackfn.Call(T, [ kValue, k, O ]);
 			if (ToBoolean(selected) === true) {
-				A.DefineOwnProperty(ToString(to), PropertyDescriptor({
-					Value : kValue,
-					Writable : true,
-					Enumerable : true,
-					Configurable : true
-				}), false);
+				A.DefineOwnProperty(ToString(to), DataPropertyDescriptor(kValue, true, true, true), false);
 				to++;
 			}
 		}
@@ -831,12 +801,7 @@ function Array_DefineOwnProperty(P, Desc, Throw) {
 		if (Desc.Value === absent) return default_DefineOwnProperty.call(A, "length", Desc, Throw);
 		var newLen = ToUint32(Desc.Value);
 		if (newLen !== ToNumber(Desc.Value)) throw VMRangeError();
-		var newLenDesc = PropertyDescriptor({
-			Value : newLen,
-			Writable : Desc.Writable,
-			Enumerable : Desc.Enumerable,
-			Configurable : Desc.Configurable,
-		});
+		var newLenDesc = DataPropertyDescriptor(newLen, Desc.Writable, Desc.Enumerable, Desc.Configurable);
 		if (newLen >= oldLen) return default_DefineOwnProperty.call(A, "length", newLenDesc, Throw);
 		if (oldLenDesc.Writable === false) {
 			if (Throw === true) throw VMTypeError();
@@ -847,12 +812,7 @@ function Array_DefineOwnProperty(P, Desc, Throw) {
 		}
 		else {
 			var newWritable = false;
-			var newLenDesc = PropertyDescriptor({
-				Value : newLenDesc.Value,
-				Writable : true,
-				Enumerable : newLenDesc.Enumerable,
-				Configurable : newLenDesc.Configurable,
-			});
+			var newLenDesc = DataPropertyDescriptor(newLenDesc.Value, true, newLenDesc.Enumerable, newLenDesc.Configurable);
 		}
 		var succeeded = default_DefineOwnProperty.call(A, "length", newLenDesc, Throw);
 		if (succeeded === false) return false;
@@ -860,21 +820,15 @@ function Array_DefineOwnProperty(P, Desc, Throw) {
 			oldLen = oldLen - 1;
 			var deleteSucceeded = A.Delete(ToString(oldLen), false);
 			if (deleteSucceeded === false) {
-				var newLenDesc = PropertyDescriptor({
-					Value : oldLen + 1,
-					Writable : newWritable ? newLenDesc.Writable : false,
-					Enumerable : newLenDesc.Enumerable,
-					Configurable : newLenDesc.Configurable,
-				});
+				var newLenDesc = DataPropertyDescriptor(oldLen + 1, newWritable ? newLenDesc.Writable : false,
+						newLenDesc.Enumerable, newLenDesc.Configurable);
 				default_DefineOwnProperty.call(A, "length", newLenDesc, false);
 				if (Throw === true) throw VMTypeError();
 				else return false;
 			}
 		}
 		if (newWritable === false) {
-			default_DefineOwnProperty.call(A, "length", PropertyDescriptor({
-				Writable : false
-			}), false);
+			default_DefineOwnProperty.call(A, "length", DataPropertyDescriptor(absent, false, absent, absent), false);
 		}
 		return true;
 	}
@@ -890,12 +844,8 @@ function Array_DefineOwnProperty(P, Desc, Throw) {
 			else return false;
 		}
 		if (index >= oldLen) {
-			var oldLenDesc = PropertyDescriptor({
-				Value : index + 1,
-				Writable : oldLenDesc.Writable,
-				Enumerable : oldLenDesc.Enumerable,
-				Configurable : oldLenDesc.Configurable,
-			});
+			var oldLenDesc = DataPropertyDescriptor(index + 1, oldLenDesc.Writable, oldLenDesc.Enumerable,
+					oldLenDesc.Configurable);
 			default_DefineOwnProperty.call(A, "length", oldLenDesc, false);
 		}
 		return true;

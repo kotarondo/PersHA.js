@@ -68,12 +68,7 @@ function ArrayInitialiser(elements) {
 			if (e !== empty) {
 				var initResult = e();
 				var initValue = GetValue(initResult);
-				array.DefineOwnProperty(ToString(i), PropertyDescriptor({
-					Value : initValue,
-					Writable : true,
-					Enumerable : true,
-					Configurable : true
-				}), false);
+				array.DefineOwnProperty(ToString(i), DataPropertyDescriptor(initValue, true, true, true), false);
 			}
 		}
 		if (e === empty) {
@@ -103,12 +98,7 @@ function PropertyAssignment(name, expression) {
 				return;
 			}
 		}
-		var desc = PropertyDescriptor({
-			Value : propValue,
-			Writable : true,
-			Enumerable : true,
-			Configurable : true
-		});
+		var desc = DataPropertyDescriptor(propValue, true, true, true);
 		obj.DefineOwnProperty(name, desc, false);
 	};
 }
@@ -117,11 +107,7 @@ function PropertyAssignmentGet(name, body) {
 	return function(obj) {
 		var env = LexicalEnvironment;
 		var closure = CreateFunction([], body, env, body.strict);
-		var desc = PropertyDescriptor({
-			Get : closure,
-			Enumerable : true,
-			Configurable : true
-		});
+		var desc = AccessorPropertyDescriptor(closure, absent, true, true);
 		obj.DefineOwnProperty(name, desc, false);
 	};
 }
@@ -130,11 +116,7 @@ function PropertyAssignmentSet(name, parameter, body) {
 	return function(obj) {
 		var env = LexicalEnvironment;
 		var closure = CreateFunction([ parameter ], body, env, body.strict);
-		var desc = PropertyDescriptor({
-			Set : closure,
-			Enumerable : true,
-			Configurable : true
-		});
+		var desc = AccessorPropertyDescriptor(absent, closure, true, true);
 		obj.DefineOwnProperty(name, desc, false);
 	};
 }
@@ -523,10 +505,10 @@ function abstractEqualityComparison(x, y) {
 	if (Type(x) === TYPE_String && Type(y) === TYPE_Number) return abstractEqualityComparison(ToNumber(x), y);
 	if (Type(x) === TYPE_Boolean) return abstractEqualityComparison(ToNumber(x), y);
 	if (Type(y) === TYPE_Boolean) return abstractEqualityComparison(x, ToNumber(y));
-	if ((Type(x) === TYPE_String || Type(x) === TYPE_Number) && Type(y) === TYPE_Object) return abstractEqualityComparison(x,
-			ToPrimitive(y));
-	if (Type(x) === TYPE_Object && (Type(y) === TYPE_String || Type(y) === TYPE_Number)) return abstractEqualityComparison(
-			ToPrimitive(x), y);
+	if ((Type(x) === TYPE_String || Type(x) === TYPE_Number) && Type(y) === TYPE_Object)
+		return abstractEqualityComparison(x, ToPrimitive(y));
+	if (Type(x) === TYPE_Object && (Type(y) === TYPE_String || Type(y) === TYPE_Number))
+		return abstractEqualityComparison(ToPrimitive(x), y);
 	return false;
 }
 

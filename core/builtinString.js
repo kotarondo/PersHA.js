@@ -182,12 +182,7 @@ function String_prototype_match(thisValue, argumentsList) {
 					previousLastIndex = thisIndex;
 				}
 				var matchStr = result.Get("0");
-				A.DefineOwnProperty(ToString(n), PropertyDescriptor({
-					Value : matchStr,
-					Writable : true,
-					Enumerable : true,
-					configurable : true
-				}), false);
+				A.DefineOwnProperty(ToString(n), DataPropertyDescriptor(matchStr, true, true, true), false);
 				n++;
 			}
 		}
@@ -403,23 +398,13 @@ function String_prototype_split(thisValue, argumentsList) {
 	}
 	if (lim === 0) return A;
 	if (separator === undefined) {
-		A.DefineOwnProperty("0", PropertyDescriptor({
-			Value : S,
-			Writable : true,
-			Enumerable : true,
-			Configurable : true
-		}), false);
+		A.DefineOwnProperty("0", DataPropertyDescriptor(S, true, true, true), false);
 		return A;
 	}
 	if (s === 0) {
 		var z = SplitMatch(S, 0, R);
 		if (z !== failure) return A;
-		A.DefineOwnProperty("0", PropertyDescriptor({
-			Value : S,
-			Writable : true,
-			Enumerable : true,
-			Configurable : true
-		}), false);
+		A.DefineOwnProperty("0", DataPropertyDescriptor(S, true, true, true), false);
 		return A;
 	}
 	var q = p;
@@ -436,24 +421,14 @@ function String_prototype_split(thisValue, argumentsList) {
 			}
 			else {
 				var T = S.substring(p, q);
-				A.DefineOwnProperty(ToString(lengthA), PropertyDescriptor({
-					Value : T,
-					Writable : true,
-					Enumerable : true,
-					Configurable : true
-				}), false);
+				A.DefineOwnProperty(ToString(lengthA), DataPropertyDescriptor(T, true, true, true), false);
 				lengthA++;
 				if (lengthA === lim) return A;
 				var p = e;
 				var i = 0;
 				while (i !== cap.length) {
 					var i = i + 1;
-					A.DefineOwnProperty(ToString(lengthA), PropertyDescriptor({
-						Value : cap[i],
-						Writable : true,
-						Enumerable : true,
-						Configurable : true
-					}), false);
+					A.DefineOwnProperty(ToString(lengthA), DataPropertyDescriptor(cap[i], true, true, true), false);
 					lengthA++;
 					if (lengthA === lim) return A;
 				}
@@ -462,12 +437,7 @@ function String_prototype_split(thisValue, argumentsList) {
 		}
 	}
 	var T = S.substring(p, s);
-	A.DefineOwnProperty(ToString(lengthA), PropertyDescriptor({
-		Value : T,
-		Writable : true,
-		Enumerable : true,
-		Configurable : true
-	}), false);
+	A.DefineOwnProperty(ToString(lengthA), DataPropertyDescriptor(T, true, true, true), false);
 	return A;
 
 	function SplitMatch(S, q, R) {
@@ -576,12 +546,7 @@ function String_GetOwnProperty(P) {
 	var len = str.length;
 	if (len <= index) return undefined;
 	var resultStr = str[index];
-	return PropertyDescriptor({
-		Value : resultStr,
-		Enumerable : true,
-		Writable : false,
-		Configurable : false
-	});
+	return DataPropertyDescriptor(resultStr, false, true, false);
 }
 
 function String_enumerator(ownOnly, enumerableOnly) {
