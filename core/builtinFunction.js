@@ -72,7 +72,7 @@ function Function_Construct(argumentsList) {
 		}
 		throw e;
 	}
-	return VMFunction(parameters, body, vm.theGlobalEnvironment, body.strict);
+	return CreateFunction(parameters, body, vm.theGlobalEnvironment, body.strict);
 }
 
 function Function_prototype_toString(thisValue, argumentsList) {

@@ -40,7 +40,7 @@ function FunctionDeclaration(name, parameters, body) {
 		name : name,
 		instantiate : function() {
 			var env = VariableEnvironment;
-			return VMFunction(parameters, body, env, body.strict);
+			return CreateFunction(parameters, body, env, body.strict);
 		}
 	});
 }
@@ -48,7 +48,7 @@ function FunctionDeclaration(name, parameters, body) {
 function FunctionExpression(name, parameters, body) {
 	if (name === undefined) return function() {
 		var env = LexicalEnvironment;
-		return VMFunction(parameters, body, env, body.strict);
+		return CreateFunction(parameters, body, env, body.strict);
 	};
 
 	return function() {
@@ -56,7 +56,7 @@ function FunctionExpression(name, parameters, body) {
 		var funcEnv = NewDeclarativeEnvironment(env);
 		var envRec = funcEnv.environmentRecord;
 		envRec.CreateImmutableBinding(name);
-		var closure = VMFunction(parameters, body, funcEnv, body.strict);
+		var closure = CreateFunction(parameters, body, funcEnv, body.strict);
 		envRec.InitializeImmutableBinding(name, closure);
 		return closure;
 	};
@@ -69,7 +69,7 @@ function FunctionBody(sourceElements) {
 	};
 }
 
-function VMFunction(parameters, body, Scope, Strict) {
+function CreateFunction(parameters, body, Scope, Strict) {
 	var F = VMObject(CLASSID_Function);
 	F.vm = vm;
 	F.Prototype = vm.Function_prototype;

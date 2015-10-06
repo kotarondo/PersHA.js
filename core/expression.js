@@ -116,7 +116,7 @@ function PropertyAssignment(name, expression) {
 function PropertyAssignmentGet(name, body) {
 	return function(obj) {
 		var env = LexicalEnvironment;
-		var closure = VMFunction([], body, env, body.strict);
+		var closure = CreateFunction([], body, env, body.strict);
 		var desc = PropertyDescriptor({
 			Get : closure,
 			Enumerable : true,
@@ -129,7 +129,7 @@ function PropertyAssignmentGet(name, body) {
 function PropertyAssignmentSet(name, parameter, body) {
 	return function(obj) {
 		var env = LexicalEnvironment;
-		var closure = VMFunction([ parameter ], body, env, body.strict);
+		var closure = CreateFunction([ parameter ], body, env, body.strict);
 		var desc = PropertyDescriptor({
 			Set : closure,
 			Enumerable : true,

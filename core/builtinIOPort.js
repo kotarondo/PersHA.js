@@ -321,7 +321,7 @@ function IOPort_wrapArgs(a) {
 	return A;
 }
 
-function IOPort_wrap(a, stack) {
+function IOPort_wrap(a) {
 	// must be compatible with FileOutputStream.readAny/writeAny
 	// i.e. IOPort_wrap == IOPort_wrap ○ readAny ○ writeAny
 	//      on IOPort_prewrap image

@@ -332,7 +332,7 @@ function JSONParser() {
 	}
 
 	function SyntaxError() {
-		return new VMSyntaxError("at " + currentPos);
+		return VMSyntaxError("at " + currentPos);
 	}
 }
 
@@ -487,7 +487,7 @@ function JSON_stringify(thisValue, argumentsList) {
 	}
 
 	function JO(value) {
-		if (isIncluded(value, stack)) throw TypeError();
+		if (isIncluded(value, stack)) throw VMTypeError();
 		stack.push(value);
 		var stepback = indent;
 		indent = indent + gap;
@@ -534,7 +534,7 @@ function JSON_stringify(thisValue, argumentsList) {
 	}
 
 	function JA(value) {
-		if (isIncluded(value, stack)) throw TypeError();
+		if (isIncluded(value, stack)) throw VMTypeError();
 		stack.push(value);
 		var stepback = indent;
 		indent = indent + gap;
@@ -568,7 +568,4 @@ function JSON_stringify(thisValue, argumentsList) {
 		return final;
 	}
 
-	function TypeError() {
-		return new VMTypeError();
-	}
 }
