@@ -31,20 +31,26 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+var vm = require('vm');
+var fs = require('fs');
+
 var stopIfFailed = false;
 var skipVeryHeavyTests = true;
 var skipHeavyTests = false;
-
+try{
+	fs.statSync("skipHeavyTests");
+	skipHeavyTests = true;
+}catch(e){}
 if (process.argv.length >= 3) {
 	var specificTest = process.argv[2];
 }
 
 // for Tests S15.9.3.1_A5_T*.js
-setSystemProperty("LocalTZA", -8 * 3600000);
-setSystemProperty("LocalTZAString", "PDT");
+if (setSystemProperty) {
+	setSystemProperty("LocalTZA", -8 * 3600000);
+	setSystemProperty("LocalTZAString", "PDT");
+}
 
-var vm = require('vm');
-var fs = require('fs');
 var passCount = 0;
 var failCount = 0;
 var skipCount = 0;
@@ -113,7 +119,10 @@ function nextTest() {
 		break;
 	}
 	var begin = Date.now();
-	if(begin > nextSuspend){
+	if (specificTest) {
+		sandboxes = [];
+	}
+	else if (begin > nextSuspend) {
 		process.suspendExit(123);
 		nextSuspend = begin + 3000;
 		sandboxes = [];

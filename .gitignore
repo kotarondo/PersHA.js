@@ -1,6 +1,8 @@
 *.swp
+*.log
 bin/persha.js
 test/test262/*.json
 test/test262/sta.js
+test/test262/skipHeavyTests
 test/node/results
 test/node/test/tmp

@@ -110,4 +110,9 @@ function cleanDirSync(path) {
 		IOManager_evaluate("process.exit(0)", "");
 	});
 
+	process.on('uncaughtException', function(err) {
+		console.error(err.stack);
+		process.reallyExit(1);
+	});
+
 })();
