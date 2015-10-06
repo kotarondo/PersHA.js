@@ -81,7 +81,7 @@ function NewSourceObject(source, strict, filename) {
 		filename = "<unknown>";
 	}
 	if (Class_SourceObject === undefined) {
-		Class_SourceObject = freeze({
+		Class_SourceObject = ({
 			ClassID : CLASSID_SourceObject,
 			writeObject : SourceObject_writeObject,
 			readObject : undefined,
@@ -94,5 +94,5 @@ function NewSourceObject(source, strict, filename) {
 	obj.subcodes = undefined;
 	obj.isFunctionBody = undefined;
 	obj.ID = 0;
-	return preventExtensions(obj);
+	return obj;
 }

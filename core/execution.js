@@ -35,7 +35,7 @@
 
 // ECMAScript 5.1: 10 Executable Code and Execution Contexts
 
-var Class_DeclarativeEnvironmentRecord = freeze({
+var Class_DeclarativeEnvironmentRecord = ({
 	// $attributes
 	// 0: Mutable Deletable
 	// 1: Mutable Undeletable
@@ -98,7 +98,7 @@ var Class_DeclarativeEnvironmentRecord = freeze({
 	},
 });
 
-var Class_ObjectEnvironmentRecord = freeze({
+var Class_ObjectEnvironmentRecord = ({
 	HasBinding : function(N) {
 		var bindings = this.bindings;
 		return bindings.HasProperty(N);
@@ -162,19 +162,19 @@ function DeclarativeEnvironmentRecord() {
 	var obj = Object.create(Class_DeclarativeEnvironmentRecord);
 	obj.$values = Object.create(null);
 	obj.$attributes = Object.create(null);
-	return preventExtensions(obj);
+	return obj;
 }
 
 function ObjectEnvironmentRecord(bindings) {
 	var obj = Object.create(Class_ObjectEnvironmentRecord);
 	obj.bindings = bindings;
 	obj.provideThis = false;
-	return preventExtensions(obj);
+	return obj;
 }
 
 function NewDeclarativeEnvironment(E) {
 	if (Class_DeclarativeEnvironment === undefined) {
-		Class_DeclarativeEnvironment = freeze({
+		Class_DeclarativeEnvironment = ({
 			ClassID : CLASSID_DeclarativeEnvironment,
 			walkObject : DeclarativeEnvironment_walkObject,
 			writeObject : DeclarativeEnvironment_writeObject,
@@ -185,12 +185,12 @@ function NewDeclarativeEnvironment(E) {
 	obj.environmentRecord = DeclarativeEnvironmentRecord();
 	obj.outer = E;
 	obj.ID = 0;
-	return preventExtensions(obj);
+	return obj;
 }
 
 function NewObjectEnvironment(O, E) {
 	if (Class_ObjectEnvironment === undefined) {
-		Class_ObjectEnvironment = freeze({
+		Class_ObjectEnvironment = ({
 			ClassID : CLASSID_ObjectEnvironment,
 			walkObject : ObjectEnvironment_walkObject,
 			writeObject : ObjectEnvironment_writeObject,
@@ -201,7 +201,7 @@ function NewObjectEnvironment(O, E) {
 	obj.environmentRecord = ObjectEnvironmentRecord(O);
 	obj.outer = E;
 	obj.ID = 0;
-	return preventExtensions(obj);
+	return obj;
 }
 
 var LexicalEnvironment;
@@ -220,7 +220,7 @@ function saveExecutionContext() {
 		throw VMRangeError("stack overflow");
 	}
 	stackDepth++;
-	outerExecutionContext = preventExtensions({
+	outerExecutionContext = ({
 		LexicalEnvironment : LexicalEnvironment,
 		VariableEnvironment : VariableEnvironment,
 		ThisBinding : ThisBinding,

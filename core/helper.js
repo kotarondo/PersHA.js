@@ -34,8 +34,6 @@
 'use strict';
 
 var STRICT_CONFORMANCE = false;
-var CHECK_EXTENSION = false;
-var CHECK_READONLY = false;
 
 function assert(condition, info) {
 	if (!condition) {
@@ -53,38 +51,18 @@ function assertEquals(a, b, info) {
 	}
 }
 
-function preventExtensions(obj) {
-	return obj;
-}
-
-function freeze(obj) {
-	return obj;
-}
-
-if (CHECK_EXTENSION) {
-	preventExtensions = function(obj) {
-		return Object.preventExtensions(obj);
-	}
-}
-
-if (CHECK_READONLY) {
-	freeze = function(obj) {
-		return Object.freeze(obj);
-	}
-}
-
 var MAX_VALUE = Number.MAX_VALUE;
 var MIN_VALUE = Number.MIN_VALUE;
 
-var empty = freeze({
+var empty = ({
 	empty : true
 });
 
-var absent = freeze({
+var absent = ({
 	absent : true
 });
 
-var failure = freeze({
+var failure = ({
 	failure : true
 });
 

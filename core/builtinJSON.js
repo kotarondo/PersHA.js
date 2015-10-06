@@ -105,7 +105,7 @@ function JSON_parse(thisValue, argumentsList) {
 var theJSONParser = JSONParser();
 
 function JSONParser() {
-	return preventExtensions({
+	return ({
 		readJSONText : readJSONText,
 	});
 

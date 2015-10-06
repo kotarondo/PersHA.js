@@ -34,7 +34,7 @@
 'use strict';
 
 var theParser = function() {
-	return preventExtensions({
+	return ({
 		readProgram : readProgram,
 		readFunctionParameters : readFunctionParameters,
 		readFunctionCode : readFunctionCode,
@@ -93,7 +93,7 @@ var theParser = function() {
 	}
 
 	function Code() {
-		var code = preventExtensions({
+		var code = ({
 			strict : strict,
 			isFunctionCode : false,
 			isEvalCode : false,
@@ -113,7 +113,7 @@ var theParser = function() {
 	}
 
 	function Stack() {
-		return preventExtensions({
+		return ({
 			labelStack : [],
 			iterableLabelStack : [],
 			iterables : 0,
@@ -979,7 +979,7 @@ var theParser = function() {
 			return ArrayInitialiser(elements);
 		case '{':
 			var elements = [];
-			var previous = preventExtensions({
+			var previous = ({
 				data : [],
 				get : [],
 				set : [],

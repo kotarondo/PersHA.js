@@ -94,10 +94,10 @@ function pauseTaskTimer() {
 var taskQueue = [];
 
 function scheduleTask(callback, arg) {
-	var task = {
+	var task = ({
 		callback : callback,
 		arg : arg
-	};
+	});
 	taskQueue.push(task);
 	if (taskDepth === 0) {
 		runTasks();
@@ -124,10 +124,10 @@ function runTasks() {
 var microtaskQueue = [];
 
 function scheduleMicrotask(callback, args) {
-	var task = {
+	var task = ({
 		callback : callback,
 		args : args
-	};
+	});
 	microtaskQueue.push(task);
 }
 

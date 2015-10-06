@@ -165,7 +165,7 @@ function RegExp_prototype_toString(thisValue, argumentsList) {
 }
 
 function State(endIndex, captures) {
-	return preventExtensions({
+	return ({
 		endIndex : endIndex,
 		captures : captures,
 		pendingContinuation : undefined
@@ -175,7 +175,7 @@ function State(endIndex, captures) {
 var theRegExpFactory = RegExpFactory();
 
 function RegExpFactory() {
-	return preventExtensions({
+	return ({
 		compile : compile,
 		recompile : recompile,
 		createRegExpObject : createRegExpObject,
@@ -964,24 +964,24 @@ function RegExpFactory() {
 			}
 			else throw SyntaxError();
 		}
-		var regexp = {
+		var regexp = ({
 			source : escapePattern(P),
 			global : global,
 			ignoreCase : ignoreCase,
 			multiline : multiline,
-		};
+		});
 		regexp.NCapturingParens = countNCapturingParens(regexp.source);
 		regexp.Match = evaluatePattern(regexp);
 		return regexp;
 	}
 
 	function recompile(obj) {
-		var regexp = {
+		var regexp = ({
 			source : obj.Get("source"),
 			global : obj.Get("global"),
 			ignoreCase : obj.Get("ignoreCase"),
 			multiline : obj.Get("multiline"),
-		};
+		});
 		regexp.NCapturingParens = countNCapturingParens(regexp.source);
 		obj.NCapturingParens = regexp.NCapturingParens;
 		obj.Match = evaluatePattern(regexp);

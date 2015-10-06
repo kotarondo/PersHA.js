@@ -142,7 +142,7 @@ function VMObject(ClassID) {
 	case CLASSID_Object:
 		if (Class_Object === undefined) {
 			var obj = setAlltheInternalMethod("Object", ClassID);
-			Class_Object = freeze(obj);
+			Class_Object = obj;
 		}
 		var obj = Object.create(Class_Object);
 		break;
@@ -153,7 +153,7 @@ function VMObject(ClassID) {
 			obj.HasInstance = Function_HasInstance;
 			obj.writeObject = BuiltinFunction_writeObject;
 			obj.readObject = BuiltinFunction_readObject;
-			Class_BuiltinFunction = freeze(obj);
+			Class_BuiltinFunction = obj;
 		}
 		var obj = Object.create(Class_BuiltinFunction);
 		obj.vm = undefined;
@@ -170,7 +170,7 @@ function VMObject(ClassID) {
 			obj.walkObject = Function_walkObject;
 			obj.writeObject = Function_writeObject;
 			obj.readObject = Function_readObject;
-			Class_Function = freeze(obj);
+			Class_Function = obj;
 		}
 		var obj = Object.create(Class_Function);
 		obj.vm = undefined;
@@ -188,7 +188,7 @@ function VMObject(ClassID) {
 			obj.walkObject = BindFunction_walkObject;
 			obj.writeObject = BindFunction_writeObject;
 			obj.readObject = BindFunction_readObject;
-			Class_BindFunction = freeze(obj);
+			Class_BindFunction = obj;
 		}
 		var obj = Object.create(Class_BindFunction);
 		obj.vm = undefined;
@@ -200,7 +200,7 @@ function VMObject(ClassID) {
 		if (Class_Array === undefined) {
 			var obj = setAlltheInternalMethod("Array", ClassID);
 			obj.DefineOwnProperty = Array_DefineOwnProperty;
-			Class_Array = freeze(obj);
+			Class_Array = obj;
 		}
 		var obj = Object.create(Class_Array);
 		break;
@@ -211,7 +211,7 @@ function VMObject(ClassID) {
 			obj.enumerator = String_enumerator;
 			obj.writeObject = Primitive_writeObject;
 			obj.readObject = Primitive_readObject;
-			Class_String = freeze(obj);
+			Class_String = obj;
 		}
 		var obj = Object.create(Class_String);
 		obj.PrimitiveValue = undefined;
@@ -221,7 +221,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("Boolean", ClassID);
 			obj.writeObject = Primitive_writeObject;
 			obj.readObject = Primitive_readObject;
-			Class_Boolean = freeze(obj);
+			Class_Boolean = obj;
 		}
 		var obj = Object.create(Class_Boolean);
 		obj.PrimitiveValue = undefined;
@@ -231,7 +231,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("Number", ClassID);
 			obj.writeObject = Primitive_writeObject;
 			obj.readObject = Primitive_readObject;
-			Class_Number = freeze(obj);
+			Class_Number = obj;
 		}
 		var obj = Object.create(Class_Number);
 		obj.PrimitiveValue = undefined;
@@ -241,7 +241,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("Date", ClassID);
 			obj.writeObject = Primitive_writeObject;
 			obj.readObject = Primitive_readObject;
-			Class_Date = freeze(obj);
+			Class_Date = obj;
 		}
 		var obj = Object.create(Class_Date);
 		obj.PrimitiveValue = undefined;
@@ -251,7 +251,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("RegExp", ClassID);
 			obj.writeObject = RegExp_writeObject;
 			obj.readObject = RegExp_readObject;
-			Class_RegExp = freeze(obj);
+			Class_RegExp = obj;
 		}
 		var obj = Object.create(Class_RegExp);
 		obj.Match = undefined;
@@ -263,7 +263,7 @@ function VMObject(ClassID) {
 			obj.walkObject = Error_walkObject;
 			obj.writeObject = Error_writeObject;
 			obj.readObject = Error_readObject;
-			Class_Error = freeze(obj);
+			Class_Error = obj;
 		}
 		var obj = Object.create(Class_Error);
 		obj.stackTrace = [];
@@ -271,21 +271,21 @@ function VMObject(ClassID) {
 	case CLASSID_Global:
 		if (Class_Global === undefined) {
 			var obj = setAlltheInternalMethod("Global", ClassID);
-			Class_Global = freeze(obj);
+			Class_Global = obj;
 		}
 		var obj = Object.create(Class_Global);
 		break;
 	case CLASSID_Math:
 		if (Class_Math === undefined) {
 			var obj = setAlltheInternalMethod("Math", ClassID);
-			Class_Math = freeze(obj);
+			Class_Math = obj;
 		}
 		var obj = Object.create(Class_Math);
 		break;
 	case CLASSID_JSON:
 		if (Class_JSON === undefined) {
 			var obj = setAlltheInternalMethod("JSON", ClassID);
-			Class_JSON = freeze(obj);
+			Class_JSON = obj;
 		}
 		var obj = Object.create(Class_JSON);
 		break;
@@ -299,7 +299,7 @@ function VMObject(ClassID) {
 			obj.walkObject = Arguments_walkObject;
 			obj.writeObject = Arguments_writeObject;
 			obj.readObject = Arguments_readObject;
-			Class_Arguments = freeze(obj);
+			Class_Arguments = obj;
 		}
 		var obj = Object.create(Class_Arguments);
 		obj.ParameterMap = undefined;
@@ -308,7 +308,7 @@ function VMObject(ClassID) {
 	case CLASSID_PlainArguments:
 		if (Class_PlainArguments === undefined) {
 			var obj = setAlltheInternalMethod("Arguments", ClassID);
-			Class_PlainArguments = freeze(obj);
+			Class_PlainArguments = obj;
 		}
 		var obj = Object.create(Class_PlainArguments);
 		break;
@@ -321,7 +321,7 @@ function VMObject(ClassID) {
 			obj.DefineOwnProperty = Buffer_DefineOwnProperty;
 			obj.writeObject = Buffer_writeObject;
 			obj.readObject = Buffer_readObject;
-			Class_Buffer = freeze(obj);
+			Class_Buffer = obj;
 		}
 		var obj = Object.create(Class_Buffer);
 		obj.wrappedBuffer = undefined;
@@ -329,7 +329,7 @@ function VMObject(ClassID) {
 	case CLASSID_IOPort:
 		if (Class_IOPort === undefined) {
 			var obj = setAlltheInternalMethod("IOPort", ClassID);
-			Class_IOPort = freeze(obj);
+			Class_IOPort = obj;
 		}
 		var obj = Object.create(Class_IOPort);
 		obj.handler = undefined;
@@ -342,7 +342,7 @@ function VMObject(ClassID) {
 			obj.walkObject = vm_walkObject;
 			obj.writeObject = vm_writeObject;
 			obj.readObject = vm_readObject;
-			Class_vm = freeze(obj);
+			Class_vm = obj;
 		}
 		var obj = Object.create(Class_vm);
 		for ( var name in vmTemplate) {
@@ -355,7 +355,7 @@ function VMObject(ClassID) {
 			obj.walkObject = Script_walkObject;
 			obj.writeObject = Script_writeObject;
 			obj.readObject = Script_readObject;
-			Class_Script = freeze(obj);
+			Class_Script = obj;
 		}
 		var obj = Object.create(Class_Script);
 		obj.Code = undefined;
@@ -367,11 +367,11 @@ function VMObject(ClassID) {
 	obj.Prototype = undefined;
 	obj.Extensible = undefined;
 	obj.ID = 0;
-	return preventExtensions(obj);
+	return obj;
 }
 
 function ReferenceValue(base, referencedName, strictReference) {
-	return freeze({
+	return ({
 		base : base,
 		referencedName : referencedName,
 		strictReference : strictReference,
@@ -482,7 +482,7 @@ function specialPut(base, P, W, Throw) {
 }
 
 function CompletionValue(type, value, target) {
-	return preventExtensions({
+	return ({
 		type : type,
 		value : value,
 		target : target,
@@ -509,7 +509,7 @@ function PropertyDescriptor(Desc) {
 		Desc.Enumerable = absent;
 	}
 	assert((Desc.Get === absent && Desc.Set === absent) || (Desc.Value === absent && Desc.Writable === absent), Desc);
-	return freeze(Desc);
+	return Desc;
 }
 
 function IsAccessorDescriptor(Desc) {
@@ -909,7 +909,7 @@ function default_enumerator(ownOnly, enumerableOnly) {
 
 function intrinsic_set(O, P, Desc) {
 	var x = O.$properties[P];
-	O.$properties[P] = freeze({
+	O.$properties[P] = ({
 		Value : (Desc.Value !== absent) ? Desc.Value : x.Value,
 		Writable : (Desc.Writable !== absent) ? Desc.Writable : x.Writable,
 		Get : (Desc.Get !== absent) ? Desc.Get : x.Get,
@@ -921,7 +921,7 @@ function intrinsic_set(O, P, Desc) {
 
 function intrinsic_set_value(O, P, V, x) {
 	assert(x.Writable, x);
-	O.$properties[P] = freeze({
+	O.$properties[P] = ({
 		Value : V,
 		Writable : true,
 		Get : absent,
@@ -956,7 +956,7 @@ function intrinsic_createData(O, P, Desc) {
 	if (Desc.Enumerable !== absent) {
 		x.Enumerable = Desc.Enumerable;
 	}
-	O.$properties[P] = freeze(x);
+	O.$properties[P] = x;
 }
 
 function intrinsic_createAccessor(O, P, Desc) {
@@ -980,7 +980,7 @@ function intrinsic_createAccessor(O, P, Desc) {
 	if (Desc.Enumerable !== absent) {
 		x.Enumerable = Desc.Enumerable;
 	}
-	O.$properties[P] = freeze(x);
+	O.$properties[P] = x;
 }
 
 function intrinsic_enumerator(O, ownOnly, enumerableOnly) {

@@ -559,11 +559,11 @@ function Error_readObject(istream) {
 		var sourceObject = istream.readValue();
 		var index = istream.readInt();
 		var pos = istream.readInt();
-		this.stackTrace[i] = {
+		this.stackTrace[i] = ({
 			func : func,
 			code : sourceObject.subcodes[index],
 			pos : pos,
-		};
+		});
 	}
 }
 

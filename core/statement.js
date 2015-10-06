@@ -437,7 +437,7 @@ function CaseBlock(A, defaultClause, B) {
 }
 
 function CaseClause(expression, statementList, pos) {
-	return preventExtensions({
+	return ({
 		statementList : statementList,
 		evaluate : function() {
 			runningSourcePos = pos;

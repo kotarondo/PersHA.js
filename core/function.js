@@ -36,7 +36,7 @@
 // ECMAScript 5.1: 13 Function Definition
 
 function FunctionDeclaration(name, parameters, body) {
-	return preventExtensions({
+	return ({
 		name : name,
 		instantiate : function() {
 			var env = VariableEnvironment;
