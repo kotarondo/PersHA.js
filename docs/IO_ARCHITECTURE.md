@@ -1,38 +1,25 @@
 # I/O Architecture
 
-## Architecture
+## Summary
 
-### Blocks
+I/O requests start from user application *app.js* using Node's I/O module API such as 'fs' or 'http'.
 
-- *app.js*  
-user application
+### Building Blocks
+
+Building blocks are all written in javascript.
+*node-lib* and *bridge* are executed on PersHA's javascript interpreter.
+*iomanager* and *handler* are executed on Node's javascript interpreter.
+
 - *node-lib*  
-node interface library
+node interface library programs which are imported from the Node.js project.
 - *bridge*  
-- *core interpreter*  
-PersHA.js javascript interpreter
+upper emulator for process.binding interface.
 - *iomanager*  
-
+Persha's I/O management system
 - *handler*  
+lower emulator for process.binding interface.
 
-- *Node.js*  
-
-### Two javascript interpreter
-
-*app.js* *node-lib* *bridge* are working on *core interpreter*
-
-*core interpreter* *iomanager* *handler* are working on *Node.js*
-
-### Stacked I/O API
-
-- application API  
-  Nodes's documented API for application usage
-- process.binding API  
-  Node's internal API 
-- IOPort API  
-  PersHA's I/O API
-- handler API
-  PersHA's I/O handler API
+### I/O API chaining
 
 - *app.js* --- application API---> *node-lib*
 - *node-lib* --- process.binding API---> *bridge*
@@ -40,33 +27,48 @@ PersHA.js javascript interpreter
 - *iomanager* --- handler API---> *handler*
 - *handler* --- process.binding API---> *Node.js*
 
+- application API  
+  Node's documented API for application
+- process.binding API  
+  Node's internal API to C++ lands.
+- IOPort API  
+  PersHA's I/O API for upper emulator
+- handler API
+  PersHA's I/O API for lower emulator
+
 
 ## IOPort interface
 
 ### Five types of I/O
 
-- output-only
+Persha I/O system supports five types of I/O.
+returing value or throwing error
+asynchronous completion callback
+
+- output-only  
+
  - void func( ... )
-- asynchronous
+- asynchronous  
  - void func( ... , callback)
-- blocking
+- blocking  
  - Value func( ... ) throws Error
-- complex
+- complex  
  - Value func( ... , callback) throws Error
-- listener
+- listener  
  - void func( ... , listener)
 
 
-|   | IOPort API | handler API |
+|   | return | callback | IOPort API | handler API |
 | ------------- |:-------------:| -----:|
-| output-only | asyncIO | asyncIO |
-| asynchronous | asyncIO | syncIO |
-| blocking | syncIO | asyncIO |
-| complex | syncIO | syncIO |
-| listener | open | open |
+| output-only | no | no | asyncIO | asyncIO |
+| asynchronous | no | yes | asyncIO | syncIO |
+| blocking | yes | no | syncIO | asyncIO |
+| complex | yes | yes | syncIO | syncIO |
+| listener | no | yes | open | open |
 
 ### listener callback in synchronous I/O
 
 ## Restart Error
 
 ### Automatic retry
+
