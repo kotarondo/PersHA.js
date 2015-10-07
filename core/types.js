@@ -144,6 +144,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("Object", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = default_FastPut;
 			Class_Object = obj;
 		}
 		var obj = Object.create(Class_Object);
@@ -152,6 +153,7 @@ function VMObject(ClassID) {
 		if (Class_BuiltinFunction === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
 			obj.GetProperty = default_FastGetProperty;
+			obj.Put = default_FastPut;
 			obj.Get = Function_Get;
 			obj.HasInstance = Function_HasInstance;
 			obj.writeObject = BuiltinFunction_writeObject;
@@ -167,6 +169,7 @@ function VMObject(ClassID) {
 		if (Class_Function === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
 			obj.GetProperty = default_FastGetProperty;
+			obj.Put = default_FastPut;
 			obj.Get = Function_Get;
 			obj._Call = Function_ClassCall;
 			obj._Construct = Function_ClassConstruct;
@@ -186,6 +189,7 @@ function VMObject(ClassID) {
 		if (Class_BindFunction === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
 			obj.GetProperty = default_FastGetProperty;
+			obj.Put = default_FastPut;
 			obj.Get = Function_Get;
 			obj._Call = BindFunction_ClassCall;
 			obj._Construct = BindFunction_ClassConstruct;
@@ -228,6 +232,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("Boolean", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = default_FastPut;
 			obj.writeObject = Primitive_writeObject;
 			obj.readObject = Primitive_readObject;
 			Class_Boolean = obj;
@@ -240,6 +245,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("Number", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = default_FastPut;
 			obj.writeObject = Primitive_writeObject;
 			obj.readObject = Primitive_readObject;
 			Class_Number = obj;
@@ -252,6 +258,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("Date", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = default_FastPut;
 			obj.writeObject = Primitive_writeObject;
 			obj.readObject = Primitive_readObject;
 			Class_Date = obj;
@@ -264,6 +271,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("RegExp", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = default_FastPut;
 			obj.writeObject = RegExp_writeObject;
 			obj.readObject = RegExp_readObject;
 			Class_RegExp = obj;
@@ -277,6 +285,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("Error", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = default_FastPut;
 			obj.walkObject = Error_walkObject;
 			obj.writeObject = Error_writeObject;
 			obj.readObject = Error_readObject;
@@ -290,6 +299,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("Global", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = default_FastPut;
 			Class_Global = obj;
 		}
 		var obj = Object.create(Class_Global);
@@ -299,6 +309,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("Math", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = default_FastPut;
 			Class_Math = obj;
 		}
 		var obj = Object.create(Class_Math);
@@ -308,6 +319,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("JSON", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = default_FastPut;
 			Class_JSON = obj;
 		}
 		var obj = Object.create(Class_JSON);
@@ -333,6 +345,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("Arguments", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = default_FastPut;
 			Class_PlainArguments = obj;
 		}
 		var obj = Object.create(Class_PlainArguments);
@@ -356,6 +369,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("IOPort", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = default_FastPut;
 			Class_IOPort = obj;
 		}
 		var obj = Object.create(Class_IOPort);
@@ -368,6 +382,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("vm", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = default_FastPut;
 			obj.walkObject = vm_walkObject;
 			obj.writeObject = vm_writeObject;
 			obj.readObject = vm_readObject;
@@ -383,6 +398,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("Script", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = default_FastPut;
 			obj.walkObject = Script_walkObject;
 			obj.writeObject = Script_writeObject;
 			obj.readObject = Script_readObject;
@@ -724,16 +740,6 @@ function default_Put(P, V, Throw) {
 			if (Throw === true) throw VMTypeError();
 			else return;
 		}
-		if (O.DefineOwnProperty === default_DefineOwnProperty) {
-			//shortcut optimization
-			intrinsic_set_value(O, P, V, ownDesc);
-			return;
-		}
-		if (O.DefineOwnProperty === Array_DefineOwnProperty) {
-			//shortcut optimization
-			Array_DefineOwnProperty_Value(O, P, V, ownDesc);
-			return;
-		}
 		var valueDesc = DataPropertyDescriptor(V, absent, absent, absent);
 		O.DefineOwnProperty(P, valueDesc, Throw);
 		return;
@@ -753,6 +759,25 @@ function default_Put(P, V, Throw) {
 		O.DefineOwnProperty(P, newDesc, Throw);
 	}
 	return;
+}
+
+function default_FastPut(P, V, Throw) {
+	var O = this;
+	var ownDesc = O.$properties[P];
+	if (ownDesc) {
+		if (ownDesc.Writable === true) {
+			ownDesc.Value = V;
+			return;
+		}
+	}
+	else if (O.Extensible) {
+		var proto = O.Prototype;
+		if (proto === null || proto.GetProperty(P) === undefined) {
+			intrinsic_createData(O, P, V, true, true, true);
+			return;
+		}
+	}
+	default_Put.call(O, P, V, Throw);
 }
 
 function default_HasProperty(P) {
