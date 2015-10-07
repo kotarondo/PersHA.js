@@ -47,6 +47,7 @@ function makeMirror(obj, dst) {
 	obj.writeObject = mirror_writeObject;
 	obj.readObject = mirror_readObject;
 	obj.DefineOwnProperty = mirror_DefineOwnProperty;
+	obj.Put = default_Put;
 	obj.mirror = dst;
 }
 
