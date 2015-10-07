@@ -869,26 +869,16 @@ function default_enumerator(ownOnly, enumerableOnly) {
 
 function intrinsic_set(O, P, Desc) {
 	var x = O.$properties[P];
-	O.$properties[P] = ({
-		Value : (Desc.Value !== absent) ? Desc.Value : x.Value,
-		Writable : (Desc.Writable !== absent) ? Desc.Writable : x.Writable,
-		Get : (Desc.Get !== absent) ? Desc.Get : x.Get,
-		Set : (Desc.Set !== absent) ? Desc.Set : x.Set,
-		Configurable : (Desc.Configurable !== absent) ? Desc.Configurable : x.Configurable,
-		Enumerable : (Desc.Enumerable !== absent) ? Desc.Enumerable : x.Enumerable,
-	});
+	if (Desc.Value !== absent) x.Value = Desc.Value;
+	if (Desc.Writable !== absent) x.Writable = Desc.Writable;
+	if (Desc.Get !== absent) x.Get = Desc.Get;
+	if (Desc.Set !== absent) x.Set = Desc.Set;
+	if (Desc.Configurable !== absent) x.Configurable = Desc.Configurable;
+	if (Desc.Enumerable !== absent) x.Enumerable = Desc.Enumerable;
 }
 
-function intrinsic_set_value(O, P, V, x) {
-	assert(x.Writable, x);
-	O.$properties[P] = ({
-		Value : V,
-		Writable : true,
-		Get : absent,
-		Set : absent,
-		Configurable : x.Configurable,
-		Enumerable : x.Enumerable,
-	});
+function intrinsic_set_value(O, P, V) {
+	O.$properties[P].Value = V;
 }
 
 function intrinsic_remove(O, P) {
