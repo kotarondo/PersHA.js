@@ -853,38 +853,54 @@ function Array_DefineOwnProperty(P, Desc, Throw) {
 	return default_DefineOwnProperty.call(A, P, Desc, Throw);
 }
 
-//optimized version of Array_DefineOwnProperty
-function Array_DefineOwnProperty_Value(A, P, V, ownDesc) {
-	assert(ownDesc.Writable, ownDesc);
+function Array_FastPut(P, V, Throw) {
+	var O = this;
+	var ownDesc = O.$properties[P];
 	if (P === "length") {
+		if (ownDesc.Writable === false) {
+			if (Throw === true) throw VMTypeError();
+			else return;
+		}
 		var oldLen = ownDesc.Value;
 		V = ToNumber(V);
 		var newLen = ToUint32(V);
 		if (newLen !== V) throw VMRangeError();
-		intrinsic_set_value(A, P, newLen, ownDesc);
+		ownDesc.Value = newLen;
 		while (newLen < oldLen) {
 			oldLen = oldLen - 1;
-			var deleteSucceeded = A.Delete(ToString(oldLen), false);
+			var deleteSucceeded = O.Delete(ToString(oldLen), false);
 			if (deleteSucceeded === false) {
-				intrinsic_set_value(A, P, oldLen + 1, ownDesc);
-				return false;
+				ownDesc.Value = oldLen + 1;
+				if (Throw === true) throw VMTypeError();
+				else return;
 			}
 		}
-		return true;
+		return;
 	}
-	var index = ToUint32(P);
-	if (ToString(index) === P && index !== 0xffffffff) {
-		var oldLenDesc = A.GetOwnProperty("length");
-		var oldLen = oldLenDesc.Value;
-		if ((index >= oldLen) && oldLenDesc.Writable === false) {
-			return false;
+	if (ownDesc) {
+		if (ownDesc.Writable === true) {
+			ownDesc.Value = V;
+			return;
 		}
-		intrinsic_set_value(A, P, V, ownDesc);
-		if (index >= oldLen) {
-			intrinsic_set_value(A, "length", index + 1, oldLenDesc);
-		}
-		return true;
 	}
-	intrinsic_set_value(A, P, V, ownDesc);
-	return true;
+	else if (O.Extensible) {
+		var proto = O.Prototype;
+		if (proto === null || proto.GetProperty(P) === undefined) {
+			var index = ToUint32(P);
+			if (ToString(index) === P && index !== 0xffffffff) {
+				var oldLenDesc = O.$properties["length"];
+				var oldLen = oldLenDesc.Value;
+				if (index >= oldLen) {
+					if (oldLenDesc.Writable === false) {
+						if (Throw === true) throw VMTypeError();
+						else return;
+					}
+					oldLenDesc.Value = index + 1;
+				}
+			}
+			intrinsic_createData(O, P, V, true, true, true);
+			return;
+		}
+	}
+	default_Put.call(O, P, V, Throw);
 }

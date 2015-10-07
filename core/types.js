@@ -210,6 +210,7 @@ function VMObject(ClassID) {
 			var obj = setAlltheInternalMethod("Array", ClassID);
 			obj.GetProperty = default_FastGetProperty;
 			obj.Get = default_FastGet;
+			obj.Put = Array_FastPut;
 			obj.DefineOwnProperty = Array_DefineOwnProperty;
 			Class_Array = obj;
 		}
