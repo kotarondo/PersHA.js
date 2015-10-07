@@ -142,6 +142,8 @@ function VMObject(ClassID) {
 	case CLASSID_Object:
 		if (Class_Object === undefined) {
 			var obj = setAlltheInternalMethod("Object", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			Class_Object = obj;
 		}
 		var obj = Object.create(Class_Object);
@@ -149,6 +151,7 @@ function VMObject(ClassID) {
 	case CLASSID_BuiltinFunction:
 		if (Class_BuiltinFunction === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
+			obj.GetProperty = default_FastGetProperty;
 			obj.Get = Function_Get;
 			obj.HasInstance = Function_HasInstance;
 			obj.writeObject = BuiltinFunction_writeObject;
@@ -163,6 +166,7 @@ function VMObject(ClassID) {
 	case CLASSID_Function:
 		if (Class_Function === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
+			obj.GetProperty = default_FastGetProperty;
 			obj.Get = Function_Get;
 			obj._Call = Function_ClassCall;
 			obj._Construct = Function_ClassConstruct;
@@ -181,6 +185,7 @@ function VMObject(ClassID) {
 	case CLASSID_BindFunction:
 		if (Class_BindFunction === undefined) {
 			var obj = setAlltheInternalMethod("Function", ClassID);
+			obj.GetProperty = default_FastGetProperty;
 			obj.Get = Function_Get;
 			obj._Call = BindFunction_ClassCall;
 			obj._Construct = BindFunction_ClassConstruct;
@@ -199,6 +204,8 @@ function VMObject(ClassID) {
 	case CLASSID_Array:
 		if (Class_Array === undefined) {
 			var obj = setAlltheInternalMethod("Array", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			obj.DefineOwnProperty = Array_DefineOwnProperty;
 			Class_Array = obj;
 		}
@@ -219,6 +226,8 @@ function VMObject(ClassID) {
 	case CLASSID_Boolean:
 		if (Class_Boolean === undefined) {
 			var obj = setAlltheInternalMethod("Boolean", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			obj.writeObject = Primitive_writeObject;
 			obj.readObject = Primitive_readObject;
 			Class_Boolean = obj;
@@ -229,6 +238,8 @@ function VMObject(ClassID) {
 	case CLASSID_Number:
 		if (Class_Number === undefined) {
 			var obj = setAlltheInternalMethod("Number", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			obj.writeObject = Primitive_writeObject;
 			obj.readObject = Primitive_readObject;
 			Class_Number = obj;
@@ -239,6 +250,8 @@ function VMObject(ClassID) {
 	case CLASSID_Date:
 		if (Class_Date === undefined) {
 			var obj = setAlltheInternalMethod("Date", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			obj.writeObject = Primitive_writeObject;
 			obj.readObject = Primitive_readObject;
 			Class_Date = obj;
@@ -249,6 +262,8 @@ function VMObject(ClassID) {
 	case CLASSID_RegExp:
 		if (Class_RegExp === undefined) {
 			var obj = setAlltheInternalMethod("RegExp", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			obj.writeObject = RegExp_writeObject;
 			obj.readObject = RegExp_readObject;
 			Class_RegExp = obj;
@@ -260,6 +275,8 @@ function VMObject(ClassID) {
 	case CLASSID_Error:
 		if (Class_Error === undefined) {
 			var obj = setAlltheInternalMethod("Error", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			obj.walkObject = Error_walkObject;
 			obj.writeObject = Error_writeObject;
 			obj.readObject = Error_readObject;
@@ -271,6 +288,8 @@ function VMObject(ClassID) {
 	case CLASSID_Global:
 		if (Class_Global === undefined) {
 			var obj = setAlltheInternalMethod("Global", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			Class_Global = obj;
 		}
 		var obj = Object.create(Class_Global);
@@ -278,6 +297,8 @@ function VMObject(ClassID) {
 	case CLASSID_Math:
 		if (Class_Math === undefined) {
 			var obj = setAlltheInternalMethod("Math", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			Class_Math = obj;
 		}
 		var obj = Object.create(Class_Math);
@@ -285,6 +306,8 @@ function VMObject(ClassID) {
 	case CLASSID_JSON:
 		if (Class_JSON === undefined) {
 			var obj = setAlltheInternalMethod("JSON", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			Class_JSON = obj;
 		}
 		var obj = Object.create(Class_JSON);
@@ -308,6 +331,8 @@ function VMObject(ClassID) {
 	case CLASSID_PlainArguments:
 		if (Class_PlainArguments === undefined) {
 			var obj = setAlltheInternalMethod("Arguments", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			Class_PlainArguments = obj;
 		}
 		var obj = Object.create(Class_PlainArguments);
@@ -329,6 +354,8 @@ function VMObject(ClassID) {
 	case CLASSID_IOPort:
 		if (Class_IOPort === undefined) {
 			var obj = setAlltheInternalMethod("IOPort", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			Class_IOPort = obj;
 		}
 		var obj = Object.create(Class_IOPort);
@@ -339,6 +366,8 @@ function VMObject(ClassID) {
 	case CLASSID_vm:
 		if (Class_vm === undefined) {
 			var obj = setAlltheInternalMethod("vm", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			obj.walkObject = vm_walkObject;
 			obj.writeObject = vm_writeObject;
 			obj.readObject = vm_readObject;
@@ -352,6 +381,8 @@ function VMObject(ClassID) {
 	case CLASSID_Script:
 		if (Class_Script === undefined) {
 			var obj = setAlltheInternalMethod("Script", ClassID);
+			obj.GetProperty = default_FastGetProperty;
+			obj.Get = default_FastGet;
 			obj.walkObject = Script_walkObject;
 			obj.writeObject = Script_writeObject;
 			obj.readObject = Script_readObject;
@@ -617,11 +648,38 @@ function default_GetProperty(P) {
 	return proto.GetProperty(P);
 }
 
+function default_FastGetProperty(P) {
+	var O = this;
+	var prop = O.$properties[P];
+	if (prop !== undefined) return prop;
+	var proto = O.Prototype;
+	if (proto === null) return undefined;
+	return proto.GetProperty(P);
+}
+
 function default_Get(P) {
 	var O = this;
 	var desc = O.GetProperty(P);
 	if (desc === undefined) return undefined;
 	if (IsDataDescriptor(desc) === true) return desc.Value;
+	else {
+		assert(IsAccessorDescriptor(desc), desc);
+		var getter = desc.Get;
+		if (getter === undefined) return undefined;
+		return getter.Call(O, []);
+	}
+}
+
+function default_FastGet(P) {
+	var O = this;
+	var desc = O.$properties[P];
+	if (desc === undefined) {
+		var proto = O.Prototype;
+		if (proto === null) return undefined;
+		var desc = proto.GetProperty(P);
+		if (desc === undefined) return undefined;
+	}
+	if (desc.Value !== absent) return desc.Value;
 	else {
 		assert(IsAccessorDescriptor(desc), desc);
 		var getter = desc.Get;
