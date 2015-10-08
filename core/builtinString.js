@@ -560,3 +560,28 @@ function String_enumerator(ownOnly, enumerableOnly) {
 		return next();
 	};
 }
+
+function String_FastGet(P) {
+	var O = this;
+	var index = ToArrayIndex(P);
+	if (0 <= index) {
+		var str = O.PrimitiveValue;
+		var len = str.length;
+		if (index < len) return str[index];
+	}
+	return default_Get.call(O, P);
+}
+
+function String_FastPut(P, V, Throw) {
+	var O = this;
+	var index = ToArrayIndex(P);
+	if (0 <= index) {
+		var str = O.PrimitiveValue;
+		var len = str.length;
+		if (index < len) {
+			if (Throw === true) throw VMTypeError();
+			else return;
+		}
+	}
+	return default_Put.call(O, P, V, Throw);
+}

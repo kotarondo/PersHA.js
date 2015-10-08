@@ -219,6 +219,8 @@ function VMObject(ClassID) {
 	case CLASSID_String:
 		if (Class_String === undefined) {
 			var obj = setAlltheInternalMethod("String", ClassID);
+			obj.Get = String_FastGet;
+			obj.Put = String_FastPut;
 			obj.GetOwnProperty = String_GetOwnProperty;
 			obj.enumerator = String_enumerator;
 			obj.writeObject = Primitive_writeObject;
