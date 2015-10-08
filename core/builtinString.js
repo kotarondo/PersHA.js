@@ -540,8 +540,8 @@ function String_GetOwnProperty(P) {
 	var S = this;
 	var desc = default_GetOwnProperty.call(S, P);
 	if (desc !== undefined) return desc;
-	var index = ToInteger(P);
-	if (ToString(index) !== P) return undefined;
+	var index = ToArrayIndex(P);
+	if (index < 0) return undefined;
 	var str = S.PrimitiveValue;
 	var len = str.length;
 	if (len <= index) return undefined;

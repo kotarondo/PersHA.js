@@ -246,3 +246,17 @@ function SameValue(x, y) {
 	}
 	assert(false, x);
 }
+
+function ToArrayIndex(P) {
+	if (typeof P === "string") {
+		var x = Number(P);
+		if (0 <= x && x <= 0xfffffffe && floor(x) === x && String(x) === P) {
+			return x;
+		}
+		return -1;
+	}
+	if (0 <= P && P <= 0xfffffffe && floor(P) === P) {
+		return P;
+	}
+	return -1;
+}

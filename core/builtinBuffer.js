@@ -39,8 +39,8 @@ var INSPECT_MAX_BYTES = 50;
 
 function Buffer_GetOwnProperty(P) {
 	var B = this;
-	var index = ToUint32(P);
-	if (ToString(index) !== P) {
+	var index = ToArrayIndex(P);
+	if (index < 0) {
 		return default_GetOwnProperty.call(B, P);
 	}
 	var buf = B.wrappedBuffer;
@@ -64,8 +64,8 @@ function Buffer_enumerator(ownOnly, enumerableOnly) {
 
 function Buffer_DefineOwnProperty(P, Desc, Throw) {
 	var B = this;
-	var index = ToUint32(P);
-	if (ToString(index) !== P) {
+	var index = ToArrayIndex(P);
+	if (index < 0) {
 		return default_DefineOwnProperty.call(B, P, Desc, Throw);
 	}
 	var buf = B.wrappedBuffer;

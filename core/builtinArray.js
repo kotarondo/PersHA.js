@@ -832,8 +832,8 @@ function Array_DefineOwnProperty(P, Desc, Throw) {
 		}
 		return true;
 	}
-	var index = ToUint32(P);
-	if (ToString(index) === P && index !== 0xffffffff) {
+	var index = ToArrayIndex(P);
+	if (index >= 0) {
 		if ((index >= oldLen) && oldLenDesc.Writable === false) {
 			if (Throw === true) throw VMTypeError();
 			else return false;
@@ -886,8 +886,8 @@ function Array_FastPut(P, V, Throw) {
 	else if (O.Extensible) {
 		var proto = O.Prototype;
 		if (proto === null || proto.GetProperty(P) === undefined) {
-			var index = ToUint32(P);
-			if (ToString(index) === P && index !== 0xffffffff) {
+			var index = ToArrayIndex(P);
+			if (index >= 0) {
 				var oldLenDesc = O.$properties["length"];
 				var oldLen = oldLenDesc.Value;
 				if (index >= oldLen) {

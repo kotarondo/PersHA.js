@@ -445,7 +445,7 @@ function ArgSet(env, name, value) {
 
 function Arguments_Get(P) {
 	var map = this.ParameterMap;
-	if (ToString(ToUint32(P)) === P) {
+	if (ToArrayIndex(P) >= 0) {
 		var isMapped = map[P];
 	}
 	if (isMapped === undefined) {
@@ -463,7 +463,7 @@ function Arguments_GetOwnProperty(P) {
 	var desc = default_GetOwnProperty.call(this, P);
 	if (desc === undefined) return desc;
 	var map = this.ParameterMap;
-	if (ToString(ToUint32(P)) === P) {
+	if (ToArrayIndex(P) >= 0) {
 		var isMapped = map[P];
 	}
 	if (isMapped !== undefined) {
@@ -474,7 +474,7 @@ function Arguments_GetOwnProperty(P) {
 
 function Arguments_DefineOwnProperty(P, Desc, Throw) {
 	var map = this.ParameterMap;
-	if (ToString(ToUint32(P)) === P) {
+	if (ToArrayIndex(P) >= 0) {
 		var isMapped = map[P];
 	}
 	var allowed = default_DefineOwnProperty.call(this, P, Desc, false);
@@ -500,7 +500,7 @@ function Arguments_DefineOwnProperty(P, Desc, Throw) {
 
 function Arguments_Delete(P, Throw) {
 	var map = this.ParameterMap;
-	if (ToString(ToUint32(P)) === P) {
+	if (ToArrayIndex(P) >= 0) {
 		var isMapped = map[P];
 	}
 	var result = default_Delete.call(this, P, Throw);
