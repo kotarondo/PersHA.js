@@ -33,66 +33,7 @@
 
 'use strict';
 
-// Node.js Buffer wrapper; experimental;
-
 var INSPECT_MAX_BYTES = 50;
-
-function Buffer_GetOwnProperty(P) {
-	var B = this;
-	var index = ToArrayIndex(P);
-	if (index < 0) {
-		return default_GetOwnProperty.call(B, P);
-	}
-	var buf = B.wrappedBuffer;
-	var len = buf.length;
-	if (len <= index) return undefined;
-	var result = buf[index];
-	return DataPropertyDescriptor(result, true, true, false);
-}
-
-function Buffer_enumerator(ownOnly, enumerableOnly) {
-	var B = this;
-	var next = intrinsic_enumerator(B, ownOnly, enumerableOnly);
-	var buf = B.wrappedBuffer;
-	var i = 0;
-	var len = buf.length;
-	return function() {
-		if (i < len) return ToString(i++);
-		return next();
-	};
-}
-
-function Buffer_DefineOwnProperty(P, Desc, Throw) {
-	var B = this;
-	var index = ToArrayIndex(P);
-	if (index < 0) {
-		return default_DefineOwnProperty.call(B, P, Desc, Throw);
-	}
-	var buf = B.wrappedBuffer;
-	var len = buf.length;
-	if (len <= index) return false;
-	if (IsAccessorDescriptor(Desc) === true) {
-		if (Throw === true) throw VMTypeError();
-		else return false;
-	}
-	if (Desc.Configurable === true) {
-		if (Throw === true) throw VMTypeError();
-		else return false;
-	}
-	if (Desc.Enumerable === false) {
-		if (Throw === true) throw VMTypeError();
-		else return false;
-	}
-	if (Desc.Writable === false) {
-		if (Throw === true) throw VMTypeError();
-		else return false;
-	}
-	if (Desc.Value !== absent) {
-		var value = ToUint32(Desc.Value);
-		buf[index] = value;
-	}
-	return true;
-}
 
 function Buffer_Call(thisValue, argumentsList) {
 	return Buffer_Construct(argumentsList);
@@ -766,4 +707,83 @@ function Buffer_prototype_inspect(thisValue, argumentsList) {
 	} catch (e) {
 		redirectException(e);
 	}
+}
+
+function Buffer_GetOwnProperty(P) {
+	var B = this;
+	var index = ToArrayIndex(P);
+	if (index < 0) {
+		return default_GetOwnProperty.call(B, P);
+	}
+	var buf = B.wrappedBuffer;
+	var len = buf.length;
+	if (len <= index) return undefined;
+	var result = buf[index];
+	return DataPropertyDescriptor(result, true, true, false);
+}
+
+function Buffer_enumerator(ownOnly, enumerableOnly) {
+	var B = this;
+	var next = intrinsic_enumerator(B, ownOnly, enumerableOnly);
+	var buf = B.wrappedBuffer;
+	var i = 0;
+	var len = buf.length;
+	return function() {
+		if (i < len) return ToString(i++);
+		return next();
+	};
+}
+
+function Buffer_DefineOwnProperty(P, Desc, Throw) {
+	var B = this;
+	var index = ToArrayIndex(P);
+	if (index < 0) {
+		return default_DefineOwnProperty.call(B, P, Desc, Throw);
+	}
+	var buf = B.wrappedBuffer;
+	var len = buf.length;
+	if (len <= index) return false;
+	if (IsAccessorDescriptor(Desc) === true) {
+		if (Throw === true) throw VMTypeError();
+		else return false;
+	}
+	if (Desc.Configurable === true) {
+		if (Throw === true) throw VMTypeError();
+		else return false;
+	}
+	if (Desc.Enumerable === false) {
+		if (Throw === true) throw VMTypeError();
+		else return false;
+	}
+	if (Desc.Writable === false) {
+		if (Throw === true) throw VMTypeError();
+		else return false;
+	}
+	if (Desc.Value !== absent) {
+		var value = ToUint32(Desc.Value);
+		buf[index] = value;
+	}
+	return true;
+}
+
+function Buffer_FastGet(P) {
+	var O = this;
+	var index = ToArrayIndex(P);
+	if (0 <= index) {
+		var buf = O.wrappedBuffer;
+		var len = buf.length;
+		if (index < len) return buf[index];
+	}
+	return default_Get.call(O, P);
+}
+
+function Buffer_FastPut(P, V, Throw) {
+	var O = this;
+	var index = ToArrayIndex(P);
+	if (0 <= index) {
+		var buf = O.wrappedBuffer;
+		var len = buf.length;
+		if (index < len) buf[index] = ToUint32(V);
+	}
+	return default_Put.call(O, P, V, Throw);
 }

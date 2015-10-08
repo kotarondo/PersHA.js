@@ -355,6 +355,8 @@ function VMObject(ClassID) {
 	case CLASSID_Buffer:
 		if (Class_Buffer === undefined) {
 			var obj = setAlltheInternalMethod("Buffer", ClassID);
+			obj.Get = Buffer_FastGet;
+			obj.Put = Buffer_FastPut;
 			obj.GetOwnProperty = Buffer_GetOwnProperty;
 			obj.enumerator = Buffer_enumerator;
 			obj.DefineOwnProperty = Buffer_DefineOwnProperty;

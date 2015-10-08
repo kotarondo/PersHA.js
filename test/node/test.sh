@@ -1,6 +1,7 @@
 #!/bin/sh
 
 TIMEOUT=300
+HEAD=$1
 
 killer(){
 t=$TIMEOUT
@@ -24,7 +25,7 @@ rm -rf results
 mkdir -p results
 failed=0
 
-for i in test/simple/*.js
+for i in test/simple/${HEAD}*.js
 do
 f=${i##*/}
 j=${f%%.js}
