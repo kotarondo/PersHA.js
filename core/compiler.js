@@ -208,5 +208,9 @@ CompilerContext.prototype.compilePutValue = function(ref, val) {
 
 CompilerContext.prototype.compileToNumber = function(val) {
 	if (val.types.isNumber()) return val;
-	return this.define("ToNumber(" + val.name + ");");
+	return this.define("ToNumber(" + val.name + ");", CompilerTypes.NUMBER_TYPE);
+};
+
+CompilerContext.prototype.compileToInt32 = function(val) {
+	return this.define("ToInt32(" + val.name + ");", CompilerTypes.NUMBER_TYPE);
 };

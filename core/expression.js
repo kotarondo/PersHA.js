@@ -324,7 +324,7 @@ function MinusOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(expr));
-		return ctx.define("- "+oldValue.name);
+		return ctx.define("- " + oldValue.name);
 	});
 }
 
