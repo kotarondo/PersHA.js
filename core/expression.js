@@ -337,12 +337,11 @@ function BitwiseNOTOperator(expression) {
 }
 
 function LogicalNOTOperator(expression) {
-	return function() {
-		var expr = expression();
-		var oldValue = ToBoolean(GetValue(expr));
-		if (oldValue === true) return false;
-		return true;
-	};
+	return CompilerContext.expression(function(ctx) {
+		var expr = ctx.compileExpression(expression);
+		var oldValue = ctx.compileToBoolean(ctx.compileGetValue(expr));
+		return ctx.define("! " + oldValue.name, COMPILER_BOOLEAN_TYPE);
+	});
 }
 
 function MultiplicativeOperator(operator, leftExpression, rightExpression) {
