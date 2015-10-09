@@ -70,6 +70,18 @@ CompilerTypes.prototype.isValue = function() {
 	});
 };
 
+CompilerTypes.prototype.isObject = function() {
+	return this.types.every(function(type) {
+		if (COMPILER_OBJECT_TYPE.types.indexOf(type) >= 0) return true;
+	});
+};
+
+CompilerTypes.prototype.isNotObject = function() {
+	return this.types.every(function(type) {
+		if (COMPILER_OBJECT_TYPE.types.indexOf(type) < 0) return true;
+	});
+};
+
 CompilerTypes.prototype.isString = function() {
 	return this.types.every(function(type) {
 		return (COMPILER_STRING_TYPE.types.indexOf(type) >= 0);

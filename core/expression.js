@@ -480,26 +480,41 @@ function GreaterThanOrEqualOperator(leftExpression, rightExpression) {
 }
 
 function instanceofOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		if (Type(rval) !== TYPE_Object) throw VMTypeError();
-		if (rval.HasInstance === undefined) throw VMTypeError();
-		return rval.HasInstance(lval);
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		if (rval.types.isNotObject()) {
+			ctx.text("throw VMTypeError();");
+			return {
+				name : "false",
+				types : COMPILER_BOOLEAN_TYPE,
+			};
+		}
+		ctx.text("if (Type(" + rval.name + ") !== " + TYPE_Object + ") throw VMTypeError();");
+		ctx.text("if (" + rval.name + ".HasInstance === undefined) throw VMTypeError();");
+		return ctx.define(rval.name + ".HasInstance(" + lval.name + ")", COMPILER_BOOLEAN_TYPE);
+	});
 }
 
 function inOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		if (Type(rval) !== TYPE_Object) throw VMTypeError();
-		return rval.HasProperty(ToString(lval));
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		if (rval.types.isNotObject()) {
+			ctx.text("throw VMTypeError();");
+			return {
+				name : "false",
+				types : COMPILER_BOOLEAN_TYPE,
+			};
+		}
+		ctx.text("if (Type(" + rval.name + ") !== " + TYPE_Object + ") throw VMTypeError();");
+		var lval = ctx.compileToString(lval);
+		return ctx.define(rval.name + ".HasProperty(" + lval.name + ")", COMPILER_BOOLEAN_TYPE);
+	});
 }
 
 function EqualsOperator(leftExpression, rightExpression) {
