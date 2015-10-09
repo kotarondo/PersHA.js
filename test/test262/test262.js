@@ -37,10 +37,16 @@ var fs = require('fs');
 var stopIfFailed = false;
 var skipVeryHeavyTests = true;
 var skipHeavyTests = false;
-try{
+try {
+	fs.statSync("stopIfFailed");
+	stopIfFailed = true;
+} catch (e) {
+}
+try {
 	fs.statSync("skipHeavyTests");
 	skipHeavyTests = true;
-}catch(e){}
+} catch (e) {
+}
 if (process.argv.length >= 3) {
 	var specificTest = process.argv[2];
 }

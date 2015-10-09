@@ -345,22 +345,22 @@ function LogicalNOTOperator(expression) {
 }
 
 function MultiplicativeOperator(operator, leftExpression, rightExpression) {
-	return function() {
-		var left = leftExpression();
-		var leftValue = GetValue(left);
-		var right = rightExpression();
-		var rightValue = GetValue(right);
-		var leftNum = ToNumber(leftValue);
-		var rightNum = ToNumber(rightValue);
+	return CompilerContext.expression(function(ctx) {
+		var left = ctx.compileExpression(leftExpression);
+		var leftValue = ctx.compileGetValue(left);
+		var right = ctx.compileExpression(rightExpression);
+		var rightValue = ctx.compileGetValue(right);
+		var leftNum = ctx.compileToNumber(leftValue);
+		var rightNum = ctx.compileToNumber(rightValue);
 		switch (operator) {
 		case '*':
-			return leftNum * rightNum;
+			return ctx.define(leftNum.name + " * " + rightNum.name, COMPILER_NUMBER_TYPE);
 		case '/':
-			return leftNum / rightNum;
+			return ctx.define(leftNum.name + " / " + rightNum.name, COMPILER_NUMBER_TYPE);
 		case '%':
-			return leftNum % rightNum;
+			return ctx.define(leftNum.name + " % " + rightNum.name, COMPILER_NUMBER_TYPE);
 		}
-	};
+	});
 }
 
 function AdditionOperator(leftExpression, rightExpression) {
