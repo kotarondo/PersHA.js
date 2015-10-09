@@ -41,36 +41,36 @@ function CompilerTypes() {
 	}
 }
 
-CompilerTypes.ANY_TYPE = new CompilerTypes("any");
-CompilerTypes.IDENTIFIER_REFERENCE_TYPE = new CompilerTypes("iref");
-CompilerTypes.PROPERTY_REFERENCE_TYPE = new CompilerTypes("pref");
-CompilerTypes.VALUE_TYPE = new CompilerTypes("value");
-CompilerTypes.OBJECT_TYPE = new CompilerTypes("object");
-CompilerTypes.STRING_TYPE = new CompilerTypes("string");
-CompilerTypes.NUMBER_TYPE = new CompilerTypes("number");
-CompilerTypes.BOOLEAN_TYPE = new CompilerTypes("boolean");
-CompilerTypes.NULL_TYPE = new CompilerTypes("null");
-CompilerTypes.UNDEFINED_TYPE = new CompilerTypes("undefined");
+var COMPILER_ANY_TYPE = new CompilerTypes("any");
+var COMPILER_IDENTIFIER_REFERENCE_TYPE = new CompilerTypes("iref");
+var COMPILER_PROPERTY_REFERENCE_TYPE = new CompilerTypes("pref");
+var COMPILER_VALUE_TYPE = new CompilerTypes("value");
+var COMPILER_OBJECT_TYPE = new CompilerTypes("object");
+var COMPILER_STRING_TYPE = new CompilerTypes("string");
+var COMPILER_NUMBER_TYPE = new CompilerTypes("number");
+var COMPILER_BOOLEAN_TYPE = new CompilerTypes("boolean");
+var COMPILER_NULL_TYPE = new CompilerTypes("null");
+var COMPILER_UNDEFINED_TYPE = new CompilerTypes("undefined");
 
-CompilerTypes.numbers = [ "number" ];
-CompilerTypes.primitives = CompilerTypes.numbers.concat("undefined", "null", "boolean", "string");
-CompilerTypes.values = CompilerTypes.primitives.concat("object", "value");
+var COMPILER_numbers = [ "number" ];
+var COMPILER_primitives = COMPILER_numbers.concat("undefined", "null", "boolean", "string");
+var COMPILER_values = COMPILER_primitives.concat("object", "value");
 
 CompilerTypes.prototype.isPrimitive = function() {
 	return this.types.every(function(type) {
-		return (CompilerTypes.primitives.indexOf(type) >= 0);
+		return (COMPILER_primitives.indexOf(type) >= 0);
 	});
 };
 
 CompilerTypes.prototype.isValue = function() {
 	return this.types.every(function(type) {
-		if (CompilerTypes.values.indexOf(type) >= 0) return true;
+		if (COMPILER_values.indexOf(type) >= 0) return true;
 	});
 };
 
 CompilerTypes.prototype.isNumber = function() {
 	return this.types.every(function(type) {
-		if (CompilerTypes.numbers.indexOf(type) >= 0) return true;
+		if (COMPILER_numbers.indexOf(type) >= 0) return true;
 	});
 };
 
@@ -126,6 +126,7 @@ CompilerContext.prototype.quote = function(x) {
 };
 
 CompilerContext.prototype.define = function(str, types) {
+	assert(types);
 	var name = "tmp" + (this.variables++);
 	this.text("var " + name + "= " + str + ";");
 	return {
@@ -157,33 +158,33 @@ CompilerContext.prototype.compileExpression = function(expr) {
 		return expr.compile(this);
 	}
 	var name = this.literal(expr);
-	var v = this.define(name + "()", CompilerTypes.ANY_TYPE);
+	var v = this.define(name + "()", COMPILER_ANY_TYPE);
 	return v;
 };
 
 CompilerContext.prototype.compileGetValue = function(ref) {
 	if (ref.types.isValue()) return ref;
 	/*
-	if (ref.types === CompilerTypes.PROPERTY_REFERENCE_TYPE) {
+	if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
 		if (HasPrimitiveBase(V) === false) return base.Get(GetReferencedName(V));
 		else return specialGet(base, GetReferencedName(V));
 	}else
 	*/
-	if (ref.types === CompilerTypes.IDENTIFIER_REFERENCE_TYPE) {
+	if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 		var base = ref.base;
 		var name = this.quote(ref.name);
 		this.text("if(" + base.name + "===undefined)");
 		this.text("throw VMReferenceError(" + name + "+' is not defined');");
-		return this.define(base.name + ".GetBindingValue(" + name + "," + ref.strict + ")", CompilerTypes.VALUE_TYPE);
+		return this.define(base.name + ".GetBindingValue(" + name + "," + ref.strict + ")", COMPILER_VALUE_TYPE);
 	}
 	else {
-		return this.define("GetValue(" + ref.name + ")", CompilerTypes.VALUE_TYPE);
+		return this.define("GetValue(" + ref.name + ")", COMPILER_VALUE_TYPE);
 	}
 };
 
 CompilerContext.prototype.compilePutValue = function(ref, val) {
 	/*
-	if (ref.types === CompilerTypes.PROPERTY_REFERENCE_TYPE) {
+	if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
 		if (HasPrimitiveBase(V) === false) {
 			base.Put(GetReferencedName(V), W, IsStrictReference(V));
 		}
@@ -192,7 +193,7 @@ CompilerContext.prototype.compilePutValue = function(ref, val) {
 		}
 	}else
 	*/
-	if (ref.types === CompilerTypes.IDENTIFIER_REFERENCE_TYPE) {
+	if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 		var base = ref.base;
 		var name = this.quote(ref.name);
 		this.text("if(" + base.name + "===undefined)");
@@ -208,9 +209,9 @@ CompilerContext.prototype.compilePutValue = function(ref, val) {
 
 CompilerContext.prototype.compileToNumber = function(val) {
 	if (val.types.isNumber()) return val;
-	return this.define("ToNumber(" + val.name + ");", CompilerTypes.NUMBER_TYPE);
+	return this.define("ToNumber(" + val.name + ")", COMPILER_NUMBER_TYPE);
 };
 
 CompilerContext.prototype.compileToInt32 = function(val) {
-	return this.define("ToInt32(" + val.name + ");", CompilerTypes.NUMBER_TYPE);
+	return this.define("ToInt32(" + val.name + ")", COMPILER_NUMBER_TYPE);
 };
