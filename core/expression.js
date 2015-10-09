@@ -364,16 +364,23 @@ function MultiplicativeOperator(operator, leftExpression, rightExpression) {
 }
 
 function AdditionOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		var lprim = ToPrimitive(lval);
-		var rprim = ToPrimitive(rval);
-		if (Type(lprim) === TYPE_String || Type(rprim) === TYPE_String) return ToString(lprim) + ToString(rprim);
-		else return ToNumber(lprim) + ToNumber(rprim);
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		var lprim = ctx.compileToPrimitive(lval);
+		var rprim = ctx.compileToPrimitive(rval);
+		if (lprim.types.isString() || rprim.types.isString()) {
+			return ctx.define(lprim.name + " + " + rprim.name, COMPILER_STRING_TYPE);
+		}
+		else if (lprim.types.isNotString() && rprim.types.isNotString()) {
+			return ctx.define(lprim.name + " + " + rprim.name, COMPILER_NUMBER_TYPE);
+		}
+		else {
+			return ctx.define(lprim.name + " + " + rprim.name, COMPILER_PRIMITIVE_TYPE);
+		}
+	});
 }
 
 function SubtractionOperator(leftExpression, rightExpression) {

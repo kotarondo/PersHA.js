@@ -35,49 +35,62 @@
 
 // constructor
 function CompilerTypes() {
-	this.types = [];
+	var A = [];
 	for (var i = 0; i < arguments.length; i++) {
-		this.types.push(arguments[i]);
+		var a = arguments[i];
+		if (a instanceof CompilerTypes) a = a.types;
+		A[i] = a;
 	}
+	this.types = Array.prototype.concat.apply([], A);
 }
 
-var COMPILER_ANY_TYPE = new CompilerTypes("any");
+var COMPILER_UNDEFINED_TYPE = new CompilerTypes("undefined");
+var COMPILER_NULL_TYPE = new CompilerTypes("null");
+var COMPILER_BOOLEAN_TYPE = new CompilerTypes("boolean", "true", "false");
+var COMPILER_NUMBER_TYPE = new CompilerTypes("number", "integer", "int32", "uint32");
+var COMPILER_STRING_TYPE = new CompilerTypes("string");
+var COMPILER_PRIMITIVE_TYPE = new CompilerTypes(COMPILER_UNDEFINED_TYPE, COMPILER_NULL_TYPE, COMPILER_BOOLEAN_TYPE,
+		COMPILER_NUMBER_TYPE, COMPILER_STRING_TYPE);
+var COMPILER_OBJECT_TYPE = new CompilerTypes("object");
+var COMPILER_VALUE_TYPE = new CompilerTypes(COMPILER_PRIMITIVE_TYPE, COMPILER_OBJECT_TYPE);
 var COMPILER_IDENTIFIER_REFERENCE_TYPE = new CompilerTypes("iref");
 var COMPILER_PROPERTY_REFERENCE_TYPE = new CompilerTypes("pref");
-var COMPILER_VALUE_TYPE = new CompilerTypes("value");
-var COMPILER_OBJECT_TYPE = new CompilerTypes("object");
-var COMPILER_STRING_TYPE = new CompilerTypes("string");
-var COMPILER_NUMBER_TYPE = new CompilerTypes("number");
-var COMPILER_BOOLEAN_TYPE = new CompilerTypes("boolean");
-var COMPILER_NULL_TYPE = new CompilerTypes("null");
-var COMPILER_UNDEFINED_TYPE = new CompilerTypes("undefined");
-
-var COMPILER_booleans = [ "boolean", "true", "false" ];
-var COMPILER_numbers = [ "number" ];
-var COMPILER_primitives = COMPILER_numbers.concat("undefined", "null", COMPILER_booleans, "string");
-var COMPILER_values = COMPILER_primitives.concat("object", "value");
+var COMPILER_ANY_TYPE = new CompilerTypes(COMPILER_VALUE_TYPE, COMPILER_IDENTIFIER_REFERENCE_TYPE,
+		COMPILER_IDENTIFIER_REFERENCE_TYPE);
 
 CompilerTypes.prototype.isPrimitive = function() {
 	return this.types.every(function(type) {
-		return (COMPILER_primitives.indexOf(type) >= 0);
+		return (COMPILER_PRIMITIVE_TYPE.types.indexOf(type) >= 0);
 	});
 };
 
 CompilerTypes.prototype.isValue = function() {
 	return this.types.every(function(type) {
-		if (COMPILER_values.indexOf(type) >= 0) return true;
+		if (COMPILER_VALUE_TYPE.types.indexOf(type) >= 0) return true;
+	});
+};
+
+CompilerTypes.prototype.isString = function() {
+	return this.types.every(function(type) {
+		return (COMPILER_STRING_TYPE.types.indexOf(type) >= 0);
+	});
+};
+
+CompilerTypes.prototype.isNotString = function() {
+	return this.types.every(function(type) {
+		return (COMPILER_STRING_TYPE.types.indexOf(type) < 0);
 	});
 };
 
 CompilerTypes.prototype.isNumber = function() {
 	return this.types.every(function(type) {
-		if (COMPILER_numbers.indexOf(type) >= 0) return true;
+		if (COMPILER_NUMBER_TYPE.types.indexOf(type) >= 0) return true;
 	});
 };
 
 CompilerTypes.prototype.isBoolean = function() {
 	return this.types.every(function(type) {
-		return (COMPILER_booleans.indexOf(type) >= 0);
+		return (COMPILER_BOOLEAN_TYPE.types.indexOf(type) >= 0);
 	});
 };
 
@@ -216,16 +229,28 @@ CompilerContext.prototype.compilePutValue = function(ref, val) {
 
 CompilerContext.prototype.compileToNumber = function(val) {
 	if (val.types.isNumber()) return val;
+	if (val.types.isPrimitive()) return this.define("Number(" + val.name + ")", COMPILER_NUMBER_TYPE);
 	return this.define("ToNumber(" + val.name + ")", COMPILER_NUMBER_TYPE);
 };
 
-CompilerContext.prototype.compileToInt32 = function(val) {
-	if (val.types.isNumber()) return this.define(val.name + ">> 0", COMPILER_NUMBER_TYPE);
-	return this.define("ToInt32(" + val.name + ")", COMPILER_NUMBER_TYPE);
+CompilerContext.prototype.compileToString = function(val) {
+	if (val.types.isString()) return val;
+	if (val.types.isPrimitive()) return this.define("String(" + val.name + ")", COMPILER_STRING_TYPE);
+	return this.define("ToString(" + val.name + ")", COMPILER_STRING_TYPE);
 };
 
 CompilerContext.prototype.compileToBoolean = function(val) {
 	if (val.types.isBoolean()) return val;
 	if (val.types.isPrimitive()) return this.define("!! " + val.name, COMPILER_BOOLEAN_TYPE);
 	return this.define("ToBoolean(" + val.name + ")", COMPILER_BOOLEAN_TYPE);
+};
+
+CompilerContext.prototype.compileToPrimitive = function(val) {
+	if (val.types.isPrimitive()) return val;
+	return this.define("ToPrimitive(" + val.name + ")", COMPILER_PRIMITIVE_TYPE);
+};
+
+CompilerContext.prototype.compileToInt32 = function(val) {
+	if (val.types.isPrimitive()) return this.define(val.name + " >> 0", COMPILER_NUMBER_TYPE);
+	return this.define("ToInt32(" + val.name + ")", COMPILER_NUMBER_TYPE);
 };
