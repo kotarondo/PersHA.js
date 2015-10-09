@@ -213,5 +213,6 @@ CompilerContext.prototype.compileToNumber = function(val) {
 };
 
 CompilerContext.prototype.compileToInt32 = function(val) {
+	if (val.types.isNumber()) return this.define(val.name + ">> 0", COMPILER_NUMBER_TYPE);
 	return this.define("ToInt32(" + val.name + ")", COMPILER_NUMBER_TYPE);
 };

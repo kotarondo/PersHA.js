@@ -329,11 +329,11 @@ function MinusOperator(expression) {
 }
 
 function BitwiseNOTOperator(expression) {
-	return function() {
-		var expr = expression();
-		var oldValue = ToInt32(GetValue(expr));
-		return ~oldValue;
-	};
+	return CompilerContext.expression(function(ctx) {
+		var expr = ctx.compileExpression(expression);
+		var oldValue = ctx.compileToInt32(ctx.compileGetValue(expr));
+		return ctx.define("~ " + oldValue.name, COMPILER_NUMBER_TYPE);
+	});
 }
 
 function LogicalNOTOperator(expression) {
