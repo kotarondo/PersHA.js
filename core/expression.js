@@ -518,40 +518,58 @@ function inOperator(leftExpression, rightExpression) {
 }
 
 function EqualsOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		return abstractEqualityComparison(lval, rval);
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		if (rval.types.isString() || rval.types.isNumber() || rval.types.isBoolean()) {
+			var lval = ctx.compileToPrimitive(lval);
+			return ctx.define(lval.name + " == " + rval.name, COMPILER_BOOLEAN_TYPE);
+		}
+		if (lval.types.isString() || lval.types.isNumber() || lval.types.isBoolean()) {
+			var rval = ctx.compileToPrimitive(rval);
+			return ctx.define(lval.name + " == " + rval.name, COMPILER_BOOLEAN_TYPE);
+		}
+		return ctx.define("abstractEqualityComparison(" + lval.name + " , " + rval.name + ")", COMPILER_BOOLEAN_TYPE);
+	});
 }
 
 function DoesNotEqualOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		var r = abstractEqualityComparison(lval, rval);
-		if (r === true) return false;
-		return true;
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		if (rval.types.isString() || rval.types.isNumber() || rval.types.isBoolean()) {
+			var lval = ctx.compileToPrimitive(lval);
+			return ctx.define(lval.name + " != " + rval.name, COMPILER_BOOLEAN_TYPE);
+		}
+		if (lval.types.isString() || lval.types.isNumber() || lval.types.isBoolean()) {
+			var rval = ctx.compileToPrimitive(rval);
+			return ctx.define(lval.name + " != " + rval.name, COMPILER_BOOLEAN_TYPE);
+		}
+		return ctx.define("!abstractEqualityComparison(" + lval.name + " , " + rval.name + ")", COMPILER_BOOLEAN_TYPE);
+	});
 }
 
 function abstractEqualityComparison(x, y) {
-	if (Type(x) === Type(y)) return (x === y);
-	if (x === null && y === undefined) return true;
-	if (x === undefined && y === null) return true;
-	if (Type(x) === TYPE_Number && Type(y) === TYPE_String) return abstractEqualityComparison(x, ToNumber(y));
-	if (Type(x) === TYPE_String && Type(y) === TYPE_Number) return abstractEqualityComparison(ToNumber(x), y);
-	if (Type(x) === TYPE_Boolean) return abstractEqualityComparison(ToNumber(x), y);
-	if (Type(y) === TYPE_Boolean) return abstractEqualityComparison(x, ToNumber(y));
-	if ((Type(x) === TYPE_String || Type(x) === TYPE_Number) && Type(y) === TYPE_Object)
-		return abstractEqualityComparison(x, ToPrimitive(y));
-	if (Type(x) === TYPE_Object && (Type(y) === TYPE_String || Type(y) === TYPE_Number))
-		return abstractEqualityComparison(ToPrimitive(x), y);
-	return false;
+	if (Type(x) === TYPE_Object) {
+		if (Type(y) === TYPE_Object) {
+			return (x === y);
+		}
+		if (y === null || y === undefined) return false;
+		x = ToPrimitive(x);
+		return (x == y);
+	}
+	else {
+		if (Type(y) !== TYPE_Object) {
+			return (x == y);
+		}
+		if (x === null || x === undefined) return false;
+		y = ToPrimitive(y);
+		return (x == y);
+	}
 }
 
 function StrictEqualsOperator(leftExpression, rightExpression) {
