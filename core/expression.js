@@ -593,22 +593,22 @@ function StrictDoesNotEqualOperator(leftExpression, rightExpression) {
 }
 
 function BinaryBitwiseOperator(operator, leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		var lnum = ToInt32(lval);
-		var rnum = ToInt32(rval);
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		var lnum = ctx.compileToInt32(lval);
+		var rnum = ctx.compileToInt32(rval);
 		switch (operator) {
 		case '&':
-			return lnum & rnum;
+			return ctx.define(lnum.name + " & " + rnum.name, COMPILER_NUMBER_TYPE);
 		case '^':
-			return lnum ^ rnum;
+			return ctx.define(lnum.name + " ^ " + rnum.name, COMPILER_NUMBER_TYPE);
 		case '|':
-			return lnum | rnum;
+			return ctx.define(lnum.name + " | " + rnum.name, COMPILER_NUMBER_TYPE);
 		}
-	};
+	});
 }
 
 function LogicalAndOperator(leftExpression, rightExpression) {
