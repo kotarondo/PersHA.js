@@ -228,7 +228,7 @@ function PostfixIncrementOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var lhs = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(lhs));
-		var newValue = ctx.define(oldValue.name + "+1", CompilerTypes.NUMBER_TYPE);
+		var newValue = ctx.define(oldValue.name + " +1", CompilerTypes.NUMBER_TYPE);
 		ctx.compilePutValue(lhs, newValue);
 		return oldValue;
 	});
@@ -238,7 +238,7 @@ function PostfixDecrementOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var lhs = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(lhs));
-		var newValue = ctx.define(oldValue.name + "-1", CompilerTypes.NUMBER_TYPE);
+		var newValue = ctx.define(oldValue.name + " -1", CompilerTypes.NUMBER_TYPE);
 		ctx.compilePutValue(lhs, newValue);
 		return oldValue;
 	});
@@ -297,7 +297,7 @@ function PrefixIncrementOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(expr));
-		var newValue = ctx.define(oldValue.name + "+1", CompilerTypes.NUMBER_TYPE);
+		var newValue = ctx.define(oldValue.name + " +1", CompilerTypes.NUMBER_TYPE);
 		ctx.compilePutValue(expr, newValue);
 		return newValue;
 	});
@@ -307,25 +307,25 @@ function PrefixDecrementOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(expr));
-		var newValue = ctx.define(oldValue.name + "-1", CompilerTypes.NUMBER_TYPE);
+		var newValue = ctx.define(oldValue.name + " -1", CompilerTypes.NUMBER_TYPE);
 		ctx.compilePutValue(expr, newValue);
 		return newValue;
 	});
 }
 
 function PlusOperator(expression) {
-	return function() {
-		var expr = expression();
-		return ToNumber(GetValue(expr));
-	};
+	return CompilerContext.expression(function(ctx) {
+		var expr = ctx.compileExpression(expression);
+		return ctx.compileToNumber(ctx.compileGetValue(expr));
+	});
 }
 
 function MinusOperator(expression) {
-	return function() {
-		var expr = expression();
-		var oldValue = ToNumber(GetValue(expr));
-		return -oldValue;
-	};
+	return CompilerContext.expression(function(ctx) {
+		var expr = ctx.compileExpression(expression);
+		var oldValue = ctx.compileToNumber(ctx.compileGetValue(expr));
+		return ctx.define("- "+oldValue.name);
+	});
 }
 
 function BitwiseNOTOperator(expression) {

@@ -53,7 +53,7 @@ CompilerTypes.NULL_TYPE = new CompilerTypes("null");
 CompilerTypes.UNDEFINED_TYPE = new CompilerTypes("undefined");
 
 CompilerTypes.numbers = [ "number" ];
-CompilerTypes.primitives = CompilerTypes.numbers.concat( "undefined", "null", "boolean", "string" );
+CompilerTypes.primitives = CompilerTypes.numbers.concat("undefined", "null", "boolean", "string");
 CompilerTypes.values = CompilerTypes.primitives.concat("object", "value");
 
 CompilerTypes.prototype.isPrimitive = function() {
@@ -127,7 +127,7 @@ CompilerContext.prototype.quote = function(x) {
 
 CompilerContext.prototype.define = function(str, types) {
 	var name = "tmp" + (this.variables++);
-	this.text("var " + name + "=" + str + ";");
+	this.text("var " + name + "= " + str + ";");
 	return {
 		name : name,
 		types : types,
