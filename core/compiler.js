@@ -245,9 +245,10 @@ CompilerContext.prototype.compileToBoolean = function(val) {
 	return this.define("ToBoolean(" + val.name + ")", COMPILER_BOOLEAN_TYPE);
 };
 
-CompilerContext.prototype.compileToPrimitive = function(val) {
+CompilerContext.prototype.compileToPrimitive = function(val, hint) {
 	if (val.types.isPrimitive()) return val;
-	return this.define("ToPrimitive(" + val.name + ")", COMPILER_PRIMITIVE_TYPE);
+	if (!hint) return this.define("ToPrimitive(" + val.name + ")", COMPILER_PRIMITIVE_TYPE);
+	return this.define("ToPrimitive(" + val.name + "," + hint + ")", COMPILER_PRIMITIVE_TYPE);
 };
 
 CompilerContext.prototype.compileToInt32 = function(val) {

@@ -432,70 +432,51 @@ function UnsignedRightShiftOperator(leftExpression, rightExpression) {
 }
 
 function LessThanOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		var r = abstractRelationalComparison(lval, rval);
-		if (r === undefined) return false;
-		return r;
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		var px = ctx.compileToPrimitive(lval, TYPE_Number);
+		var py = ctx.compileToPrimitive(rval, TYPE_Number);
+		return ctx.define(px.name + " < " + py.name, COMPILER_BOOLEAN_TYPE);
+	});
 }
 
 function GreaterThanOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		var r = abstractRelationalComparison(rval, lval, false);
-		if (r === undefined) return false;
-		return r;
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		var px = ctx.compileToPrimitive(lval, TYPE_Number);
+		var py = ctx.compileToPrimitive(rval, TYPE_Number);
+		return ctx.define(px.name + " > " + py.name, COMPILER_BOOLEAN_TYPE);
+	});
 }
 
 function LessThanOrEqualOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		var r = abstractRelationalComparison(rval, lval, false);
-		if (r === true || r === undefined) return false;
-		return true;
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		var px = ctx.compileToPrimitive(lval, TYPE_Number);
+		var py = ctx.compileToPrimitive(rval, TYPE_Number);
+		return ctx.define(px.name + " <= " + py.name, COMPILER_BOOLEAN_TYPE);
+	});
 }
 
 function GreaterThanOrEqualOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		var r = abstractRelationalComparison(lval, rval);
-		if (r === true || r === undefined) return false;
-		return true;
-	};
-}
-
-function abstractRelationalComparison(x, y, LeftFirst) {
-	if (LeftFirst !== false) {
-		var px = ToPrimitive(x, TYPE_Number);
-		var py = ToPrimitive(y, TYPE_Number);
-	}
-	else {
-		var py = ToPrimitive(y, TYPE_Number);
-		var px = ToPrimitive(x, TYPE_Number);
-	}
-	if (!(Type(px) === TYPE_String && Type(py) === TYPE_String)) {
-		var nx = ToNumber(px);
-		var ny = ToNumber(py);
-		if (isNaN(nx)) return undefined;
-		if (isNaN(ny)) return undefined;
-		return (nx < ny);
-	}
-	else return (px < py);
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		var px = ctx.compileToPrimitive(lval, TYPE_Number);
+		var py = ctx.compileToPrimitive(rval, TYPE_Number);
+		return ctx.define(px.name + " >= " + py.name, COMPILER_BOOLEAN_TYPE);
+	});
 }
 
 function instanceofOperator(leftExpression, rightExpression) {
