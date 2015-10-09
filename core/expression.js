@@ -573,24 +573,23 @@ function abstractEqualityComparison(x, y) {
 }
 
 function StrictEqualsOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		return (lval === rval);
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		return ctx.define(lval.name + " === " + rval.name, COMPILER_BOOLEAN_TYPE);
+	});
 }
 
 function StrictDoesNotEqualOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		if (lval === rval) return false;
-		return true;
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		return ctx.define(lval.name + " !== " + rval.name, COMPILER_BOOLEAN_TYPE);
+	});
 }
 
 function BinaryBitwiseOperator(operator, leftExpression, rightExpression) {
