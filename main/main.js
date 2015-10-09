@@ -33,86 +33,71 @@
 
 'use strict'
 
-var PERSHA_HOME;
-var PERSHA_DATA;
-var JOURNAL_FILEBASE;
-var NODE_INIT_SCRIPT_DIR;
-var BRIDGE_SCRIPT_DIR;
-var HANDLER_SCRIPT_DIR;
+global.require = require;
+global.PERSHA_HOME = undefined;
+global.PERSHA_DATA = undefined;
 
-function cleanDirSync(path) {
-	fs.readdirSync(path).forEach(function(file) {
-		if (file.indexOf("journal") === 0) {
-			fs.unlinkSync(path + "/" + file);
-		}
-	});
+var path = require('path');
+var fs = require('fs');
+var vm = require('vm');
+
+function print_usage() {
+	console.log("Usage:");
+	console.log("    persha -init [main module]");
+	console.log("    persha -restart");
+	console
+			.log("  where data directory can be specified by the environment variable PERSHA_DATA which defaults to $HOME/.persha");
 }
 
-(function() {
-	var path = require('path');
-	var fs = require('fs');
+PERSHA_HOME = path.dirname(path.dirname(process.argv[1]));
+PERSHA_DATA = process.env.PERSHA_DATA;
+if (PERSHA_DATA[0] !== '/') {
+	console.log("ERROR: PERSHA_DATA must be absolute path: " + PERSHA_DATA);
+	process.exit(1);
+}
+if (!fs.existsSync(PERSHA_DATA)) {
+	console.log("ERROR: PERSHA_DATA does not exist: " + PERSHA_DATA);
+	process.exit(1);
+}
 
-	function print_usage() {
-		console.log("Usage:");
-		console.log("    persha -init [main module]");
-		console.log("    persha -restart");
-		console.log("  where data directory can be specified by the environment variable PERSHA_DATA which defaults to $HOME/.persha");
-	}
+vm.runInThisContext(fs.readFileSync(PERSHA_HOME + "/bin/core.js").toString());
 
-	PERSHA_DATA = process.env.PERSHA_DATA;
-	if (typeof PERSHA_DATA !== "string" || PERSHA_DATA === "") {
-		PERSHA_DATA = process.env.HOME + "/.persha";
-	}
-	JOURNAL_FILEBASE = path.normalize(PERSHA_DATA + "/journal");
-	PERSHA_DATA = path.dirname(JOURNAL_FILEBASE);
-	if (PERSHA_DATA[0] !== '/') {
-		console.log("ERROR: PERSHA_DATA must be absolute path: " + PERSHA_DATA);
+var cmd = process.argv[2];
+if (cmd === '-init') {
+	fs.readdirSync(PERSHA_DATA).forEach(function(file) {
+		if (file.indexOf("journal") === 0) {
+			fs.unlinkSync(PERSHA_DATA + "/" + file);
+		}
+	});
+	node_init();
+}
+else if (cmd === '-restart') {
+	if (!Journal_start()) {
+		console.log("ERROR: invalid: " + PERSHA_DATA);
 		process.exit(1);
 	}
-	if (!fs.existsSync(PERSHA_DATA)) {
-		console.log("ERROR: PERSHA_DATA does not exist: " + PERSHA_DATA);
-		process.exit(1);
+	IOManager_start();
+}
+else {
+	print_usage();
+	process.exit(1);
+}
+
+process.on('beforeExit', function() {
+	if (IOManager_state !== 'online') {
+		return;
 	}
+	IOManager_evaluate("process.emit('beforeExit')", "");
+});
 
-	PERSHA_HOME = path.dirname(path.dirname(process.argv[1]));
-	NODE_INIT_SCRIPT_DIR = PERSHA_HOME + "/node-lib/";
-	BRIDGE_SCRIPT_DIR = PERSHA_HOME + "/bridge/";
-	HANDLER_SCRIPT_DIR = PERSHA_HOME + "/handler/";
-
-	var cmd = process.argv[2];
-	if (cmd === '-init') {
-		cleanDirSync(PERSHA_DATA);
-		node_init();
+process.on('exit', function() {
+	if (IOManager_state !== 'online') {
+		return;
 	}
-	else if (cmd === '-restart') {
-		if (!Journal_start()) {
-			console.log("ERROR: invalid: " + PERSHA_DATA);
-			process.exit(1);
-		}
-		IOManager_start();
-	}
-	else {
-		print_usage();
-		process.exit(1);
-	}
+	IOManager_evaluate("process.exit(0)", "");
+});
 
-	process.on('beforeExit', function() {
-		if (IOManager_state !== 'online') {
-			return;
-		}
-		IOManager_evaluate("process.emit('beforeExit')", "");
-	});
-
-	process.on('exit', function() {
-		if (IOManager_state !== 'online') {
-			return;
-		}
-		IOManager_evaluate("process.exit(0)", "");
-	});
-
-	process.on('uncaughtException', function(err) {
-		console.error(err.stack);
-		process.reallyExit(1);
-	});
-
-})();
+process.on('uncaughtException', function(err) {
+	console.error(err.stack);
+	process.reallyExit(1);
+});

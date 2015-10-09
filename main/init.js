@@ -35,6 +35,9 @@
 
 var fs = require('fs');
 
+var NODE_INIT_SCRIPT_DIR = PERSHA_HOME + "/node-lib/";
+var BRIDGE_SCRIPT_DIR = PERSHA_HOME + "/bridge/";
+
 try {
 	initializeVM();
 

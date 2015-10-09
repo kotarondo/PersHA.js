@@ -33,7 +33,7 @@
 
 'use strict';
 
-var JOURNAL_FILEBASE;
+var JOURNAL_FILEBASE= PERSHA_DATA + "/journal";
 var MAX_CHECKPOINT_FILES = 8;
 
 var Journal_currentFileNo;

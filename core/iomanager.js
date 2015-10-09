@@ -33,7 +33,7 @@
 
 'use strict';
 
-var HANDLER_SCRIPT_DIR;
+var HANDLER_SCRIPT_DIR = PERSHA_HOME + "/handler/";
 var RECOVERY_TARGET = 3000;
 
 var IOManager_state = 'offline'; // -> 'recovery' -> 'online'

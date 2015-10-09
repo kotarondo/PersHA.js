@@ -43,4 +43,5 @@ elif type shlock >/dev/null 2>&1; then
 
 fi
 
-exec node ${SCRIPTPATH}/persha.js $*
+export PERSHA_DATA
+exec node ${SCRIPTPATH}/main.js $*
