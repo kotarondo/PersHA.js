@@ -384,54 +384,51 @@ function AdditionOperator(leftExpression, rightExpression) {
 }
 
 function SubtractionOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		var lnum = ToNumber(lval);
-		var rnum = ToNumber(rval);
-		return lnum - rnum;
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		var lnum = ctx.compileToNumber(lval);
+		var rnum = ctx.compileToNumber(rval);
+		return ctx.define(lnum.name + " - " + rnum.name, COMPILER_NUMBER_TYPE);
+	});
 }
 
 function LeftShiftOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		var lnum = ToInt32(lval);
-		var rnum = ToUint32(rval);
-		var shiftCount = rnum & 0x1F;
-		return lnum << shiftCount;
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		var lnum = ctx.compileToInt32(lval);
+		var rnum = ctx.compileToUint32(rval);
+		return ctx.define(lnum.name + " << " + rnum.name, COMPILER_NUMBER_TYPE);
+	});
 }
 
 function SignedRightShiftOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		var lnum = ToInt32(lval);
-		var rnum = ToUint32(rval);
-		var shiftCount = rnum & 0x1F;
-		return lnum >> shiftCount;
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		var lnum = ctx.compileToInt32(lval);
+		var rnum = ctx.compileToUint32(rval);
+		return ctx.define(lnum.name + " >> " + rnum.name, COMPILER_NUMBER_TYPE);
+	});
 }
 
 function UnsignedRightShiftOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		var lnum = ToUint32(lval);
-		var rnum = ToUint32(rval);
-		var shiftCount = rnum & 0x1F;
-		return lnum >>> shiftCount;
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		var lnum = ctx.compileToUint32(lval);
+		var rnum = ctx.compileToUint32(rval);
+		return ctx.define(lnum.name + " >>> " + rnum.name, COMPILER_NUMBER_TYPE);
+	});
 }
 
 function LessThanOperator(leftExpression, rightExpression) {
