@@ -495,7 +495,7 @@ function PutValue(V, W) {
 	if (Type(V) !== TYPE_Reference) throw VMReferenceError();
 	var base = GetBase(V);
 	if (IsUnresolvableReference(V)) {
-		if (IsStrictReference(V) === true) throw VMReferenceError(GetReferencedName(V));
+		if (IsStrictReference(V) === true) throw VMReferenceError(GetReferencedName(V) + " is not defined");
 		vm.theGlobalObject.Put(GetReferencedName(V), W, false);
 	}
 	else if (IsPropertyReference(V)) {

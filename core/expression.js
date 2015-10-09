@@ -36,22 +36,56 @@
 // ECMAScript 5.1: 11 Expressions
 
 function ThisExpression() {
-	return function() {
-		return ThisBinding;
-	};
+	return CompilerContext.expression(function(ctx) {
+		return ctx.define("ThisBinding", CompilerTypes.VALUE_TYPE);
+	});
 }
 
 function IdentifierReference(identifier, strict) {
-	return function() {
+	var evaluate = function() {
 		var env = LexicalEnvironment;
 		return GetIdentifierReference(env, identifier, strict);
 	};
+	function compile(ctx) {
+		var base = ctx.define("GetIdentifierEnvironmentRecord(LexicalEnvironment," + ctx.quote(identifier) + ")",
+				CompilerTypes.ANY_TYPE);
+		return {
+			name : identifier,
+			types : CompilerTypes.IDENTIFIER_REFERENCE_TYPE,
+			base : base,
+			strict : strict,
+		};
+	}
+	evaluate.compile = compile;
+	return evaluate;
 }
 
 function Literal(value) {
-	return function() {
-		return value;
-	};
+	return CompilerContext.expression(function(ctx) {
+		switch (Type(value)) {
+		case TYPE_Number:
+			var types = CompilerTypes.NUMBER_TYPE;
+			break;
+		case TYPE_String:
+			var types = CompilerTypes.STRING_TYPE;
+			break;
+		case TYPE_Undefined:
+			var types = CompilerTypes.UNDEFINED_TYPE;
+			break;
+		case TYPE_Null:
+			var types = CompilerTypes.NULL_TYPE;
+			break;
+		case TYPE_Boolean:
+			var types = CompilerTypes.BOOLEAN_TYPE;
+			break;
+		default:
+			assert(false, value);
+		}
+		return {
+			name : ctx.quote(value),
+			types : types,
+		};
+	});
 }
 
 function RegExpLiteral(regexp) {
@@ -217,11 +251,14 @@ function deleteOperator(expression) {
 }
 
 function voidOperator(expression) {
-	return function() {
-		var expr = expression();
-		GetValue(expr);
-		return undefined;
-	};
+	return CompilerContext.expression(function(ctx) {
+		var expr = ctx.compileExpression(expression);
+		ctx.compileGetValue(expr);
+		return {
+			name : "undefined",
+			types : CompilerTypes.UNDEFINED_TYPE,
+		};
+	});
 }
 
 function typeofOperator(expression) {
@@ -586,13 +623,13 @@ function ConditionalOperator(condition, firstExpression, secondExpression) {
 }
 
 function SimpleAssignment(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var rref = rightExpression();
-		var rval = GetValue(rref);
-		PutValue(lref, rval);
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		ctx.compilePutValue(lref, rval);
 		return rval;
-	};
+	});
 }
 
 function CompoundAssignment(operator, leftExpression, rightExpression) {

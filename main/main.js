@@ -60,7 +60,7 @@ if (!fs.existsSync(PERSHA_DATA)) {
 	process.exit(1);
 }
 
-vm.runInThisContext(fs.readFileSync(PERSHA_HOME + "/bin/core.js").toString());
+vm.runInThisContext(fs.readFileSync(PERSHA_HOME + "/bin/core.js").toString(), "core.js");
 
 var cmd = process.argv[2];
 if (cmd === '-init') {

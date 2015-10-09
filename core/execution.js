@@ -153,6 +153,16 @@ function GetIdentifierReference(lex, name, strict) {
 	}
 }
 
+function GetIdentifierEnvironmentRecord(lex, name) {
+	while (true) {
+		if (lex === null) return undefined;
+		var envRec = lex.environmentRecord;
+		var exists = envRec.HasBinding(name);
+		if (exists === true) return envRec;
+		lex = lex.outer;
+	}
+}
+
 function DeclarativeEnvironmentRecord() {
 	var obj = Object.create(Class_DeclarativeEnvironmentRecord);
 	obj.$values = Object.create(null);
