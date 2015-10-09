@@ -36,9 +36,13 @@
 // ECMAScript 5.1: 11 Expressions
 
 function ThisExpression() {
-	return CompilerContext.expression(function(ctx) {
+	var evaluate = function() {
+		return ThisBinding;
+	};
+	evaluate.compile = (function(ctx) {
 		return ctx.define("ThisBinding", CompilerTypes.VALUE_TYPE);
 	});
+	return evaluate;
 }
 
 function IdentifierReference(identifier, strict) {
@@ -46,7 +50,7 @@ function IdentifierReference(identifier, strict) {
 		var env = LexicalEnvironment;
 		return GetIdentifierReference(env, identifier, strict);
 	};
-	function compile(ctx) {
+	evaluate.compile = (function(ctx) {
 		var base = ctx.define("GetIdentifierEnvironmentRecord(LexicalEnvironment," + ctx.quote(identifier) + ")",
 				CompilerTypes.ANY_TYPE);
 		return {
@@ -55,13 +59,15 @@ function IdentifierReference(identifier, strict) {
 			base : base,
 			strict : strict,
 		};
-	}
-	evaluate.compile = compile;
+	});
 	return evaluate;
 }
 
 function Literal(value) {
-	return CompilerContext.expression(function(ctx) {
+	var evaluate = function() {
+		return value;
+	};
+	evaluate.compile = (function(ctx) {
 		switch (Type(value)) {
 		case TYPE_Number:
 			var types = CompilerTypes.NUMBER_TYPE;
@@ -86,6 +92,7 @@ function Literal(value) {
 			types : types,
 		};
 	});
+	return evaluate;
 }
 
 function RegExpLiteral(regexp) {
@@ -218,23 +225,23 @@ function evaluateArguments(args) {
 }
 
 function PostfixIncrementOperator(expression) {
-	return function() {
-		var lhs = expression();
-		var oldValue = ToNumber(GetValue(lhs));
-		var newValue = oldValue + 1;
-		PutValue(lhs, newValue);
+	return CompilerContext.expression(function(ctx) {
+		var lhs = ctx.compileExpression(expression);
+		var oldValue = ctx.compileToNumber(ctx.compileGetValue(lhs));
+		var newValue = ctx.define(oldValue.name + "+1", CompilerTypes.NUMBER_TYPE);
+		ctx.compilePutValue(lhs, newValue);
 		return oldValue;
-	};
+	});
 }
 
 function PostfixDecrementOperator(expression) {
-	return function() {
-		var lhs = expression();
-		var oldValue = ToNumber(GetValue(lhs));
-		var newValue = oldValue - 1;
-		PutValue(lhs, newValue);
+	return CompilerContext.expression(function(ctx) {
+		var lhs = ctx.compileExpression(expression);
+		var oldValue = ctx.compileToNumber(ctx.compileGetValue(lhs));
+		var newValue = ctx.define(oldValue.name + "-1", CompilerTypes.NUMBER_TYPE);
+		ctx.compilePutValue(lhs, newValue);
 		return oldValue;
-	};
+	});
 }
 
 function deleteOperator(expression) {
@@ -287,23 +294,23 @@ function typeofOperator(expression) {
 }
 
 function PrefixIncrementOperator(expression) {
-	return function() {
-		var expr = expression();
-		var oldValue = ToNumber(GetValue(expr));
-		var newValue = oldValue + 1;
-		PutValue(expr, newValue);
+	return CompilerContext.expression(function(ctx) {
+		var expr = ctx.compileExpression(expression);
+		var oldValue = ctx.compileToNumber(ctx.compileGetValue(expr));
+		var newValue = ctx.define(oldValue.name + "+1", CompilerTypes.NUMBER_TYPE);
+		ctx.compilePutValue(expr, newValue);
 		return newValue;
-	};
+	});
 }
 
 function PrefixDecrementOperator(expression) {
-	return function() {
-		var expr = expression();
-		var oldValue = ToNumber(GetValue(expr));
-		var newValue = oldValue - 1;
-		PutValue(expr, newValue);
+	return CompilerContext.expression(function(ctx) {
+		var expr = ctx.compileExpression(expression);
+		var oldValue = ctx.compileToNumber(ctx.compileGetValue(expr));
+		var newValue = ctx.define(oldValue.name + "-1", CompilerTypes.NUMBER_TYPE);
+		ctx.compilePutValue(expr, newValue);
 		return newValue;
-	};
+	});
 }
 
 function PlusOperator(expression) {

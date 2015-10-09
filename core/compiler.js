@@ -52,7 +52,8 @@ CompilerTypes.BOOLEAN_TYPE = new CompilerTypes("boolean");
 CompilerTypes.NULL_TYPE = new CompilerTypes("null");
 CompilerTypes.UNDEFINED_TYPE = new CompilerTypes("undefined");
 
-CompilerTypes.primitives = [ "undefined", "null", "boolean", "number", "string" ];
+CompilerTypes.numbers = [ "number" ];
+CompilerTypes.primitives = CompilerTypes.numbers.concat( "undefined", "null", "boolean", "string" );
 CompilerTypes.values = CompilerTypes.primitives.concat("object", "value");
 
 CompilerTypes.prototype.isPrimitive = function() {
@@ -64,6 +65,12 @@ CompilerTypes.prototype.isPrimitive = function() {
 CompilerTypes.prototype.isValue = function() {
 	return this.types.every(function(type) {
 		if (CompilerTypes.values.indexOf(type) >= 0) return true;
+	});
+};
+
+CompilerTypes.prototype.isNumber = function() {
+	return this.types.every(function(type) {
+		if (CompilerTypes.numbers.indexOf(type) >= 0) return true;
 	});
 };
 
@@ -195,6 +202,11 @@ CompilerContext.prototype.compilePutValue = function(ref, val) {
 		this.text(base.name + ".SetMutableBinding(" + name + "," + val.name + "," + ref.strict + ");");
 	}
 	else {
-		return this.text("PutValue(" + ref.name + "," + val.name + ");");
+		this.text("PutValue(" + ref.name + "," + val.name + ");");
 	}
+};
+
+CompilerContext.prototype.compileToNumber = function(val) {
+	if (val.types.isNumber()) return val;
+	return this.define("ToNumber(" + val.name + ");");
 };
