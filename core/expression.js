@@ -365,7 +365,7 @@ function MinusOperator(expression) {
 function BitwiseNOTOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
-		var oldValue = ctx.compileToInt32(ctx.compileGetValue(expr));
+		var oldValue = ctx.compileToNumber(ctx.compileGetValue(expr));
 		return ctx.defineNumber("~ " + oldValue.name);
 	});
 }
@@ -435,8 +435,8 @@ function LeftShiftOperator(leftExpression, rightExpression) {
 		var lval = ctx.compileGetValue(lref);
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
-		var lnum = ctx.compileToInt32(lval);
-		var rnum = ctx.compileToUint32(rval);
+		var lnum = ctx.compileToNumber(lval);
+		var rnum = ctx.compileToNumber(rval);
 		return ctx.defineNumber(lnum.name + " << " + rnum.name);
 	});
 }
@@ -447,8 +447,8 @@ function SignedRightShiftOperator(leftExpression, rightExpression) {
 		var lval = ctx.compileGetValue(lref);
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
-		var lnum = ctx.compileToInt32(lval);
-		var rnum = ctx.compileToUint32(rval);
+		var lnum = ctx.compileToNumber(lval);
+		var rnum = ctx.compileToNumber(rval);
 		return ctx.defineNumber(lnum.name + " >> " + rnum.name);
 	});
 }
@@ -459,8 +459,8 @@ function UnsignedRightShiftOperator(leftExpression, rightExpression) {
 		var lval = ctx.compileGetValue(lref);
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
-		var lnum = ctx.compileToUint32(lval);
-		var rnum = ctx.compileToUint32(rval);
+		var lnum = ctx.compileToNumber(lval);
+		var rnum = ctx.compileToNumber(rval);
 		return ctx.defineNumber(lnum.name + " >>> " + rnum.name);
 	});
 }
@@ -626,8 +626,8 @@ function BinaryBitwiseOperator(operator, leftExpression, rightExpression) {
 		var lval = ctx.compileGetValue(lref);
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
-		var lnum = ctx.compileToInt32(lval);
-		var rnum = ctx.compileToInt32(rval);
+		var lnum = ctx.compileToNumber(lval);
+		var rnum = ctx.compileToNumber(rval);
 		switch (operator) {
 		case '&':
 			return ctx.defineNumber(lnum.name + " & " + rnum.name);
@@ -734,33 +734,33 @@ function CompoundAssignment(operator, leftExpression, rightExpression) {
 			var r = ctx.defineNumber(leftNum.name + " - " + rightNum.name);
 			break;
 		case '<<=':
-			var leftNum = ctx.compileToInt32(lval);
-			var rightNum = ctx.compileToUint32(rval);
+			var leftNum = ctx.compileToNumber(lval);
+			var rightNum = ctx.compileToNumber(rval);
 			var r = ctx.defineNumber(leftNum.name + " << " + rightNum.name);
 			break;
 		case '>>=':
-			var leftNum = ctx.compileToInt32(lval);
-			var rightNum = ctx.compileToUint32(rval);
+			var leftNum = ctx.compileToNumber(lval);
+			var rightNum = ctx.compileToNumber(rval);
 			var r = ctx.defineNumber(leftNum.name + " >> " + rightNum.name);
 			break;
 		case '>>>=':
-			var leftNum = ctx.compileToUint32(lval);
-			var rightNum = ctx.compileToUint32(rval);
+			var leftNum = ctx.compileToNumber(lval);
+			var rightNum = ctx.compileToNumber(rval);
 			var r = ctx.defineNumber(leftNum.name + " >>> " + rightNum.name);
 			break;
 		case '&=':
-			var leftNum = ctx.compileToInt32(lval);
-			var rightNum = ctx.compileToInt32(rval);
+			var leftNum = ctx.compileToNumber(lval);
+			var rightNum = ctx.compileToNumber(rval);
 			var r = ctx.defineNumber(leftNum.name + " & " + rightNum.name);
 			break;
 		case '|=':
-			var leftNum = ctx.compileToInt32(lval);
-			var rightNum = ctx.compileToInt32(rval);
+			var leftNum = ctx.compileToNumber(lval);
+			var rightNum = ctx.compileToNumber(rval);
 			var r = ctx.defineNumber(leftNum.name + " | " + rightNum.name);
 			break;
 		case '^=':
-			var leftNum = ctx.compileToInt32(lval);
-			var rightNum = ctx.compileToInt32(rval);
+			var leftNum = ctx.compileToNumber(lval);
+			var rightNum = ctx.compileToNumber(rval);
 			var r = ctx.defineNumber(leftNum.name + " ^ " + rightNum.name);
 			break;
 		}
