@@ -40,7 +40,7 @@ function ThisExpression() {
 		return ThisBinding;
 	};
 	evaluate.compile = (function(ctx) {
-		return ctx.define("ThisBinding", COMPILER_VALUE_TYPE);
+		return ctx.defineValue("ThisBinding");
 	});
 	return evaluate;
 }
@@ -52,7 +52,7 @@ function IdentifierReference(identifier, strict) {
 	};
 	evaluate.compile = (function(ctx) {
 		var name = ctx.quote(identifier);
-		var base = ctx.define("GetIdentifierEnvironmentRecord(LexicalEnvironment," + name + ")", COMPILER_ANY_TYPE);
+		var base = ctx.defineAny("GetIdentifierEnvironmentRecord(LexicalEnvironment," + name + ")");
 		return {
 			name : name,
 			types : COMPILER_IDENTIFIER_REFERENCE_TYPE,
@@ -100,25 +100,25 @@ function RegExpLiteral(regexp) {
 		return theRegExpFactory.createRegExpObject(regexp);
 	}
 	evaluate.compile = (function(ctx) {
-		return ctx.define("theRegExpFactory.createRegExpObject(" + ctx.literal(regexp) + ")", COMPILER_OBJECT_TYPE);
+		return ctx.defineObject("theRegExpFactory.createRegExpObject(" + ctx.literal(regexp) + ")");
 	});
 	return evaluate;
 }
 
 function ArrayInitialiser(elements) {
 	return CompilerContext.expression(function(ctx) {
-		var array = ctx.define("Array_Construct([])", COMPILER_OBJECT_TYPE);
+		var array = ctx.defineObject("Array_Construct([])");
 		for (var i = 0; i < elements.length; i++) {
 			var e = elements[i];
 			if (e !== empty) {
 				var initResult = ctx.compileExpression(e);
 				var initValue = ctx.compileGetValue(initResult);
-				ctx.text(array.name + ".DefineOwnProperty(" + i + ", DataPropertyDescriptor(" + initValue.name
-						+ ", true, true, true), false);");
+				ctx.text(array.name + " .DefineOwnProperty(" + i + ",DataPropertyDescriptor(" + initValue.name
+						+ ",true,true,true),false);");
 			}
 		}
 		if (e === empty) {
-			ctx.text(array.name + ".Put('length', " + (i - 1) + ", false);");
+			ctx.text(array.name + " .Put('length'," + (i - 1) + ",false);");
 		}
 		return array;
 	});
@@ -126,7 +126,7 @@ function ArrayInitialiser(elements) {
 
 function ObjectInitialiser(elements) {
 	return CompilerContext.expression(function(ctx) {
-		var obj = ctx.define("Object_Construct([])", COMPILER_OBJECT_TYPE);
+		var obj = ctx.defineObject("Object_Construct([])");
 		for (var i = 0; i < elements.length; i++) {
 			elements[i](ctx, obj);
 		}
@@ -140,30 +140,29 @@ function PropertyAssignment(name, expression) {
 		var propValue = ctx.compileGetValue(exprValue);
 		if (STRICT_CONFORMANCE === false) {
 			if (name === '__proto__') {
-				ctx.text("set_Object_prototype___proto__(" + obj.name + ", [ " + propValue.name + " ]);");
+				ctx.text("set_Object_prototype___proto__(" + obj.name + ",[" + propValue.name + "]);");
 				return;
 			}
 		}
-		ctx.text(obj.name + ".DefineOwnProperty(" + ctx.quote(name) + ", DataPropertyDescriptor(" + propValue.name
-				+ ", true, true, true), false);");
+		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + ",DataPropertyDescriptor(" + propValue.name
+				+ ",true,true,true),false);");
 	};
 }
 
 function PropertyAssignmentGet(name, body) {
 	return function(ctx, obj) {
-		var closure = ctx.define("CreateFunction([], " + ctx.literal(body) + ", LexicalEnvironment, " + body.strict + ")",
-				COMPILER_VALUE_TYPE);
-		ctx.text(obj.name + ".DefineOwnProperty(" + ctx.quote(name) + ", AccessorPropertyDescriptor(" + closure.name
-				+ ", absent, true, true), false);");
+		var closure = ctx.defineValue("CreateFunction([]," + ctx.literal(body) + ",LexicalEnvironment," + body.strict + ")");
+		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + ",AccessorPropertyDescriptor(" + closure.name
+				+ ",absent,true,true),false);");
 	};
 }
 
 function PropertyAssignmentSet(name, parameter, body) {
 	return function(ctx, obj) {
-		var closure = ctx.define("CreateFunction([" + ctx.quote(parameter) + "], " + ctx.literal(body)
-				+ ", LexicalEnvironment, " + body.strict + ")", COMPILER_VALUE_TYPE);
-		ctx.text(obj.name + ".DefineOwnProperty(" + ctx.quote(name) + ", AccessorPropertyDescriptor(absent, " + closure.name
-				+ ", true, true), false);");
+		var closure = ctx.defineValue("CreateFunction([" + ctx.quote(parameter) + "]," + ctx.literal(body)
+				+ ",LexicalEnvironment," + body.strict + ")");
+		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + ",AccessorPropertyDescriptor(absent," + closure.name
+				+ ",true,true),false);");
 	};
 }
 
@@ -173,8 +172,8 @@ function PropertyAccessor(base, name, strict) {
 		var baseValue = ctx.compileGetValue(baseReference);
 		var propertyNameReference = ctx.compileExpression(name);
 		var propertyNameValue = ctx.compileGetValue(propertyNameReference);
-		ctx.text("if (" + baseValue.name + " === undefined || " + baseValue.name + " === null)");
-		ctx.text("throwPropertyAccessorError(" + baseValue.name + "," + propertyNameValue.name + ");");
+		ctx.text("if(" + baseValue.name + " ===undefined|| " + baseValue.name + " ===null)throwPropertyAccessorError("
+				+ baseValue.name + "," + propertyNameValue.name + ");");
 		if (propertyNameValue.types.isNotObject()) {
 			return {
 				name : propertyNameValue.name,
@@ -185,7 +184,7 @@ function PropertyAccessor(base, name, strict) {
 		}
 		var mval = ctx.mergeHolder();
 		ctx.merge(mval, propertyNameValue);
-		ctx.text("if (Type(" + propertyNameValue.name + ") === TYPE_Object) {");
+		ctx.text("if(Type(" + propertyNameValue.name + ")===TYPE_Object){");
 		ctx.merge(mval, ctx.compileToString(propertyNameValue));
 		ctx.text("}");
 		return {
@@ -216,8 +215,8 @@ function NewOperator(expression, args) {
 				types : COMPILER_UNDEFINED_TYPE,
 			};
 		}
-		ctx.text("if (! " + cntr.name + " || ! " + cntr.name + "._Construct) throw VMTypeError();");
-		return ctx.define(cntr.name + ".Construct(" + argList.name + ")", COMPILER_VALUE_TYPE);
+		ctx.text("if (! " + cntr.name + " ||! " + cntr.name + " ._Construct) throw VMTypeError();");
+		return ctx.defineValue(cntr.name + " .Construct(" + argList.name + ")");
 	});
 }
 
@@ -236,23 +235,22 @@ function FunctionCall(expression, args, strict) {
 		ctx.text("if (! " + func.name + " || ! " + func.name + "._Call) throw VMTypeError();");
 		if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
 			var thisValue = ref.base;
-			return ctx.define(func.name + ".Call(" + thisValue.name + "," + argList.name + ")", COMPILER_VALUE_TYPE);
+			return ctx.defineValue(func.name + ".Call(" + thisValue.name + "," + argList.name + ")");
 		}
 		else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 			var base = ref.base;
-			var thisValue = ctx.define(base.name + ".ImplicitThisValue()", COMPILER_VALUE_TYPE);
+			var thisValue = ctx.defineValue(base.name + ".ImplicitThisValue()");
 			var mval = ctx.mergeHolder();
 			ctx.text("if (" + func.name + " === vm.theEvalFunction && " + ref.name + " === 'eval') {");
-			ctx.merge(mval, ctx.define("Global_eval(" + thisValue.name + "," + argList.name + ", true, " + strict + ")",
-					COMPILER_VALUE_TYPE));
-			ctx.text("} else {");
-			ctx.merge(mval, ctx.define(func.name + ".Call(" + thisValue.name + "," + argList.name + ")", COMPILER_VALUE_TYPE));
+			ctx.merge(mval, ctx.defineValue("Global_eval(" + thisValue.name + "," + argList.name + ",true," + strict + ")"));
+			ctx.text("}else{");
+			ctx.merge(mval, ctx.defineValue(func.name + " .Call(" + thisValue.name + "," + argList.name + ")"));
 			ctx.text("}");
 			return mval;
 		}
 		else {
 			assert(ref.types.isValue(), ref); // provided that all expressions have own compilers
-			return ctx.define(func.name + ".Call(undefined," + argList.name + ")", COMPILER_VALUE_TYPE);
+			return ctx.defineValue(func.name + " .Call(undefined," + argList.name + ")");
 		}
 	});
 }
@@ -261,7 +259,7 @@ function PostfixIncrementOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var lhs = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(lhs));
-		var newValue = ctx.define(oldValue.name + " +1", COMPILER_NUMBER_TYPE);
+		var newValue = ctx.defineNumber(oldValue.name + " +1");
 		ctx.compilePutValue(lhs, newValue);
 		return oldValue;
 	});
@@ -271,7 +269,7 @@ function PostfixDecrementOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var lhs = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(lhs));
-		var newValue = ctx.define(oldValue.name + " -1", COMPILER_NUMBER_TYPE);
+		var newValue = ctx.defineNumber(oldValue.name + " -1");
 		ctx.compilePutValue(lhs, newValue);
 		return oldValue;
 	});
@@ -282,12 +280,11 @@ function deleteOperator(expression) {
 		var ref = ctx.compileExpression(expression);
 		var base = ref.base;
 		if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
-			return ctx.define("ToObject(" + base.name + ").Delete(" + ref.name + ", " + ref.strict + ");",
-					COMPILER_BOOLEAN_TYPE);
+			return ctx.defineBoolean("ToObject(" + base.name + ").Delete(" + ref.name + "," + ref.strict + ");");
 		}
 		else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
-			return ctx.define("(" + base.name + "===undefined)?true: " + base.name + " .DeleteBinding(" + ref.name + ")",
-					COMPILER_BOOLEAN_TYPE);
+			return ctx.defineBoolean("(" + base.name + " ===undefined)?true: " + base.name + " .DeleteBinding(" + ref.name
+					+ ")");
 		}
 		else {
 			assert(ref.types.isValue(), ref); // provided that all expressions have own compilers
@@ -317,8 +314,8 @@ function typeofOperator(expression) {
 			var val = ctx.compileGetValue(val);
 		}
 		else if (val.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
-			var mval = ctx.define("undefined", COMPILER_UNDEFINED_TYPE);
-			ctx.text("if (" + val.base.name + "!==undefined) {");
+			var mval = ctx.defineValue("undefined");
+			ctx.text("if(" + val.base.name + " !==undefined){");
 			ctx.merge(mval, ctx.compileGetValue(val));
 			ctx.text("}");
 			val = mval;
@@ -328,9 +325,9 @@ function typeofOperator(expression) {
 		}
 		var mval = ctx.mergeHolder();
 		ctx.text("if (Type(" + val.name + ") === TYPE_Object) {");
-		ctx.merge(mval, ctx.define(val.name + " ._Call ? 'function' : 'object'", COMPILER_STRING_TYPE));
+		ctx.merge(mval, ctx.defineString(val.name + " ._Call?'function':'object'"));
 		ctx.text("}else{");
-		ctx.merge(mval, ctx.define("typeof " + val.name, COMPILER_STRING_TYPE));
+		ctx.merge(mval, ctx.defineString("typeof " + val.name));
 		ctx.text("}");
 		return mval;
 	});
@@ -340,7 +337,7 @@ function PrefixIncrementOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(expr));
-		var newValue = ctx.define(oldValue.name + " +1", COMPILER_NUMBER_TYPE);
+		var newValue = ctx.defineNumber(oldValue.name + " +1");
 		ctx.compilePutValue(expr, newValue);
 		return newValue;
 	});
@@ -350,7 +347,7 @@ function PrefixDecrementOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(expr));
-		var newValue = ctx.define(oldValue.name + " -1", COMPILER_NUMBER_TYPE);
+		var newValue = ctx.defineNumber(oldValue.name + " -1");
 		ctx.compilePutValue(expr, newValue);
 		return newValue;
 	});
@@ -367,7 +364,7 @@ function MinusOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(expr));
-		return ctx.define("- " + oldValue.name, COMPILER_NUMBER_TYPE);
+		return ctx.defineNumber("- " + oldValue.name);
 	});
 }
 
@@ -375,7 +372,7 @@ function BitwiseNOTOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToInt32(ctx.compileGetValue(expr));
-		return ctx.define("~ " + oldValue.name, COMPILER_NUMBER_TYPE);
+		return ctx.defineNumber("~ " + oldValue.name);
 	});
 }
 
@@ -383,7 +380,7 @@ function LogicalNOTOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
 		var oldValue = ctx.compileGetValue(expr);
-		return ctx.define("! " + oldValue.name, COMPILER_BOOLEAN_TYPE);
+		return ctx.defineBoolean("! " + oldValue.name);
 	});
 }
 
@@ -397,11 +394,11 @@ function MultiplicativeOperator(operator, leftExpression, rightExpression) {
 		var rightNum = ctx.compileToNumber(rightValue);
 		switch (operator) {
 		case '*':
-			return ctx.define(leftNum.name + " * " + rightNum.name, COMPILER_NUMBER_TYPE);
+			return ctx.defineNumber(leftNum.name + " * " + rightNum.name);
 		case '/':
-			return ctx.define(leftNum.name + " / " + rightNum.name, COMPILER_NUMBER_TYPE);
+			return ctx.defineNumber(leftNum.name + " / " + rightNum.name);
 		case '%':
-			return ctx.define(leftNum.name + " % " + rightNum.name, COMPILER_NUMBER_TYPE);
+			return ctx.defineNumber(leftNum.name + " % " + rightNum.name);
 		}
 	});
 }
@@ -415,13 +412,13 @@ function AdditionOperator(leftExpression, rightExpression) {
 		var lprim = ctx.compileToPrimitive(lval);
 		var rprim = ctx.compileToPrimitive(rval);
 		if (lprim.types.isString() || rprim.types.isString()) {
-			return ctx.define(lprim.name + " + " + rprim.name, COMPILER_STRING_TYPE);
+			return ctx.defineString(lprim.name + " + " + rprim.name);
 		}
 		else if (lprim.types.isNotString() && rprim.types.isNotString()) {
-			return ctx.define(lprim.name + " + " + rprim.name, COMPILER_NUMBER_TYPE);
+			return ctx.defineNumber(lprim.name + " + " + rprim.name);
 		}
 		else {
-			return ctx.define(lprim.name + " + " + rprim.name, COMPILER_NUMBER_OR_STRING_TYPE);
+			return ctx.defineValue(lprim.name + " + " + rprim.name);
 		}
 	});
 }
@@ -434,7 +431,7 @@ function SubtractionOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var lnum = ctx.compileToNumber(lval);
 		var rnum = ctx.compileToNumber(rval);
-		return ctx.define(lnum.name + " - " + rnum.name, COMPILER_NUMBER_TYPE);
+		return ctx.defineNumber(lnum.name + " - " + rnum.name);
 	});
 }
 
@@ -446,7 +443,7 @@ function LeftShiftOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var lnum = ctx.compileToInt32(lval);
 		var rnum = ctx.compileToUint32(rval);
-		return ctx.define(lnum.name + " << " + rnum.name, COMPILER_NUMBER_TYPE);
+		return ctx.defineNumber(lnum.name + " << " + rnum.name);
 	});
 }
 
@@ -458,7 +455,7 @@ function SignedRightShiftOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var lnum = ctx.compileToInt32(lval);
 		var rnum = ctx.compileToUint32(rval);
-		return ctx.define(lnum.name + " >> " + rnum.name, COMPILER_NUMBER_TYPE);
+		return ctx.defineNumber(lnum.name + " >> " + rnum.name);
 	});
 }
 
@@ -470,7 +467,7 @@ function UnsignedRightShiftOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var lnum = ctx.compileToUint32(lval);
 		var rnum = ctx.compileToUint32(rval);
-		return ctx.define(lnum.name + " >>> " + rnum.name, COMPILER_NUMBER_TYPE);
+		return ctx.defineNumber(lnum.name + " >>> " + rnum.name);
 	});
 }
 
@@ -482,7 +479,7 @@ function LessThanOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var px = ctx.compileToPrimitive(lval, TYPE_Number);
 		var py = ctx.compileToPrimitive(rval, TYPE_Number);
-		return ctx.define(px.name + " < " + py.name, COMPILER_BOOLEAN_TYPE);
+		return ctx.defineBoolean(px.name + " < " + py.name);
 	});
 }
 
@@ -494,7 +491,7 @@ function GreaterThanOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var px = ctx.compileToPrimitive(lval, TYPE_Number);
 		var py = ctx.compileToPrimitive(rval, TYPE_Number);
-		return ctx.define(px.name + " > " + py.name, COMPILER_BOOLEAN_TYPE);
+		return ctx.defineBoolean(px.name + " > " + py.name);
 	});
 }
 
@@ -506,7 +503,7 @@ function LessThanOrEqualOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var px = ctx.compileToPrimitive(lval, TYPE_Number);
 		var py = ctx.compileToPrimitive(rval, TYPE_Number);
-		return ctx.define(px.name + " <= " + py.name, COMPILER_BOOLEAN_TYPE);
+		return ctx.defineBoolean(px.name + " <= " + py.name);
 	});
 }
 
@@ -518,7 +515,7 @@ function GreaterThanOrEqualOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var px = ctx.compileToPrimitive(lval, TYPE_Number);
 		var py = ctx.compileToPrimitive(rval, TYPE_Number);
-		return ctx.define(px.name + " >= " + py.name, COMPILER_BOOLEAN_TYPE);
+		return ctx.defineBoolean(px.name + " >= " + py.name);
 	});
 }
 
@@ -537,7 +534,7 @@ function instanceofOperator(leftExpression, rightExpression) {
 		}
 		ctx.text("if (Type(" + rval.name + ") !== " + TYPE_Object + ") throw VMTypeError();");
 		ctx.text("if (" + rval.name + ".HasInstance === undefined) throw VMTypeError();");
-		return ctx.define(rval.name + ".HasInstance(" + lval.name + ")", COMPILER_BOOLEAN_TYPE);
+		return ctx.defineBoolean(rval.name + ".HasInstance(" + lval.name + ")");
 	});
 }
 
@@ -556,7 +553,7 @@ function inOperator(leftExpression, rightExpression) {
 		}
 		ctx.text("if (Type(" + rval.name + ") !== " + TYPE_Object + ") throw VMTypeError();");
 		var lval = ctx.compileToString(lval);
-		return ctx.define(rval.name + ".HasProperty(" + lval.name + ")", COMPILER_BOOLEAN_TYPE);
+		return ctx.defineBoolean(rval.name + ".HasProperty(" + lval.name + ")");
 	});
 }
 
@@ -568,13 +565,13 @@ function EqualsOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		if (rval.types.isString() || rval.types.isNumber() || rval.types.isBoolean()) {
 			var lval = ctx.compileToPrimitive(lval);
-			return ctx.define(lval.name + " == " + rval.name, COMPILER_BOOLEAN_TYPE);
+			return ctx.defineBoolean(lval.name + " == " + rval.name);
 		}
 		if (lval.types.isString() || lval.types.isNumber() || lval.types.isBoolean()) {
 			var rval = ctx.compileToPrimitive(rval);
-			return ctx.define(lval.name + " == " + rval.name, COMPILER_BOOLEAN_TYPE);
+			return ctx.defineBoolean(lval.name + " == " + rval.name);
 		}
-		return ctx.define("abstractEqualityComparison(" + lval.name + " , " + rval.name + ")", COMPILER_BOOLEAN_TYPE);
+		return ctx.defineBoolean("abstractEqualityComparison(" + lval.name + " , " + rval.name + ")");
 	});
 }
 
@@ -586,13 +583,13 @@ function DoesNotEqualOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		if (rval.types.isString() || rval.types.isNumber() || rval.types.isBoolean()) {
 			var lval = ctx.compileToPrimitive(lval);
-			return ctx.define(lval.name + " != " + rval.name, COMPILER_BOOLEAN_TYPE);
+			return ctx.defineBoolean(lval.name + " != " + rval.name);
 		}
 		if (lval.types.isString() || lval.types.isNumber() || lval.types.isBoolean()) {
 			var rval = ctx.compileToPrimitive(rval);
-			return ctx.define(lval.name + " != " + rval.name, COMPILER_BOOLEAN_TYPE);
+			return ctx.defineBoolean(lval.name + " != " + rval.name);
 		}
-		return ctx.define("!abstractEqualityComparison(" + lval.name + " , " + rval.name + ")", COMPILER_BOOLEAN_TYPE);
+		return ctx.defineBoolean("!abstractEqualityComparison(" + lval.name + " , " + rval.name + ")");
 	});
 }
 
@@ -621,7 +618,7 @@ function StrictEqualsOperator(leftExpression, rightExpression) {
 		var lval = ctx.compileGetValue(lref);
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
-		return ctx.define(lval.name + " === " + rval.name, COMPILER_BOOLEAN_TYPE);
+		return ctx.defineBoolean(lval.name + " === " + rval.name);
 	});
 }
 
@@ -631,7 +628,7 @@ function StrictDoesNotEqualOperator(leftExpression, rightExpression) {
 		var lval = ctx.compileGetValue(lref);
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
-		return ctx.define(lval.name + " !== " + rval.name, COMPILER_BOOLEAN_TYPE);
+		return ctx.defineBoolean(lval.name + " !== " + rval.name);
 	});
 }
 
@@ -645,11 +642,11 @@ function BinaryBitwiseOperator(operator, leftExpression, rightExpression) {
 		var rnum = ctx.compileToInt32(rval);
 		switch (operator) {
 		case '&':
-			return ctx.define(lnum.name + " & " + rnum.name, COMPILER_NUMBER_TYPE);
+			return ctx.defineNumber(lnum.name + " & " + rnum.name);
 		case '^':
-			return ctx.define(lnum.name + " ^ " + rnum.name, COMPILER_NUMBER_TYPE);
+			return ctx.defineNumber(lnum.name + " ^ " + rnum.name);
 		case '|':
-			return ctx.define(lnum.name + " | " + rnum.name, COMPILER_NUMBER_TYPE);
+			return ctx.defineNumber(lnum.name + " | " + rnum.name);
 		}
 	});
 }
@@ -720,65 +717,65 @@ function CompoundAssignment(operator, leftExpression, rightExpression) {
 		case '*=':
 			var leftNum = ctx.compileToNumber(lval);
 			var rightNum = ctx.compileToNumber(rval);
-			var r = ctx.define(leftNum.name + " * " + rightNum.name, COMPILER_NUMBER_TYPE);
+			var r = ctx.defineNumber(leftNum.name + " * " + rightNum.name);
 			break;
 		case '/=':
 			var leftNum = ctx.compileToNumber(lval);
 			var rightNum = ctx.compileToNumber(rval);
-			var r = ctx.define(leftNum.name + " / " + rightNum.name, COMPILER_NUMBER_TYPE);
+			var r = ctx.defineNumber(leftNum.name + " / " + rightNum.name);
 			break;
 		case '%=':
 			var leftNum = ctx.compileToNumber(lval);
 			var rightNum = ctx.compileToNumber(rval);
-			var r = ctx.define(leftNum.name + " % " + rightNum.name, COMPILER_NUMBER_TYPE);
+			var r = ctx.defineNumber(leftNum.name + " % " + rightNum.name);
 			break;
 		case '+=':
 			var lprim = ctx.compileToPrimitive(lval);
 			var rprim = ctx.compileToPrimitive(rval);
 			if (lprim.types.isString() || rprim.types.isString()) {
-				var r = ctx.define(lprim.name + " + " + rprim.name, COMPILER_STRING_TYPE);
+				var r = ctx.defineString(lprim.name + " + " + rprim.name);
 			}
 			else if (lprim.types.isNotString() && rprim.types.isNotString()) {
-				var r = ctx.define(lprim.name + " + " + rprim.name, COMPILER_NUMBER_TYPE);
+				var r = ctx.defineNumber(lprim.name + " + " + rprim.name);
 			}
 			else {
-				var r = ctx.define(lprim.name + " + " + rprim.name, COMPILER_NUMBER_OR_STRING_TYPE);
+				var r = ctx.defineValue(lprim.name + " + " + rprim.name);
 			}
 			break;
 		case '-=':
 			var leftNum = ctx.compileToNumber(lval);
 			var rightNum = ctx.compileToNumber(rval);
-			var r = ctx.define(leftNum.name + " - " + rightNum.name, COMPILER_NUMBER_TYPE);
+			var r = ctx.defineNumber(leftNum.name + " - " + rightNum.name);
 			break;
 		case '<<=':
 			var leftNum = ctx.compileToInt32(lval);
 			var rightNum = ctx.compileToUint32(rval);
-			var r = ctx.define(leftNum.name + " << " + rightNum.name, COMPILER_NUMBER_TYPE);
+			var r = ctx.defineNumber(leftNum.name + " << " + rightNum.name);
 			break;
 		case '>>=':
 			var leftNum = ctx.compileToInt32(lval);
 			var rightNum = ctx.compileToUint32(rval);
-			var r = ctx.define(leftNum.name + " >> " + rightNum.name, COMPILER_NUMBER_TYPE);
+			var r = ctx.defineNumber(leftNum.name + " >> " + rightNum.name);
 			break;
 		case '>>>=':
 			var leftNum = ctx.compileToUint32(lval);
 			var rightNum = ctx.compileToUint32(rval);
-			var r = ctx.define(leftNum.name + " >>> " + rightNum.name, COMPILER_NUMBER_TYPE);
+			var r = ctx.defineNumber(leftNum.name + " >>> " + rightNum.name);
 			break;
 		case '&=':
 			var leftNum = ctx.compileToInt32(lval);
 			var rightNum = ctx.compileToInt32(rval);
-			var r = ctx.define(leftNum.name + " & " + rightNum.name, COMPILER_NUMBER_TYPE);
+			var r = ctx.defineNumber(leftNum.name + " & " + rightNum.name);
 			break;
 		case '|=':
 			var leftNum = ctx.compileToInt32(lval);
 			var rightNum = ctx.compileToInt32(rval);
-			var r = ctx.define(leftNum.name + " | " + rightNum.name, COMPILER_NUMBER_TYPE);
+			var r = ctx.defineNumber(leftNum.name + " | " + rightNum.name);
 			break;
 		case '^=':
 			var leftNum = ctx.compileToInt32(lval);
 			var rightNum = ctx.compileToInt32(rval);
-			var r = ctx.define(leftNum.name + " ^ " + rightNum.name, COMPILER_NUMBER_TYPE);
+			var r = ctx.defineNumber(leftNum.name + " ^ " + rightNum.name);
 			break;
 		}
 		ctx.compilePutValue(lref, r);

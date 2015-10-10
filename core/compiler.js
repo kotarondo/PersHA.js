@@ -57,9 +57,8 @@ var COMPILER_OBJECT_TYPE = new CompilerTypes("object");
 var COMPILER_VALUE_TYPE = new CompilerTypes(COMPILER_PRIMITIVE_TYPE, COMPILER_OBJECT_TYPE);
 var COMPILER_IDENTIFIER_REFERENCE_TYPE = new CompilerTypes("iref");
 var COMPILER_PROPERTY_REFERENCE_TYPE = new CompilerTypes("pref");
-var COMPILER_LIST_TYPE = new CompilerTypes("list");
 var COMPILER_ANY_TYPE = new CompilerTypes(COMPILER_VALUE_TYPE, COMPILER_IDENTIFIER_REFERENCE_TYPE,
-		COMPILER_IDENTIFIER_REFERENCE_TYPE, COMPILER_LIST_TYPE);
+		COMPILER_IDENTIFIER_REFERENCE_TYPE, "list", "envRec");
 
 CompilerTypes.prototype.isPrimitive = function() {
 	return this.types.every(function(type) {
@@ -124,6 +123,7 @@ CompilerContext.expression = function(compile) {
 			var v = compile(ctx);
 			ctx.compileReturn(v);
 			cached = ctx.finish();
+			//console.log(cached.toString());
 		}
 		return cached();
 	}
@@ -139,6 +139,7 @@ CompilerContext.reference = function(compile) {
 			var ref = compile(ctx);
 			ctx.text("return ReferenceValue(" + ref.base.name + "," + ref.name + "," + ref.strict + ");");
 			cached = ctx.finish();
+			//console.log(cached.toString());
 		}
 		return cached();
 	}
@@ -186,6 +187,34 @@ CompilerContext.prototype.define = function(str, types) {
 	};
 };
 
+CompilerContext.prototype.defineValue = function(str) {
+	return this.define(str, COMPILER_VALUE_TYPE);
+};
+
+CompilerContext.prototype.defineAny = function(str) {
+	return this.define(str, COMPILER_ANY_TYPE);
+};
+
+CompilerContext.prototype.defineObject = function(str) {
+	return this.define(str, COMPILER_OBJECT_TYPE);
+};
+
+CompilerContext.prototype.defineString = function(str) {
+	return this.define(str, COMPILER_STRING_TYPE);
+};
+
+CompilerContext.prototype.defineNumber = function(str) {
+	return this.define(str, COMPILER_NUMBER_TYPE);
+};
+
+CompilerContext.prototype.defineBoolean = function(str) {
+	return this.define(str, COMPILER_BOOLEAN_TYPE);
+};
+
+CompilerContext.prototype.definePrimitive = function(str) {
+	return this.define(str, COMPILER_PRIMITIVE_TYPE);
+};
+
 CompilerContext.prototype.mergeHolder = function() {
 	return this.define("", COMPILER_NONE_TYPE);
 };
@@ -219,7 +248,7 @@ CompilerContext.prototype.compileExpression = function(expr) {
 	}
 	// compiler doesn't exit (under development)
 	var name = this.literal(expr);
-	var v = this.define(name + "()", COMPILER_ANY_TYPE);
+	var v = this.defineAny(name + "()");
 	return v;
 };
 
@@ -228,17 +257,17 @@ CompilerContext.prototype.compileGetValue = function(ref) {
 	if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
 		var base = ref.base;
 		if (base.types.isObject()) {
-			return this.define(base.name + ".Get(" + ref.name + ")", COMPILER_VALUE_TYPE);
+			return this.defineValue(base.name + ".Get(" + ref.name + ")");
 		}
 		if (base.types.isNotObject()) {
-			return this.define("specialGet(" + base.name + "," + ref.name + ")", COMPILER_VALUE_TYPE);
+			return this.defineValue("specialGet(" + base.name + "," + ref.name + ")");
 		}
 		var mval = this.mergeHolder();
 		this.text("if (Type(" + base.name + ") === " + TYPE_Object + ") {");
-		var val = this.define(base.name + ".Get(" + ref.name + ")", COMPILER_VALUE_TYPE);
+		var val = this.defineValue(base.name + ".Get(" + ref.name + ")");
 		this.merge(mval, val);
 		this.text("} else {");
-		var val = this.define("specialGet(" + base.name + "," + ref.name + ")", COMPILER_VALUE_TYPE);
+		var val = this.defineValue("specialGet(" + base.name + "," + ref.name + ")");
 		this.merge(mval, val);
 		this.text("}");
 		return mval;
@@ -247,10 +276,10 @@ CompilerContext.prototype.compileGetValue = function(ref) {
 		var base = ref.base;
 		this.text("if(" + base.name + "===undefined)");
 		this.text("throw VMReferenceError(" + ref.name + "+' is not defined');");
-		return this.define(base.name + ".GetBindingValue(" + ref.name + "," + ref.strict + ")", COMPILER_VALUE_TYPE);
+		return this.defineValue(base.name + ".GetBindingValue(" + ref.name + "," + ref.strict + ")");
 	}
 	else {
-		return this.define("GetValue(" + ref.name + ")", COMPILER_VALUE_TYPE);
+		return this.defineValue("GetValue(" + ref.name + ")");
 	}
 };
 
@@ -286,40 +315,40 @@ CompilerContext.prototype.compilePutValue = function(ref, val) {
 
 CompilerContext.prototype.compileToNumber = function(val) {
 	if (val.types.isNumber()) return val;
-	if (val.types.isPrimitive()) return this.define("Number(" + val.name + ")", COMPILER_NUMBER_TYPE);
-	return this.define("ToNumber(" + val.name + ")", COMPILER_NUMBER_TYPE);
+	if (val.types.isPrimitive()) return this.defineNumber("Number(" + val.name + ")");
+	return this.defineNumber("ToNumber(" + val.name + ")");
 };
 
 CompilerContext.prototype.compileToString = function(val) {
 	if (val.types.isString()) return val;
-	if (val.types.isPrimitive()) return this.define("String(" + val.name + ")", COMPILER_STRING_TYPE);
-	return this.define("ToString(" + val.name + ")", COMPILER_STRING_TYPE);
+	if (val.types.isPrimitive()) return this.defineString("String(" + val.name + ")");
+	return this.defineString("ToString(" + val.name + ")");
 };
 
 CompilerContext.prototype.compileToBoolean = function(val) {
 	if (val.types.isBoolean()) return val;
-	if (val.types.isPrimitive()) return this.define("!! " + val.name, COMPILER_BOOLEAN_TYPE);
-	return this.define("ToBoolean(" + val.name + ")", COMPILER_BOOLEAN_TYPE);
+	if (val.types.isPrimitive()) return this.defineBoolean("!! " + val.name);
+	return this.defineBoolean("ToBoolean(" + val.name + ")");
 };
 
 CompilerContext.prototype.compileToPrimitive = function(val, hint) {
 	if (val.types.isPrimitive()) return val;
-	if (!hint) return this.define("ToPrimitive(" + val.name + ")", COMPILER_PRIMITIVE_TYPE);
-	return this.define("ToPrimitive(" + val.name + "," + hint + ")", COMPILER_PRIMITIVE_TYPE);
+	if (!hint) return this.definePrimitive("ToPrimitive(" + val.name + ")");
+	return this.definePrimitive("ToPrimitive(" + val.name + "," + hint + ")");
 };
 
 CompilerContext.prototype.compileToInt32 = function(val) {
-	if (val.types.isPrimitive()) return this.define(val.name + " >> 0", COMPILER_NUMBER_TYPE);
-	return this.define("ToInt32(" + val.name + ")", COMPILER_NUMBER_TYPE);
+	if (val.types.isPrimitive()) return this.defineNumber(val.name + " >> 0");
+	return this.defineNumber("ToInt32(" + val.name + ")");
 };
 
 CompilerContext.prototype.compileToUint32 = function(val) {
-	if (val.types.isPrimitive()) return this.define(val.name + " >>> 0", COMPILER_NUMBER_TYPE);
-	return this.define("ToUint32(" + val.name + ")", COMPILER_NUMBER_TYPE);
+	if (val.types.isPrimitive()) return this.defineNumber(val.name + " >>> 0");
+	return this.defineNumber("ToUint32(" + val.name + ")");
 };
 
 CompilerContext.prototype.compileEvaluateArguments = function(args) {
-	var argList = this.define("[]", COMPILER_LIST_TYPE);
+	var argList = this.defineAny("[]");
 	for (var i = 0; i < args.length; i++) {
 		var ref = this.compileExpression(args[i]);
 		var arg = this.compileGetValue(ref);
