@@ -744,10 +744,10 @@ function CompoundAssignment(operator, leftExpression, rightExpression) {
 }
 
 function CommaOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		GetValue(lref);
-		var rref = rightExpression();
-		return GetValue(rref);
-	};
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		return ctx.compileGetValue(rref);
+	});
 }
