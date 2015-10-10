@@ -36,6 +36,8 @@
 // ECMAScript 5.1: 15.1 The Global Object
 
 function Global_eval(thisValue, argumentsList, direct, strict) {
+	if (direct === undefined) direct = false;
+	if (strict === undefined) strict = false;
 	var x = argumentsList[0];
 	if (Type(x) !== TYPE_String) return x;
 	try {

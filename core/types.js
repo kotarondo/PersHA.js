@@ -58,7 +58,7 @@ function Type(x) {
 	}
 	if (x === null) return TYPE_Null;
 	if (x.Class !== undefined) return TYPE_Object;
-	if (x.referencedName !== undefined) return TYPE_Reference;
+	if (x.strictReference !== undefined) return TYPE_Reference;
 	if (x.HasBinding !== undefined) return TYPE_EnvironmentRecord;
 	if (x.environmentRecord !== undefined) return TYPE_Environment;
 	assert(false, x);
@@ -423,6 +423,7 @@ function VMObject(ClassID) {
 }
 
 function ReferenceValue(base, referencedName, strictReference) {
+	assert(strictReference !== undefined);
 	return ({
 		base : base,
 		referencedName : referencedName,

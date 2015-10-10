@@ -77,6 +77,7 @@ var theParser = function() {
 	var lastIdentifier;
 
 	function setup(text, strictMode, subc, filename) {
+		assert(strictMode !== undefined);
 		source = text;
 		strict = strictMode;
 		subcodes = subc;
