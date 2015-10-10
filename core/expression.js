@@ -170,7 +170,7 @@ function PropertyAccessor(base, name, strict) {
 		var propertyNameValue = ctx.compileGetValue(propertyNameReference);
 		ctx.text("if (" + baseValue.name + " === undefined || " + baseValue.name + " === null)");
 		ctx.text("throwPropertyAccessorError(" + baseValue.name + "," + propertyNameValue.name + ");");
-		if (propertyNameValue.types.isPrimitive()) {
+		if (propertyNameValue.types.isNotObject()) {
 			return {
 				name : propertyNameValue.name,
 				types : COMPILER_PROPERTY_REFERENCE_TYPE,
@@ -200,14 +200,20 @@ function throwPropertyAccessorError(base, name) {
 }
 
 function NewOperator(expression, args) {
-	return function() {
-		var ref = expression();
-		var constructor = GetValue(ref);
-		var argList = evaluateArguments(args);
-		if (Type(constructor) !== TYPE_Object) throw VMTypeError();
-		if (constructor._Construct === undefined) throw VMTypeError();
-		return constructor.Construct(argList);
-	};
+	return CompilerContext.expression(function(ctx) {
+		var ref = ctx.compileExpression(expression);
+		var cntr = ctx.compileGetValue(ref);
+		var argList = ctx.compileEvaluateArguments(args);
+		if (cntr.types.isNotObject()) {
+			ctx.text("throw VMTypeError();");
+			return {
+				name : "undefined",
+				types : COMPILER_UNDEFINED_TYPE,
+			};
+		}
+		ctx.text("if (! " + cntr.name + " || " + cntr.name + "._Construct === undefined) throw VMTypeError();");
+		return ctx.define(cntr.name + ".Construct(" + argList.name + ")", COMPILER_VALUE_TYPE);
+	});
 }
 
 function FunctionCall(expression, args, strict) {

@@ -57,8 +57,9 @@ var COMPILER_OBJECT_TYPE = new CompilerTypes("object");
 var COMPILER_VALUE_TYPE = new CompilerTypes(COMPILER_PRIMITIVE_TYPE, COMPILER_OBJECT_TYPE);
 var COMPILER_IDENTIFIER_REFERENCE_TYPE = new CompilerTypes("iref");
 var COMPILER_PROPERTY_REFERENCE_TYPE = new CompilerTypes("pref");
+var COMPILER_LIST_TYPE = new CompilerTypes("list");
 var COMPILER_ANY_TYPE = new CompilerTypes(COMPILER_VALUE_TYPE, COMPILER_IDENTIFIER_REFERENCE_TYPE,
-		COMPILER_IDENTIFIER_REFERENCE_TYPE);
+		COMPILER_IDENTIFIER_REFERENCE_TYPE, COMPILER_LIST_TYPE);
 
 CompilerTypes.prototype.isPrimitive = function() {
 	return this.types.every(function(type) {
@@ -314,3 +315,13 @@ CompilerContext.prototype.compileToUint32 = function(val) {
 	if (val.types.isPrimitive()) return this.define(val.name + " >>> 0", COMPILER_NUMBER_TYPE);
 	return this.define("ToUint32(" + val.name + ")", COMPILER_NUMBER_TYPE);
 };
+
+CompilerContext.prototype.compileEvaluateArguments = function(args) {
+	var argList = this.define("[]", COMPILER_LIST_TYPE);
+	for (var i = 0; i < args.length; i++) {
+		var ref = this.compileExpression(args[i]);
+		var arg = this.compileGetValue(ref);
+		this.text(argList.name + ".push(" + arg.name + ");");
+	}
+	return argList;
+}
