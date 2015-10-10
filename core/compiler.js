@@ -50,6 +50,7 @@ var COMPILER_NULL_TYPE = new CompilerTypes("null");
 var COMPILER_BOOLEAN_TYPE = new CompilerTypes("boolean", "true", "false");
 var COMPILER_NUMBER_TYPE = new CompilerTypes("number", "integer", "int32", "uint32");
 var COMPILER_STRING_TYPE = new CompilerTypes("string");
+var COMPILER_NUMBER_OR_STRING_TYPE = new CompilerTypes(COMPILER_NUMBER_TYPE, COMPILER_STRING_TYPE);
 var COMPILER_PRIMITIVE_TYPE = new CompilerTypes(COMPILER_UNDEFINED_TYPE, COMPILER_NULL_TYPE, COMPILER_BOOLEAN_TYPE,
 		COMPILER_NUMBER_TYPE, COMPILER_STRING_TYPE);
 var COMPILER_OBJECT_TYPE = new CompilerTypes("object");

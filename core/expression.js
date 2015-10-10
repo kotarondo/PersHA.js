@@ -378,7 +378,7 @@ function AdditionOperator(leftExpression, rightExpression) {
 			return ctx.define(lprim.name + " + " + rprim.name, COMPILER_NUMBER_TYPE);
 		}
 		else {
-			return ctx.define(lprim.name + " + " + rprim.name, COMPILER_PRIMITIVE_TYPE);
+			return ctx.define(lprim.name + " + " + rprim.name, COMPILER_NUMBER_OR_STRING_TYPE);
 		}
 	});
 }
@@ -668,56 +668,79 @@ function SimpleAssignment(leftExpression, rightExpression) {
 }
 
 function CompoundAssignment(operator, leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		var rref = rightExpression();
-		var rval = GetValue(rref);
+	return CompilerContext.expression(function(ctx) {
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
 		switch (operator) {
 		case '*=':
-			var r = ToNumber(lval) * ToNumber(rval);
+			var leftNum = ctx.compileToNumber(lval);
+			var rightNum = ctx.compileToNumber(rval);
+			var r = ctx.define(leftNum.name + " * " + rightNum.name, COMPILER_NUMBER_TYPE);
 			break;
 		case '/=':
-			var r = ToNumber(lval) / ToNumber(rval);
+			var leftNum = ctx.compileToNumber(lval);
+			var rightNum = ctx.compileToNumber(rval);
+			var r = ctx.define(leftNum.name + " / " + rightNum.name, COMPILER_NUMBER_TYPE);
 			break;
 		case '%=':
-			var r = ToNumber(lval) % ToNumber(rval);
+			var leftNum = ctx.compileToNumber(lval);
+			var rightNum = ctx.compileToNumber(rval);
+			var r = ctx.define(leftNum.name + " % " + rightNum.name, COMPILER_NUMBER_TYPE);
 			break;
 		case '+=':
-			var lprim = ToPrimitive(lval);
-			var rprim = ToPrimitive(rval);
-			if (Type(lprim) === TYPE_String || Type(rprim) === TYPE_String) {
-				var r = ToString(lprim) + ToString(rprim);
+			var lprim = ctx.compileToPrimitive(lval);
+			var rprim = ctx.compileToPrimitive(rval);
+			if (lprim.types.isString() || rprim.types.isString()) {
+				var r = ctx.define(lprim.name + " + " + rprim.name, COMPILER_STRING_TYPE);
+			}
+			else if (lprim.types.isNotString() && rprim.types.isNotString()) {
+				var r = ctx.define(lprim.name + " + " + rprim.name, COMPILER_NUMBER_TYPE);
 			}
 			else {
-				var r = ToNumber(lprim) + ToNumber(rprim);
+				var r = ctx.define(lprim.name + " + " + rprim.name, COMPILER_NUMBER_OR_STRING_TYPE);
 			}
 			break;
 		case '-=':
-			var r = ToNumber(lval) - ToNumber(rval);
+			var leftNum = ctx.compileToNumber(lval);
+			var rightNum = ctx.compileToNumber(rval);
+			var r = ctx.define(leftNum.name + " - " + rightNum.name, COMPILER_NUMBER_TYPE);
 			break;
 		case '<<=':
-			var r = ToInt32(lval) << (ToUint32(rval) & 0x1F);
+			var leftNum = ctx.compileToInt32(lval);
+			var rightNum = ctx.compileToUint32(rval);
+			var r = ctx.define(leftNum.name + " << " + rightNum.name, COMPILER_NUMBER_TYPE);
 			break;
 		case '>>=':
-			var r = ToInt32(lval) >> (ToUint32(rval) & 0x1F);
+			var leftNum = ctx.compileToInt32(lval);
+			var rightNum = ctx.compileToUint32(rval);
+			var r = ctx.define(leftNum.name + " >> " + rightNum.name, COMPILER_NUMBER_TYPE);
 			break;
 		case '>>>=':
-			var r = ToUint32(lval) >>> (ToUint32(rval) & 0x1F);
+			var leftNum = ctx.compileToUint32(lval);
+			var rightNum = ctx.compileToUint32(rval);
+			var r = ctx.define(leftNum.name + " >>> " + rightNum.name, COMPILER_NUMBER_TYPE);
 			break;
 		case '&=':
-			var r = ToInt32(lval) & ToInt32(rval);
+			var leftNum = ctx.compileToInt32(lval);
+			var rightNum = ctx.compileToInt32(rval);
+			var r = ctx.define(leftNum.name + " & " + rightNum.name, COMPILER_NUMBER_TYPE);
 			break;
 		case '|=':
-			var r = ToInt32(lval) | ToInt32(rval);
+			var leftNum = ctx.compileToInt32(lval);
+			var rightNum = ctx.compileToInt32(rval);
+			var r = ctx.define(leftNum.name + " | " + rightNum.name, COMPILER_NUMBER_TYPE);
 			break;
 		case '^=':
-			var r = ToInt32(lval) ^ ToInt32(rval);
+			var leftNum = ctx.compileToInt32(lval);
+			var rightNum = ctx.compileToInt32(rval);
+			var r = ctx.define(leftNum.name + " ^ " + rightNum.name, COMPILER_NUMBER_TYPE);
 			break;
 		}
-		PutValue(lref, r);
+		ctx.compilePutValue(lref, r);
 		return r;
-	};
+	});
 }
 
 function CommaOperator(leftExpression, rightExpression) {
