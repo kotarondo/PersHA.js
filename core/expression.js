@@ -99,6 +99,11 @@ function RegExpLiteral(regexp) {
 	return function() {
 		return theRegExpFactory.createRegExpObject(regexp);
 	};
+	evaluate.compile = (function(ctx) {
+		var r = ctx.literal(regexp);
+		return ctx.define("theRegExpFactory.createRegExpObject(" + r.name + ")", COMPILER_OBJECT_TYPE);
+	});
+	return evaluate;
 }
 
 function ArrayInitialiser(elements) {
