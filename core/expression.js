@@ -339,7 +339,7 @@ function BitwiseNOTOperator(expression) {
 function LogicalNOTOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
-		var oldValue = ctx.compileToBoolean(ctx.compileGetValue(expr));
+		var oldValue = ctx.compileGetValue(expr);
 		return ctx.define("! " + oldValue.name, COMPILER_BOOLEAN_TYPE);
 	});
 }
@@ -617,7 +617,7 @@ function LogicalAndOperator(leftExpression, rightExpression) {
 		var lref = ctx.compileExpression(leftExpression);
 		var lval = ctx.compileGetValue(lref);
 		ctx.merge(mval, lval);
-		ctx.text("if (" + ctx.compileToBoolean(lval).name + ") {");
+		ctx.text("if (" + lval.name + ") {");
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
 		ctx.merge(mval, rval);
@@ -632,7 +632,7 @@ function LogicalOrOperator(leftExpression, rightExpression) {
 		var lref = ctx.compileExpression(leftExpression);
 		var lval = ctx.compileGetValue(lref);
 		ctx.merge(mval, lval);
-		ctx.text("if (! " + ctx.compileToBoolean(lval).name + ") {");
+		ctx.text("if (! " + lval.name + ") {");
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
 		ctx.merge(mval, rval);
@@ -646,7 +646,7 @@ function ConditionalOperator(condition, firstExpression, secondExpression) {
 		var mval = ctx.define("", COMPILER_NONE_TYPE);
 		var lref = ctx.compileExpression(condition);
 		var lval = ctx.compileGetValue(lref);
-		ctx.text("if (" + ctx.compileToBoolean(lval).name + ") {");
+		ctx.text("if (" + lval.name + ") {");
 		var trueRef = ctx.compileExpression(firstExpression);
 		ctx.merge(mval, ctx.compileGetValue(trueRef));
 		ctx.text("} else {");
