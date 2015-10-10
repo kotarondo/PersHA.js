@@ -50,9 +50,8 @@ var COMPILER_NULL_TYPE = new CompilerTypes("null");
 var COMPILER_BOOLEAN_TYPE = new CompilerTypes("boolean", "true", "false");
 var COMPILER_NUMBER_TYPE = new CompilerTypes("number", "integer", "int32", "uint32");
 var COMPILER_STRING_TYPE = new CompilerTypes("string");
-var COMPILER_NUMBER_OR_STRING_TYPE = new CompilerTypes(COMPILER_NUMBER_TYPE, COMPILER_STRING_TYPE);
-var COMPILER_PRIMITIVE_TYPE = new CompilerTypes(COMPILER_UNDEFINED_TYPE, COMPILER_NULL_TYPE, COMPILER_BOOLEAN_TYPE,
-		COMPILER_NUMBER_TYPE, COMPILER_STRING_TYPE);
+var COMPILER_PRIMITIVE_TYPE = new CompilerTypes("undefined", "null", COMPILER_BOOLEAN_TYPE, COMPILER_NUMBER_TYPE,
+		COMPILER_STRING_TYPE);
 var COMPILER_OBJECT_TYPE = new CompilerTypes("object");
 var COMPILER_VALUE_TYPE = new CompilerTypes(COMPILER_PRIMITIVE_TYPE, COMPILER_OBJECT_TYPE);
 var COMPILER_IDENTIFIER_REFERENCE_TYPE = new CompilerTypes("iref");
@@ -123,7 +122,6 @@ CompilerContext.expression = function(compile) {
 			var v = compile(ctx);
 			ctx.compileReturn(v);
 			cached = ctx.finish();
-			//console.log(cached.toString());
 		}
 		return cached();
 	}
@@ -139,7 +137,6 @@ CompilerContext.reference = function(compile) {
 			var ref = compile(ctx);
 			ctx.text("return ReferenceValue(" + ref.base.name + "," + ref.name + "," + ref.strict + ");");
 			cached = ctx.finish();
-			//console.log(cached.toString());
 		}
 		return cached();
 	}
@@ -183,7 +180,7 @@ CompilerContext.prototype.define = function(str, types) {
 	else this.text("var " + name + ";");
 	return {
 		name : name,
-		types : types,
+		types : types
 	};
 };
 
@@ -215,8 +212,8 @@ CompilerContext.prototype.definePrimitive = function(str) {
 	return this.define(str, COMPILER_PRIMITIVE_TYPE);
 };
 
-CompilerContext.prototype.mergeHolder = function() {
-	return this.define("", COMPILER_NONE_TYPE);
+CompilerContext.prototype.defineNone = function(str) {
+	return this.define(str, COMPILER_NONE_TYPE);
 };
 
 CompilerContext.prototype.merge = function(mval, rval) {
@@ -226,6 +223,7 @@ CompilerContext.prototype.merge = function(mval, rval) {
 
 CompilerContext.prototype.finish = function() {
 	var code = this.texts.join('\n');
+	//console.log(code);
 	try {
 		if (this.literals.length === 0) {
 			return new Function(code);
@@ -257,26 +255,21 @@ CompilerContext.prototype.compileGetValue = function(ref) {
 	if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
 		var base = ref.base;
 		if (base.types.isObject()) {
-			return this.defineValue(base.name + ".Get(" + ref.name + ")");
+			return this.defineValue(base.name + " .Get(" + ref.name + ")");
 		}
 		if (base.types.isNotObject()) {
 			return this.defineValue("specialGet(" + base.name + "," + ref.name + ")");
 		}
-		var mval = this.mergeHolder();
-		this.text("if (Type(" + base.name + ") === " + TYPE_Object + ") {");
-		var val = this.defineValue(base.name + ".Get(" + ref.name + ")");
-		this.merge(mval, val);
-		this.text("} else {");
-		var val = this.defineValue("specialGet(" + base.name + "," + ref.name + ")");
-		this.merge(mval, val);
-		this.text("}");
+		this.text("if(Type(" + base.name + ")===TYPE_Object)");
+		var mval = this.defineValue(base.name + " .Get(" + ref.name + ")");
+		this.text("else");
+		this.text("var " + mval.name + "=specialGet(" + base.name + "," + ref.name + ");");
 		return mval;
 	}
 	else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 		var base = ref.base;
-		this.text("if(" + base.name + "===undefined)");
-		this.text("throw VMReferenceError(" + ref.name + "+' is not defined');");
-		return this.defineValue(base.name + ".GetBindingValue(" + ref.name + "," + ref.strict + ")");
+		this.text("if(" + base.name + " ===undefined)throw VMReferenceError(" + ref.name + " +' is not defined');");
+		return this.defineValue(base.name + " .GetBindingValue(" + ref.name + "," + ref.strict + ")");
 	}
 	else {
 		return this.defineValue("GetValue(" + ref.name + ")");
@@ -287,26 +280,25 @@ CompilerContext.prototype.compilePutValue = function(ref, val) {
 	if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
 		var base = ref.base;
 		if (base.types.isObject()) {
-			this.text(base.name + ".Put(" + ref.name + "," + val.name + "," + ref.strict + ");");
+			this.text(base.name + " .Put(" + ref.name + "," + val.name + "," + ref.strict + ");");
 			return;
 		}
 		if (base.types.isNotObject()) {
 			this.text("specialPut(" + base.name + "," + ref.name + "," + val.name + "," + ref.strict + ");");
 			return;
 		}
-		this.text("if (Type(" + base.name + ") === " + TYPE_Object + ") {");
-		this.text(base.name + ".Put(" + ref.name + "," + val.name + "," + ref.strict + ");");
-		this.text("} else {");
+		this.text("if(Type(" + base.name + ")===TYPE_Object)");
+		this.text(base.name + " .Put(" + ref.name + "," + val.name + "," + ref.strict + ");");
+		this.text("else");
 		this.text("specialPut(" + base.name + "," + ref.name + "," + val.name + "," + ref.strict + ");");
-		this.text("}");
 	}
 	else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 		var base = ref.base;
-		this.text("if(" + base.name + "===undefined)");
-		if (ref.strict) this.text("throw VMReferenceError(" + ref.name + "+' is not defined');");
-		else this.text("vm.theGlobalObject.Put(" + ref.name + "," + val.name + ", false);");
+		this.text("if(" + base.name + " ===undefined)");
+		if (ref.strict) this.text("throw VMReferenceError(" + ref.name + " +' is not defined');");
+		else this.text("vm.theGlobalObject.Put(" + ref.name + "," + val.name + ",false);");
 		this.text("else");
-		this.text(base.name + ".SetMutableBinding(" + ref.name + "," + val.name + "," + ref.strict + ");");
+		this.text(base.name + " .SetMutableBinding(" + ref.name + "," + val.name + "," + ref.strict + ");");
 	}
 	else {
 		this.text("PutValue(" + ref.name + "," + val.name + ");");
@@ -352,7 +344,7 @@ CompilerContext.prototype.compileEvaluateArguments = function(args) {
 	for (var i = 0; i < args.length; i++) {
 		var ref = this.compileExpression(args[i]);
 		var arg = this.compileGetValue(ref);
-		this.text(argList.name + ".push(" + arg.name + ");");
+		this.text(argList.name + " .push(" + arg.name + ");");
 	}
 	return argList;
 }

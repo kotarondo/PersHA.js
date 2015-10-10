@@ -35,6 +35,22 @@
 
 // ECMAScript 5.1: 11 Expressions
 
+var COMPILER_UNDEFINED_VALUE = {
+	name : "undefined",
+	types : COMPILER_UNDEFINED_TYPE,
+	isLiteral : true
+};
+var COMPILER_TRUE_VALUE = {
+	name : "true",
+	types : COMPILER_BOOLEAN_TYPE,
+	isLiteral : true
+};
+var COMPILER_FALSE_VALUE = {
+	name : "false",
+	types : COMPILER_BOOLEAN_TYPE,
+	isLiteral : true
+};
+
 function ThisExpression() {
 	var evaluate = function() {
 		return ThisBinding;
@@ -57,7 +73,7 @@ function IdentifierReference(identifier, strict) {
 			name : name,
 			types : COMPILER_IDENTIFIER_REFERENCE_TYPE,
 			base : base,
-			strict : strict,
+			strict : strict
 		};
 	});
 	return evaluate;
@@ -90,6 +106,7 @@ function Literal(value) {
 		return {
 			name : ctx.quote(value),
 			types : types,
+			isLiteral : true
 		};
 	});
 	return evaluate;
@@ -113,8 +130,8 @@ function ArrayInitialiser(elements) {
 			if (e !== empty) {
 				var initResult = ctx.compileExpression(e);
 				var initValue = ctx.compileGetValue(initResult);
-				ctx.text(array.name + " .DefineOwnProperty(" + i + ",DataPropertyDescriptor(" + initValue.name
-						+ ",true,true,true),false);");
+				ctx.text(array.name + " .DefineOwnProperty(" + i + //
+				",DataPropertyDescriptor(" + initValue.name + ",true,true,true),false);");
 			}
 		}
 		if (e === empty) {
@@ -144,25 +161,26 @@ function PropertyAssignment(name, expression) {
 				return;
 			}
 		}
-		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + ",DataPropertyDescriptor(" + propValue.name
-				+ ",true,true,true),false);");
+		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + //
+		",DataPropertyDescriptor(" + propValue.name + ",true,true,true),false);");
 	};
 }
 
 function PropertyAssignmentGet(name, body) {
 	return function(ctx, obj) {
-		var closure = ctx.defineValue("CreateFunction([]," + ctx.literal(body) + ",LexicalEnvironment," + body.strict + ")");
-		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + ",AccessorPropertyDescriptor(" + closure.name
-				+ ",absent,true,true),false);");
+		var closure = ctx.defineValue("CreateFunction([]," + //
+		ctx.literal(body) + ",LexicalEnvironment," + body.strict + ")");
+		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + //
+		",AccessorPropertyDescriptor(" + closure.name + ",absent,true,true),false);");
 	};
 }
 
 function PropertyAssignmentSet(name, parameter, body) {
 	return function(ctx, obj) {
-		var closure = ctx.defineValue("CreateFunction([" + ctx.quote(parameter) + "]," + ctx.literal(body)
-				+ ",LexicalEnvironment," + body.strict + ")");
-		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + ",AccessorPropertyDescriptor(absent," + closure.name
-				+ ",true,true),false);");
+		var closure = ctx.defineValue("CreateFunction([" + ctx.quote(parameter) + "]," + //
+		ctx.literal(body) + ",LexicalEnvironment," + body.strict + ")");
+		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + //
+		",AccessorPropertyDescriptor(absent," + closure.name + ",true,true),false);");
 	};
 }
 
@@ -172,26 +190,18 @@ function PropertyAccessor(base, name, strict) {
 		var baseValue = ctx.compileGetValue(baseReference);
 		var propertyNameReference = ctx.compileExpression(name);
 		var propertyNameValue = ctx.compileGetValue(propertyNameReference);
-		ctx.text("if(" + baseValue.name + " ===undefined|| " + baseValue.name + " ===null)throwPropertyAccessorError("
-				+ baseValue.name + "," + propertyNameValue.name + ");");
-		if (propertyNameValue.types.isNotObject()) {
-			return {
-				name : propertyNameValue.name,
-				types : COMPILER_PROPERTY_REFERENCE_TYPE,
-				base : baseValue,
-				strict : strict,
-			};
+		ctx.text("if(" + baseValue.name + " ===undefined|| " + baseValue.name + " ===null)" + //
+		"throwPropertyAccessorError(" + baseValue.name + "," + propertyNameValue.name + ");");
+		if (!propertyNameValue.types.isNotObject()) {
+			ctx.text("if(Type(" + propertyNameValue.name + ")===TYPE_Object){");
+			ctx.merge(propertyNameValue, ctx.compileToString(propertyNameValue));
+			ctx.text("}");
 		}
-		var mval = ctx.mergeHolder();
-		ctx.merge(mval, propertyNameValue);
-		ctx.text("if(Type(" + propertyNameValue.name + ")===TYPE_Object){");
-		ctx.merge(mval, ctx.compileToString(propertyNameValue));
-		ctx.text("}");
 		return {
-			name : mval.name,
+			name : propertyNameValue.name,
 			types : COMPILER_PROPERTY_REFERENCE_TYPE,
 			base : baseValue,
-			strict : strict,
+			strict : strict
 		};
 	});
 }
@@ -210,12 +220,9 @@ function NewOperator(expression, args) {
 		var argList = ctx.compileEvaluateArguments(args);
 		if (cntr.types.isNotObject()) {
 			ctx.text("throw VMTypeError();");
-			return {
-				name : "undefined",
-				types : COMPILER_UNDEFINED_TYPE,
-			};
+			return COMPILER_UNDEFINED_VALUE;
 		}
-		ctx.text("if (! " + cntr.name + " ||! " + cntr.name + " ._Construct) throw VMTypeError();");
+		ctx.text("if(! " + cntr.name + " ||! " + cntr.name + " ._Construct)throw VMTypeError();");
 		return ctx.defineValue(cntr.name + " .Construct(" + argList.name + ")");
 	});
 }
@@ -227,25 +234,20 @@ function FunctionCall(expression, args, strict) {
 		var argList = ctx.compileEvaluateArguments(args);
 		if (func.types.isNotObject()) {
 			ctx.text("throw VMTypeError();");
-			return {
-				name : "undefined",
-				types : COMPILER_UNDEFINED_TYPE,
-			};
+			return COMPILER_UNDEFINED_VALUE;
 		}
-		ctx.text("if (! " + func.name + " || ! " + func.name + "._Call) throw VMTypeError();");
+		ctx.text("if(! " + func.name + " ||! " + func.name + " ._Call)throw VMTypeError();");
 		if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
 			var thisValue = ref.base;
-			return ctx.defineValue(func.name + ".Call(" + thisValue.name + "," + argList.name + ")");
+			return ctx.defineValue(func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
 		}
 		else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 			var base = ref.base;
-			var thisValue = ctx.defineValue(base.name + ".ImplicitThisValue()");
-			var mval = ctx.mergeHolder();
-			ctx.text("if (" + func.name + " === vm.theEvalFunction && " + ref.name + " === 'eval') {");
-			ctx.merge(mval, ctx.defineValue("Global_eval(" + thisValue.name + "," + argList.name + ",true," + strict + ")"));
-			ctx.text("}else{");
-			ctx.merge(mval, ctx.defineValue(func.name + " .Call(" + thisValue.name + "," + argList.name + ")"));
-			ctx.text("}");
+			var thisValue = ctx.defineValue(base.name + " .ImplicitThisValue()");
+			ctx.text("if(" + func.name + " ===vm.theEvalFunction&& " + ref.name + " ==='eval')");
+			var mval = ctx.defineValue("Global_eval(" + thisValue.name + "," + argList.name + ",true," + strict + ")");
+			ctx.text("else");
+			ctx.text("var " + mval.name + "= " + func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
 			return mval;
 		}
 		else {
@@ -283,15 +285,12 @@ function deleteOperator(expression) {
 			return ctx.defineBoolean("ToObject(" + base.name + ").Delete(" + ref.name + "," + ref.strict + ");");
 		}
 		else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
-			return ctx.defineBoolean("(" + base.name + " ===undefined)?true: " + base.name + " .DeleteBinding(" + ref.name
-					+ ")");
+			return ctx.defineBoolean("(" + base.name + " ===undefined)?true: " + //
+			base.name + " .DeleteBinding(" + ref.name + ")");
 		}
 		else {
 			assert(ref.types.isValue(), ref); // provided that all expressions have own compilers
-			return {
-				name : "true",
-				types : COMPILER_BOOLEAN_TYPE,
-			};
+			return COMPILER_TRUE_VALUE;
 		}
 	});
 }
@@ -300,10 +299,7 @@ function voidOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
 		ctx.compileGetValue(expr);
-		return {
-			name : "undefined",
-			types : COMPILER_UNDEFINED_TYPE,
-		};
+		return COMPILER_UNDEFINED_VALUE;
 	});
 }
 
@@ -323,12 +319,10 @@ function typeofOperator(expression) {
 		else {
 			assert(val.types.isValue(), val); // provided that all expressions have own compilers
 		}
-		var mval = ctx.mergeHolder();
-		ctx.text("if (Type(" + val.name + ") === TYPE_Object) {");
-		ctx.merge(mval, ctx.defineString(val.name + " ._Call?'function':'object'"));
-		ctx.text("}else{");
-		ctx.merge(mval, ctx.defineString("typeof " + val.name));
-		ctx.text("}");
+		ctx.text("if(Type(" + val.name + ")===TYPE_Object)");
+		var mval = ctx.defineString(val.name + " ._Call?'function':'object'");
+		ctx.text("else");
+		ctx.text("var " + mval.name + "=typeof " + val.name);
 		return mval;
 	});
 }
@@ -527,14 +521,11 @@ function instanceofOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		if (rval.types.isNotObject()) {
 			ctx.text("throw VMTypeError();");
-			return {
-				name : "false",
-				types : COMPILER_BOOLEAN_TYPE,
-			};
+			return COMPILER_FALSE_VALUE;
 		}
-		ctx.text("if (Type(" + rval.name + ") !== " + TYPE_Object + ") throw VMTypeError();");
-		ctx.text("if (" + rval.name + ".HasInstance === undefined) throw VMTypeError();");
-		return ctx.defineBoolean(rval.name + ".HasInstance(" + lval.name + ")");
+		ctx.text("if(Type(" + rval.name + ")!==TYPE_Object)throw VMTypeError();");
+		ctx.text("if(" + rval.name + " .HasInstance===undefined)throw VMTypeError();");
+		return ctx.defineBoolean(rval.name + " .HasInstance(" + lval.name + ")");
 	});
 }
 
@@ -546,14 +537,11 @@ function inOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		if (rval.types.isNotObject()) {
 			ctx.text("throw VMTypeError();");
-			return {
-				name : "false",
-				types : COMPILER_BOOLEAN_TYPE,
-			};
+			return COMPILER_FALSE_VALUE;
 		}
-		ctx.text("if (Type(" + rval.name + ") !== " + TYPE_Object + ") throw VMTypeError();");
+		ctx.text("if(Type(" + rval.name + ")!==TYPE_Object)throw VMTypeError();");
 		var lval = ctx.compileToString(lval);
-		return ctx.defineBoolean(rval.name + ".HasProperty(" + lval.name + ")");
+		return ctx.defineBoolean(rval.name + " .HasProperty(" + lval.name + ")");
 	});
 }
 
@@ -653,43 +641,41 @@ function BinaryBitwiseOperator(operator, leftExpression, rightExpression) {
 
 function LogicalAndOperator(leftExpression, rightExpression) {
 	return CompilerContext.expression(function(ctx) {
-		var mval = ctx.mergeHolder();
 		var lref = ctx.compileExpression(leftExpression);
 		var lval = ctx.compileGetValue(lref);
-		ctx.merge(mval, lval);
-		ctx.text("if (" + lval.name + ") {");
+		if (lval.isLiteral) var lval = ctx.define(lval.name, lval.types);
+		ctx.text("if(" + lval.name + "){");
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
-		ctx.merge(mval, rval);
+		ctx.merge(lval, rval);
 		ctx.text("}");
-		return mval;
+		return lval;
 	});
 }
 
 function LogicalOrOperator(leftExpression, rightExpression) {
 	return CompilerContext.expression(function(ctx) {
-		var mval = ctx.mergeHolder();
 		var lref = ctx.compileExpression(leftExpression);
 		var lval = ctx.compileGetValue(lref);
-		ctx.merge(mval, lval);
-		ctx.text("if (! " + lval.name + ") {");
+		if (lval.isLiteral) var lval = ctx.define(lval.name, lval.types);
+		ctx.text("if(! " + lval.name + "){");
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
-		ctx.merge(mval, rval);
+		ctx.merge(lval, rval);
 		ctx.text("}");
-		return mval;
+		return lval;
 	});
 }
 
 function ConditionalOperator(condition, firstExpression, secondExpression) {
 	return CompilerContext.expression(function(ctx) {
-		var mval = ctx.mergeHolder();
 		var lref = ctx.compileExpression(condition);
 		var lval = ctx.compileGetValue(lref);
-		ctx.text("if (" + lval.name + ") {");
+		var mval = ctx.defineNone();
+		ctx.text("if(" + lval.name + "){");
 		var trueRef = ctx.compileExpression(firstExpression);
 		ctx.merge(mval, ctx.compileGetValue(trueRef));
-		ctx.text("} else {");
+		ctx.text("}else{");
 		var falseRef = ctx.compileExpression(secondExpression);
 		ctx.merge(mval, ctx.compileGetValue(falseRef));
 		ctx.text("}");

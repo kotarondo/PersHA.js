@@ -48,8 +48,8 @@ function FunctionDeclaration(name, parameters, body) {
 function FunctionExpression(name, parameters, body) {
 	if (name === undefined) {
 		return CompilerContext.expression(function(ctx) {
-			return ctx.define("CreateFunction(" + ctx.literal(parameters) + "," + ctx.literal(body) + ", LexicalEnvironment, "
-					+ body.strict + ")", COMPILER_OBJECT_TYPE);
+			return ctx.defineObject("CreateFunction(" + ctx.literal(parameters) + "," + ctx.literal(body)
+					+ ",LexicalEnvironment," + body.strict + ")");
 		});
 	}
 
@@ -64,7 +64,7 @@ function FunctionExpression(name, parameters, body) {
 	}
 	;
 	return CompilerContext.expression(function(ctx) {
-		return ctx.define(ctx.literal(evaluate) + "()", COMPILER_OBJECT_TYPE);
+		return ctx.defineObject(ctx.literal(evaluate) + "()");
 	});
 }
 
