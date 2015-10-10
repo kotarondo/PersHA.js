@@ -126,45 +126,45 @@ function ArrayInitialiser(elements) {
 }
 
 function ObjectInitialiser(elements) {
-	return function() {
-		var obj = Object_Construct([]);
+	return CompilerContext.expression(function(ctx) {
+		var obj = ctx.define("Object_Construct([])", COMPILER_OBJECT_TYPE);
 		for (var i = 0; i < elements.length; i++) {
-			elements[i](obj);
+			elements[i](ctx, obj);
 		}
 		return obj;
-	};
+	});
 }
 
 function PropertyAssignment(name, expression) {
-	return function(obj) {
-		var exprValue = expression();
-		var propValue = GetValue(exprValue);
+	return function(ctx, obj) {
+		var exprValue = ctx.compileExpression(expression);
+		var propValue = ctx.compileGetValue(exprValue);
 		if (STRICT_CONFORMANCE === false) {
 			if (name === '__proto__') {
-				set_Object_prototype___proto__(obj, [ propValue ]);
+				ctx.text("set_Object_prototype___proto__(" + obj.name + ", [ " + propValue.name + " ]);");
 				return;
 			}
 		}
-		var desc = DataPropertyDescriptor(propValue, true, true, true);
-		obj.DefineOwnProperty(name, desc, false);
+		ctx.text(obj.name + ".DefineOwnProperty(" + ctx.quote(name) + ", DataPropertyDescriptor(" + propValue.name
+				+ ", true, true, true), false);");
 	};
 }
 
 function PropertyAssignmentGet(name, body) {
-	return function(obj) {
-		var env = LexicalEnvironment;
-		var closure = CreateFunction([], body, env, body.strict);
-		var desc = AccessorPropertyDescriptor(closure, absent, true, true);
-		obj.DefineOwnProperty(name, desc, false);
+	return function(ctx, obj) {
+		var closure = ctx.define("CreateFunction([], " + ctx.literal(body) + ", LexicalEnvironment, " + body.strict + ")",
+				COMPILER_VALUE_TYPE);
+		ctx.text(obj.name + ".DefineOwnProperty(" + ctx.quote(name) + ", AccessorPropertyDescriptor(" + closure.name
+				+ ", absent, true, true), false);");
 	};
 }
 
 function PropertyAssignmentSet(name, parameter, body) {
-	return function(obj) {
-		var env = LexicalEnvironment;
-		var closure = CreateFunction([ parameter ], body, env, body.strict);
-		var desc = AccessorPropertyDescriptor(absent, closure, true, true);
-		obj.DefineOwnProperty(name, desc, false);
+	return function(ctx, obj) {
+		var closure = ctx.define("CreateFunction([" + ctx.quote(parameter) + "], " + ctx.literal(body)
+				+ ", LexicalEnvironment, " + body.strict + ")", COMPILER_VALUE_TYPE);
+		ctx.text(obj.name + ".DefineOwnProperty(" + ctx.quote(name) + ", AccessorPropertyDescriptor(absent, " + closure.name
+				+ ", true, true), false);");
 	};
 }
 
