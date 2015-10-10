@@ -213,9 +213,11 @@ CompilerContext.prototype.compileReturn = function(val) {
 }
 
 CompilerContext.prototype.compileExpression = function(expr) {
+	assert(expr.compile, expr.toString()); // check if all expressions have own compilers
 	if (expr.compile) {
 		return expr.compile(this);
 	}
+	// compiler doesn't exit (under development)
 	var name = this.literal(expr);
 	var v = this.define(name + "()", COMPILER_ANY_TYPE);
 	return v;

@@ -96,12 +96,11 @@ function Literal(value) {
 }
 
 function RegExpLiteral(regexp) {
-	return function() {
+	function evaluate() {
 		return theRegExpFactory.createRegExpObject(regexp);
-	};
+	}
 	evaluate.compile = (function(ctx) {
-		var r = ctx.literal(regexp);
-		return ctx.define("theRegExpFactory.createRegExpObject(" + r.name + ")", COMPILER_OBJECT_TYPE);
+		return ctx.define("theRegExpFactory.createRegExpObject(" + ctx.literal(regexp) + ")", COMPILER_OBJECT_TYPE);
 	});
 	return evaluate;
 }
@@ -252,7 +251,7 @@ function FunctionCall(expression, args, strict) {
 			return mval;
 		}
 		else {
-			ctx.text("assert(Type(" + ref.name + ") !== TYPE_Reference, " + ref.name + ");");
+			assert(ref.types.isValue(), ref); // provided that all expressions have own compilers
 			return ctx.define(func.name + ".Call(undefined," + argList.name + ")", COMPILER_VALUE_TYPE);
 		}
 	});
@@ -291,7 +290,7 @@ function deleteOperator(expression) {
 					COMPILER_BOOLEAN_TYPE);
 		}
 		else {
-			ctx.text("assert(Type(" + ref.name + ") !== TYPE_Reference, " + ref.name + ");");
+			assert(ref.types.isValue(), ref); // provided that all expressions have own compilers
 			return {
 				name : "true",
 				types : COMPILER_BOOLEAN_TYPE,
@@ -325,7 +324,7 @@ function typeofOperator(expression) {
 			val = mval;
 		}
 		else {
-			ctx.text("assert(Type(" + val.name + ") !== TYPE_Reference, " + val.name + ");");
+			assert(val.types.isValue(), val); // provided that all expressions have own compilers
 		}
 		var mval = ctx.mergeHolder();
 		ctx.text("if (Type(" + val.name + ") === TYPE_Object) {");
