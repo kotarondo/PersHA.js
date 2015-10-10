@@ -279,16 +279,25 @@ function PostfixDecrementOperator(expression) {
 }
 
 function deleteOperator(expression) {
-	return function() {
-		var ref = expression();
-		if (Type(ref) !== TYPE_Reference) return true;
-		if (IsUnresolvableReference(ref)) return true;
-		if (IsPropertyReference(ref)) return ToObject(GetBase(ref)).Delete(GetReferencedName(ref), IsStrictReference(ref));
-		else {
-			var bindings = GetBase(ref);
-			return bindings.DeleteBinding(GetReferencedName(ref));
+	return CompilerContext.expression(function(ctx) {
+		var ref = ctx.compileExpression(expression);
+		var base = ref.base;
+		if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
+			return ctx.define("ToObject(" + base.name + ").Delete(" + ref.name + ", " + ref.strict + ");",
+					COMPILER_BOOLEAN_TYPE);
 		}
-	};
+		else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
+			return ctx.define("(" + base.name + "===undefined)?true: " + base.name + " .DeleteBinding(" + ref.name + ")",
+					COMPILER_BOOLEAN_TYPE);
+		}
+		else {
+			ctx.text("assert(Type(" + ref.name + ") !== TYPE_Reference, " + ref.name + ");");
+			return {
+				name : "true",
+				types : COMPILER_BOOLEAN_TYPE,
+			};
+		}
+	});
 }
 
 function voidOperator(expression) {
@@ -303,28 +312,29 @@ function voidOperator(expression) {
 }
 
 function typeofOperator(expression) {
-	return function() {
-		var val = expression();
-		if (Type(val) === TYPE_Reference) {
-			if (IsUnresolvableReference(val)) return "undefined";
-			val = GetValue(val);
+	return CompilerContext.expression(function(ctx) {
+		var val = ctx.compileExpression(expression);
+		if (val.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
+			var val = ctx.compileGetValue(val);
 		}
-		switch (Type(val)) {
-		case TYPE_Undefined:
-			return "undefined";
-		case TYPE_Null:
-			return "object";
-		case TYPE_Boolean:
-			return "boolean";
-		case TYPE_Number:
-			return "number";
-		case TYPE_String:
-			return "string";
-		case TYPE_Object:
-			if (IsCallable(val)) return "function";
-			return "object";
+		else if (val.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
+			var mval = ctx.define("undefined", COMPILER_UNDEFINED_TYPE);
+			ctx.text("if (" + val.base.name + "!==undefined) {");
+			ctx.merge(mval, ctx.compileGetValue(val));
+			ctx.text("}");
+			val = mval;
 		}
-	};
+		else {
+			ctx.text("assert(Type(" + val.name + ") !== TYPE_Reference, " + val.name + ");");
+		}
+		var mval = ctx.mergeHolder();
+		ctx.text("if (Type(" + val.name + ") === TYPE_Object) {");
+		ctx.merge(mval, ctx.define(val.name + " ._Call ? 'function' : 'object'", COMPILER_STRING_TYPE));
+		ctx.text("}else{");
+		ctx.merge(mval, ctx.define("typeof " + val.name, COMPILER_STRING_TYPE));
+		ctx.text("}");
+		return mval;
+	});
 }
 
 function PrefixIncrementOperator(expression) {
