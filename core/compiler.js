@@ -130,6 +130,21 @@ CompilerContext.expression = function(compile) {
 	return evaluate;
 };
 
+CompilerContext.reference = function(compile) {
+	var cached;
+	function evaluate() {
+		if (!cached) {
+			var ctx = new CompilerContext();
+			var ref = compile(ctx);
+			ctx.text("return ReferenceValue(" + ref.base.name + "," + ref.name + "," + ref.strict + ");");
+			cached = ctx.finish();
+		}
+		return cached();
+	}
+	evaluate.compile = compile;
+	return evaluate;
+};
+
 CompilerContext.prototype.text = function(text) {
 	this.texts.push(text);
 };
@@ -171,11 +186,7 @@ CompilerContext.prototype.define = function(str, types) {
 };
 
 CompilerContext.prototype.mergeHolder = function() {
-	var name = "tmp" + (this.variables++);
-	return {
-		name : name,
-		types : new CompilerTypes(),
-	};
+	return this.define("", COMPILER_NONE_TYPE);
 };
 
 CompilerContext.prototype.merge = function(mval, rval) {
@@ -211,18 +222,29 @@ CompilerContext.prototype.compileExpression = function(expr) {
 
 CompilerContext.prototype.compileGetValue = function(ref) {
 	if (ref.types.isValue()) return ref;
-	/*
 	if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
-		if (HasPrimitiveBase(V) === false) return base.Get(GetReferencedName(V));
-		else return specialGet(base, GetReferencedName(V));
-	}else
-	*/
-	if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 		var base = ref.base;
-		var name = this.quote(ref.name);
+		if (base.types.isObject()) {
+			return this.define(base.name + ".Get(" + ref.name + ")", COMPILER_VALUE_TYPE);
+		}
+		if (base.types.isNotObject()) {
+			return this.define("specialGet(" + base.name + "," + ref.name + ")", COMPILER_VALUE_TYPE);
+		}
+		var mval = this.mergeHolder();
+		this.text("if (Type(" + base.name + ") === " + TYPE_Object + ") {");
+		var val = this.define(base.name + ".Get(" + ref.name + ")", COMPILER_VALUE_TYPE);
+		this.merge(mval, val);
+		this.text("} else {");
+		var val = this.define("specialGet(" + base.name + "," + ref.name + ")", COMPILER_VALUE_TYPE);
+		this.merge(mval, val);
+		this.text("}");
+		return mval;
+	}
+	else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
+		var base = ref.base;
 		this.text("if(" + base.name + "===undefined)");
-		this.text("throw VMReferenceError(" + name + "+' is not defined');");
-		return this.define(base.name + ".GetBindingValue(" + name + "," + ref.strict + ")", COMPILER_VALUE_TYPE);
+		this.text("throw VMReferenceError(" + ref.name + "+' is not defined');");
+		return this.define(base.name + ".GetBindingValue(" + ref.name + "," + ref.strict + ")", COMPILER_VALUE_TYPE);
 	}
 	else {
 		return this.define("GetValue(" + ref.name + ")", COMPILER_VALUE_TYPE);
@@ -230,24 +252,29 @@ CompilerContext.prototype.compileGetValue = function(ref) {
 };
 
 CompilerContext.prototype.compilePutValue = function(ref, val) {
-	/*
 	if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
-		if (HasPrimitiveBase(V) === false) {
-			base.Put(GetReferencedName(V), W, IsStrictReference(V));
-		}
-		else {
-			specialPut(base, GetReferencedName(V), W, IsStrictReference(V));
-		}
-	}else
-	*/
-	if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 		var base = ref.base;
-		var name = this.quote(ref.name);
+		if (base.types.isObject()) {
+			this.text(base.name + ".Put(" + ref.name + "," + val.name + "," + ref.strict + ");");
+			return;
+		}
+		if (base.types.isNotObject()) {
+			this.text("specialPut(" + base.name + "," + ref.name + "," + val.name + "," + ref.strict + ");");
+			return;
+		}
+		this.text("if (Type(" + base.name + ") === " + TYPE_Object + ") {");
+		this.text(base.name + ".Put(" + ref.name + "," + val.name + "," + ref.strict + ");");
+		this.text("} else {");
+		this.text("specialPut(" + base.name + "," + ref.name + "," + val.name + "," + ref.strict + ");");
+		this.text("}");
+	}
+	else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
+		var base = ref.base;
 		this.text("if(" + base.name + "===undefined)");
-		if (ref.strict) this.text("throw VMReferenceError(" + name + "+' is not defined');");
-		else this.text("vm.theGlobalObject.Put(" + name + "," + val.name + ", false);");
+		if (ref.strict) this.text("throw VMReferenceError(" + ref.name + "+' is not defined');");
+		else this.text("vm.theGlobalObject.Put(" + ref.name + "," + val.name + ", false);");
 		this.text("else");
-		this.text(base.name + ".SetMutableBinding(" + name + "," + val.name + "," + ref.strict + ");");
+		this.text(base.name + ".SetMutableBinding(" + ref.name + "," + val.name + "," + ref.strict + ");");
 	}
 	else {
 		this.text("PutValue(" + ref.name + "," + val.name + ");");

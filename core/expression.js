@@ -51,10 +51,10 @@ function IdentifierReference(identifier, strict) {
 		return GetIdentifierReference(env, identifier, strict);
 	};
 	evaluate.compile = (function(ctx) {
-		var base = ctx.define("GetIdentifierEnvironmentRecord(LexicalEnvironment," + ctx.quote(identifier) + ")",
-				COMPILER_ANY_TYPE);
+		var name = ctx.quote(identifier);
+		var base = ctx.define("GetIdentifierEnvironmentRecord(LexicalEnvironment," + name + ")", COMPILER_ANY_TYPE);
 		return {
-			name : identifier,
+			name : name,
 			types : COMPILER_IDENTIFIER_REFERENCE_TYPE,
 			base : base,
 			strict : strict,
@@ -163,22 +163,40 @@ function PropertyAssignmentSet(name, parameter, body) {
 }
 
 function PropertyAccessor(base, name, strict) {
-	return function() {
-		var baseReference = base();
-		var baseValue = GetValue(baseReference);
-		var propertyNameReference = name();
-		var propertyNameValue = GetValue(propertyNameReference);
-		if (baseValue === undefined || baseValue === null) {
-			if (Type(propertyNameValue) === TYPE_Object) {
-				throw VMTypeError("Cannot read property of " + baseValue);
-			}
-			throw VMTypeError("Cannot read property '" + propertyNameValue + "' of " + baseValue);
+	return CompilerContext.reference(function(ctx) {
+		var baseReference = ctx.compileExpression(base);
+		var baseValue = ctx.compileGetValue(baseReference);
+		var propertyNameReference = ctx.compileExpression(name);
+		var propertyNameValue = ctx.compileGetValue(propertyNameReference);
+		ctx.text("if (" + baseValue.name + " === undefined || " + baseValue.name + " === null)");
+		ctx.text("throwPropertyAccessorError(" + baseValue.name + "," + propertyNameValue.name + ");");
+		if (propertyNameValue.types.isPrimitive()) {
+			return {
+				name : propertyNameValue.name,
+				types : COMPILER_PROPERTY_REFERENCE_TYPE,
+				base : baseValue,
+				strict : strict,
+			};
 		}
-		if (typeof propertyNameValue !== "number") {
-			propertyNameValue = ToString(propertyNameValue);
-		}
-		return ReferenceValue(baseValue, propertyNameValue, strict);
-	};
+		var mval = ctx.mergeHolder();
+		ctx.merge(mval, propertyNameValue);
+		ctx.text("if (Type(" + propertyNameValue.name + ") === TYPE_Object) {");
+		ctx.merge(mval, ctx.compileToString(propertyNameValue));
+		ctx.text("}");
+		return {
+			name : mval.name,
+			types : COMPILER_PROPERTY_REFERENCE_TYPE,
+			base : baseValue,
+			strict : strict,
+		};
+	});
+}
+
+function throwPropertyAccessorError(base, name) {
+	if (Type(name) === TYPE_Object) {
+		throw VMTypeError("Cannot read property of " + base);
+	}
+	throw VMTypeError("Cannot read property '" + name + "' of " + base);
 }
 
 function NewOperator(expression, args) {
@@ -613,7 +631,7 @@ function BinaryBitwiseOperator(operator, leftExpression, rightExpression) {
 
 function LogicalAndOperator(leftExpression, rightExpression) {
 	return CompilerContext.expression(function(ctx) {
-		var mval = ctx.define("", COMPILER_NONE_TYPE);
+		var mval = ctx.mergeHolder();
 		var lref = ctx.compileExpression(leftExpression);
 		var lval = ctx.compileGetValue(lref);
 		ctx.merge(mval, lval);
@@ -628,7 +646,7 @@ function LogicalAndOperator(leftExpression, rightExpression) {
 
 function LogicalOrOperator(leftExpression, rightExpression) {
 	return CompilerContext.expression(function(ctx) {
-		var mval = ctx.define("", COMPILER_NONE_TYPE);
+		var mval = ctx.mergeHolder();
 		var lref = ctx.compileExpression(leftExpression);
 		var lval = ctx.compileGetValue(lref);
 		ctx.merge(mval, lval);
@@ -643,7 +661,7 @@ function LogicalOrOperator(leftExpression, rightExpression) {
 
 function ConditionalOperator(condition, firstExpression, secondExpression) {
 	return CompilerContext.expression(function(ctx) {
-		var mval = ctx.define("", COMPILER_NONE_TYPE);
+		var mval = ctx.mergeHolder();
 		var lref = ctx.compileExpression(condition);
 		var lval = ctx.compileGetValue(lref);
 		ctx.text("if (" + lval.name + ") {");
