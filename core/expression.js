@@ -107,21 +107,22 @@ function RegExpLiteral(regexp) {
 }
 
 function ArrayInitialiser(elements) {
-	return function() {
-		var array = Array_Construct([]);
+	return CompilerContext.expression(function(ctx) {
+		var array = ctx.define("Array_Construct([])", COMPILER_OBJECT_TYPE);
 		for (var i = 0; i < elements.length; i++) {
 			var e = elements[i];
 			if (e !== empty) {
-				var initResult = e();
-				var initValue = GetValue(initResult);
-				array.DefineOwnProperty(ToString(i), DataPropertyDescriptor(initValue, true, true, true), false);
+				var initResult = ctx.compileExpression(e);
+				var initValue = ctx.compileGetValue(initResult);
+				ctx.text(array.name + ".DefineOwnProperty(" + i + ", DataPropertyDescriptor(" + initValue.name
+						+ ", true, true, true), false);");
 			}
 		}
 		if (e === empty) {
-			array.Put("length", i - 1, false);
+			ctx.text(array.name + ".Put('length', " + (i - 1) + ", false);");
 		}
 		return array;
-	};
+	});
 }
 
 function ObjectInitialiser(elements) {
