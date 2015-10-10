@@ -642,17 +642,19 @@ function LogicalOrOperator(leftExpression, rightExpression) {
 }
 
 function ConditionalOperator(condition, firstExpression, secondExpression) {
-	return function() {
-		var lref = condition();
-		if (ToBoolean(GetValue(lref)) === true) {
-			var trueRef = firstExpression();
-			return GetValue(trueRef);
-		}
-		else {
-			var falseRef = secondExpression();
-			return GetValue(falseRef);
-		}
-	};
+	return CompilerContext.expression(function(ctx) {
+		var mval = ctx.define("", COMPILER_NONE_TYPE);
+		var lref = ctx.compileExpression(condition);
+		var lval = ctx.compileGetValue(lref);
+		ctx.text("if (" + ctx.compileToBoolean(lval).name + ") {");
+		var trueRef = ctx.compileExpression(firstExpression);
+		ctx.merge(mval, ctx.compileGetValue(trueRef));
+		ctx.text("} else {");
+		var falseRef = ctx.compileExpression(secondExpression);
+		ctx.merge(mval, ctx.compileGetValue(falseRef));
+		ctx.text("}");
+		return mval;
+	});
 }
 
 function SimpleAssignment(leftExpression, rightExpression) {
