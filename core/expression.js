@@ -211,41 +211,45 @@ function NewOperator(expression, args) {
 				types : COMPILER_UNDEFINED_TYPE,
 			};
 		}
-		ctx.text("if (! " + cntr.name + " || " + cntr.name + "._Construct === undefined) throw VMTypeError();");
+		ctx.text("if (! " + cntr.name + " || ! " + cntr.name + "._Construct) throw VMTypeError();");
 		return ctx.define(cntr.name + ".Construct(" + argList.name + ")", COMPILER_VALUE_TYPE);
 	});
 }
 
 function FunctionCall(expression, args, strict) {
-	return function() {
-		var ref = expression();
-		var func = GetValue(ref);
-		var argList = evaluateArguments(args);
-		if (Type(func) !== TYPE_Object) throw VMTypeError();
-		if (!IsCallable(func)) throw VMTypeError();
-		if (Type(ref) === TYPE_Reference) {
-			if (IsPropertyReference(ref)) {
-				var thisValue = GetBase(ref);
-			}
-			else {
-				var thisValue = GetBase(ref).ImplicitThisValue();
-				if (func === vm.theEvalFunction && GetReferencedName(ref) === "eval") {
-					return Global_eval(thisValue, argList, true, strict);
-				}
-			}
+	return CompilerContext.expression(function(ctx) {
+		var ref = ctx.compileExpression(expression);
+		var func = ctx.compileGetValue(ref);
+		var argList = ctx.compileEvaluateArguments(args);
+		if (func.types.isNotObject()) {
+			ctx.text("throw VMTypeError();");
+			return {
+				name : "undefined",
+				types : COMPILER_UNDEFINED_TYPE,
+			};
 		}
-		return func.Call(thisValue, argList);
-	};
-}
-
-function evaluateArguments(args) {
-	var argList = [];
-	for (var i = 0; i < args.length; i++) {
-		var ref = args[i]();
-		var arg = GetValue(ref);
-		argList.push(arg);
-	}
-	return argList;
+		ctx.text("if (! " + func.name + " || ! " + func.name + "._Call) throw VMTypeError();");
+		if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
+			var thisValue = ref.base;
+			return ctx.define(func.name + ".Call(" + thisValue.name + "," + argList.name + ")", COMPILER_VALUE_TYPE);
+		}
+		else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
+			var base = ref.base;
+			var thisValue = ctx.define(base.name + ".ImplicitThisValue()", COMPILER_VALUE_TYPE);
+			var mval = ctx.mergeHolder();
+			ctx.text("if (" + func.name + " === vm.theEvalFunction && " + ref.name + " === 'eval') {");
+			ctx.merge(mval, ctx.define("Global_eval(" + thisValue.name + "," + argList.name + ", true, " + strict + ")",
+					COMPILER_VALUE_TYPE));
+			ctx.text("} else {");
+			ctx.merge(mval, ctx.define(func.name + ".Call(" + thisValue.name + "," + argList.name + ")", COMPILER_VALUE_TYPE));
+			ctx.text("}");
+			return mval;
+		}
+		else {
+			ctx.text("assert(Type(" + ref.name + ") !== TYPE_Reference, " + ref.name + ");");
+			return ctx.define(func.name + ".Call(undefined," + argList.name + ")", COMPILER_VALUE_TYPE);
+		}
+	});
 }
 
 function PostfixIncrementOperator(expression) {

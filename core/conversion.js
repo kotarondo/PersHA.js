@@ -218,9 +218,7 @@ function CheckObjectCoercible(input) {
 }
 
 function IsCallable(input) {
-	if (Type(input) === TYPE_Object) {
-		if (input._Call !== undefined) return true;
-	}
+	if (input && input._Call) return true;
 	return false;
 }
 

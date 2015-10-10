@@ -38,7 +38,7 @@ var STRICT_CONFORMANCE = false;
 function assert(condition, info) {
 	if (!condition) {
 		debugger;
-		console.trace("assertion failed: " + info);
+		console.trace(info);
 		process.abort();
 	}
 }
