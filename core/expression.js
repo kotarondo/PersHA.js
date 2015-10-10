@@ -612,23 +612,33 @@ function BinaryBitwiseOperator(operator, leftExpression, rightExpression) {
 }
 
 function LogicalAndOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		if (ToBoolean(lval) === false) return lval;
-		var rref = rightExpression();
-		return GetValue(rref);
-	};
+	return CompilerContext.expression(function(ctx) {
+		var mval = ctx.define("", COMPILER_NONE_TYPE);
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		ctx.merge(mval, lval);
+		ctx.text("if (" + ctx.compileToBoolean(lval).name + ") {");
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		ctx.merge(mval, rval);
+		ctx.text("}");
+		return mval;
+	});
 }
 
 function LogicalOrOperator(leftExpression, rightExpression) {
-	return function() {
-		var lref = leftExpression();
-		var lval = GetValue(lref);
-		if (ToBoolean(lval) === true) return lval;
-		var rref = rightExpression();
-		return GetValue(rref);
-	};
+	return CompilerContext.expression(function(ctx) {
+		var mval = ctx.define("", COMPILER_NONE_TYPE);
+		var lref = ctx.compileExpression(leftExpression);
+		var lval = ctx.compileGetValue(lref);
+		ctx.merge(mval, lval);
+		ctx.text("if (! " + ctx.compileToBoolean(lval).name + ") {");
+		var rref = ctx.compileExpression(rightExpression);
+		var rval = ctx.compileGetValue(rref);
+		ctx.merge(mval, rval);
+		ctx.text("}");
+		return mval;
+	});
 }
 
 function ConditionalOperator(condition, firstExpression, secondExpression) {

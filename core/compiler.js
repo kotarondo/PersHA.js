@@ -44,6 +44,7 @@ function CompilerTypes() {
 	this.types = Array.prototype.concat.apply([], A);
 }
 
+var COMPILER_NONE_TYPE = new CompilerTypes();
 var COMPILER_UNDEFINED_TYPE = new CompilerTypes("undefined");
 var COMPILER_NULL_TYPE = new CompilerTypes("null");
 var COMPILER_BOOLEAN_TYPE = new CompilerTypes("boolean", "true", "false");
@@ -160,11 +161,25 @@ CompilerContext.prototype.quote = function(x) {
 CompilerContext.prototype.define = function(str, types) {
 	assert(types);
 	var name = "tmp" + (this.variables++);
-	this.text("var " + name + "= " + str + ";");
+	if (str) this.text("var " + name + "= " + str + ";");
+	else this.text("var " + name + ";");
 	return {
 		name : name,
 		types : types,
 	};
+};
+
+CompilerContext.prototype.mergeHolder = function() {
+	var name = "tmp" + (this.variables++);
+	return {
+		name : name,
+		types : new CompilerTypes(),
+	};
+};
+
+CompilerContext.prototype.merge = function(mval, rval) {
+	this.text("var " + mval.name + "= " + rval.name + ";");
+	mval.types = new CompilerTypes(mval.types, rval.types);
 };
 
 CompilerContext.prototype.finish = function() {
@@ -175,8 +190,7 @@ CompilerContext.prototype.finish = function() {
 		}
 		return new Function("literals", code).bind(undefined, this.literals);
 	} catch (e) {
-		console.log(code);
-		console.log(e);
+		console.error("COMPILE ERROR:\n" + code);
 		throw e;
 	}
 };
