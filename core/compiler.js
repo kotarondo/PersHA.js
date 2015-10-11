@@ -319,6 +319,17 @@ CompilerContext.prototype.compileReturn = function(val) {
 	this.text("return " + val.name + ";");
 }
 
+CompilerContext.prototype.compileGetIdentifierReferece = function(name, strict) {
+	var name = this.quote(name);
+	var base = this.defineAny("GetIdentifierEnvironmentRecord(LexicalEnvironment," + name + ")");
+	return {
+		name : name,
+		types : COMPILER_IDENTIFIER_REFERENCE_TYPE,
+		base : base,
+		strict : strict
+	};
+};
+
 CompilerContext.prototype.compileGetValue = function(ref) {
 	if (ref.types.isValue()) return ref;
 	if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {

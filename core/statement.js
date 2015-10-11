@@ -123,14 +123,7 @@ function VariableDeclaration(identifier, initialiser, strict, pos) {
 	return CompilerContext.statement(evaluate, function(ctx) {
 		if (initialiser !== undefined) {
 			ctx.compileRunningPos(pos);
-			var name = ctx.quote(identifier);
-			var base = ctx.defineAny("GetIdentifierEnvironmentRecord(LexicalEnvironment," + name + ")");
-			var lhs = {
-				name : name,
-				types : COMPILER_IDENTIFIER_REFERENCE_TYPE,
-				base : base,
-				strict : strict
-			};
+			var lhs = ctx.compileGetIdentifierReferece(identifier, strict);
 			var rhs = ctx.compileExpression(initialiser);
 			var value = ctx.compileGetValue(rhs);
 			ctx.compilePutValue(lhs, value);
@@ -437,14 +430,7 @@ function ForVarInStatement(variableDeclarationNoIn, expression, statement, label
 		var P = ctx.defineString(next.name + "()");
 		ctx.text("if(" + P.name + " ===undefined)break;");
 		ctx.compileRunningPos(pos1);
-		var name = ctx.quote(varName);
-		var base = ctx.defineAny("GetIdentifierEnvironmentRecord(LexicalEnvironment," + name + ")");
-		var varRef = {
-			name : name,
-			types : COMPILER_IDENTIFIER_REFERENCE_TYPE,
-			base : base,
-			strict : strict
-		};
+		var varRef = ctx.compileGetIdentifierReferece(varName, strict);
 		ctx.compilePutValue(varRef, P);
 		ctx.compileStatement(statement);
 		ctx.text("}");

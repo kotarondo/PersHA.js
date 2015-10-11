@@ -51,14 +51,7 @@ function IdentifierReference(identifier, strict) {
 		return GetIdentifierReference(env, identifier, strict);
 	};
 	evaluate.compile = (function(ctx) {
-		var name = ctx.quote(identifier);
-		var base = ctx.defineAny("GetIdentifierEnvironmentRecord(LexicalEnvironment," + name + ")");
-		return {
-			name : name,
-			types : COMPILER_IDENTIFIER_REFERENCE_TYPE,
-			base : base,
-			strict : strict
-		};
+		return ctx.compileGetIdentifierReferece(identifier, strict);
 	});
 	return evaluate;
 }
