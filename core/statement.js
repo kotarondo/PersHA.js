@@ -511,7 +511,7 @@ function ReturnStatement(expression, pos) {
 }
 
 function WithStatement(expression, statement, pos) {
-	return function() {
+	var evaluate = function() {
 		runningSourcePos = pos;
 		var val = expression();
 		var obj = ToObject(GetValue(val));
@@ -528,6 +528,21 @@ function WithStatement(expression, statement, pos) {
 		LexicalEnvironment = oldEnv;
 		return C;
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.compileRunningPos(pos);
+		var val = ctx.compileExpression(expression);
+		var obj = ctx.compileToObject(ctx.compileGetValue(val));
+		var oldEnv = ctx.defineAny("LexicalEnvironment");
+		var newEnv = ctx.defineAny("NewObjectEnvironment(" + obj.name + "," + oldEnv.name + ")");
+		ctx.text(newEnv.name + " .environmentRecord.provideThis=true;");
+		ctx.text("LexicalEnvironment= " + newEnv.name + ";");
+		ctx.text("try{");
+		ctx.compileStatement(statement);
+		ctx.text("}finally{");
+		ctx.text("LexicalEnvironment= " + oldEnv.name + ";");
+		ctx.text("}");
+	});
 }
 
 function SwitchStatement(expression, caseBlock, labelset, pos) {
