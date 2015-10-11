@@ -45,7 +45,7 @@ function Program(sourceElements) {
 function SourceElements(statements) {
 	if (statements.length === 0) return undefined;
 
-	if (statements.length === 1) return function() {
+	if (statements.length === 1) var evaluate = function() {
 		try {
 			return statements[0]();
 		} catch (V) {
@@ -54,7 +54,7 @@ function SourceElements(statements) {
 		}
 	};
 
-	return function() {
+	else var evaluate = function() {
 		try {
 			var headResult = statements[0]();
 			for (var i = 1; i < statements.length; i++) {
@@ -74,6 +74,12 @@ function SourceElements(statements) {
 			return CompletionValue("throw", V, empty);
 		}
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		for (var i = 0; i < statements.length; i++) {
+			ctx.compileStatement(statements[i]);
+		}
+	});
 }
 
 function NewSourceObject(source, strict, filename) {

@@ -59,7 +59,7 @@ function StatementList(statements) {
 		return s;
 	};
 
-	var evaluate = function() {
+	else var evaluate = function() {
 		try {
 			var sl = statements[0]();
 		} catch (V) {
@@ -102,7 +102,7 @@ function VariableStatement(variableDeclarationList) {
 
 	return CompilerContext.statement(evaluate, function(ctx) {
 		for (var i = 0; i !== variableDeclarationList.length; i++) {
-			ctx.compileStatement(variableDeclarationList[i]);
+			variableDeclarationList[i].compile(ctx);
 		}
 	});
 }
@@ -121,10 +121,16 @@ function VariableDeclaration(identifier, initialiser, strict, pos) {
 	};
 
 	return CompilerContext.statement(evaluate, function(ctx) {
-		for (var i = 0; i !== variableDeclarationList.length; i++) {
+		if (initialiser !== undefined) {
 			ctx.compileRunningPos(pos);
 			var name = ctx.quote(identifier);
-			var lhs = ctx.defineAny("GetIdentifierEnvironmentRecord(LexicalEnvironment," + name + ")");
+			var base = ctx.defineAny("GetIdentifierEnvironmentRecord(LexicalEnvironment," + name + ")");
+			var lhs = {
+				name : name,
+				types : COMPILER_IDENTIFIER_REFERENCE_TYPE,
+				base : base,
+				strict : strict
+			};
 			var rhs = ctx.compileExpression(initialiser);
 			var value = ctx.compileGetValue(rhs);
 			ctx.compilePutValue(lhs, value);
@@ -134,7 +140,7 @@ function VariableDeclaration(identifier, initialiser, strict, pos) {
 }
 
 function EmptyStatement() {
-	return function() {
+	var evaluate = function() {
 		return CompletionValue("normal", empty, empty);
 	};
 
@@ -143,7 +149,7 @@ function EmptyStatement() {
 }
 
 function ExpressionStatement(expression, pos) {
-	return function() {
+	var evaluate = function() {
 		runningSourcePos = pos;
 		var exprRef = expression();
 		return CompletionValue("normal", GetValue(exprRef), empty);
@@ -157,7 +163,7 @@ function ExpressionStatement(expression, pos) {
 }
 
 function IfStatement(expression, firstStatement, secondStatement, pos) {
-	return function() {
+	var evaluate = function() {
 		runningSourcePos = pos;
 		var exprRef = expression();
 		if (ToBoolean(GetValue(exprRef)) === true) return firstStatement();
@@ -170,7 +176,14 @@ function IfStatement(expression, firstStatement, secondStatement, pos) {
 	return CompilerContext.statement(evaluate, function(ctx) {
 		ctx.compileRunningPos(pos);
 		var exprRef = ctx.compileExpression(expression);
-		ctx.compileGetValue(exprRef);
+		var val = ctx.compileGetValue(exprRef);
+		ctx.text("if(" + val.name + "){");
+		ctx.compileStatement(firstStatement);
+		if (secondStatement) {
+			ctx.text("}else{");
+			ctx.compileStatement(secondStatement);
+		}
+		ctx.text("}");
 	});
 }
 
@@ -355,12 +368,19 @@ function BreakStatement(identifier) {
 }
 
 function ReturnStatement(expression, pos) {
-	return function() {
+	var evaluate = function() {
 		if (expression === undefined) return CompletionValue("return", undefined, empty);
 		runningSourcePos = pos;
 		var exprRef = expression();
 		return CompletionValue("return", GetValue(exprRef), empty);
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		if (expression === undefined) return ctx.compileReturn(COMPILER_UNDEFINED_VALUE);
+		ctx.compileRunningPos(pos);
+		var exprRef = ctx.compileExpression(expression);
+		ctx.compileReturn(ctx.compileGetValue(exprRef));
+	});
 }
 
 function WithStatement(expression, statement, pos) {

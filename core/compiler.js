@@ -152,14 +152,14 @@ CompilerContext.prototype.compileExpression = function(expr) {
 	}
 	// compiler doesn't exit (under development)
 	var name = this.literal(expr);
-	var v = this.defineAny(name + "()");
-	return v;
+	return this.defineAny(name + "()");
 };
 
 CompilerContext.prototype.compileStatement = function(stmt) {
 	//assert(stmt.compile, stmt.toString()); // check if all statements have own compilers
 	if (stmt.compile) {
-		return stmt.compile(this);
+		stmt.compile(this);
+		return;
 	}
 	// compiler doesn't exit (under development)
 	var name = this.literal(stmt);
@@ -407,5 +407,5 @@ CompilerContext.prototype.compileEvaluateArguments = function(args) {
 };
 
 CompilerContext.prototype.compileRunningPos = function(pos) {
-	this.text("runningPos= " + pos + ");");
+	this.text("runningSourcePos= " + pos + ";");
 };

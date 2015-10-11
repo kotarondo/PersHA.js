@@ -77,7 +77,7 @@ function FunctionBody(sourceElements) {
 	var ctx = new CompilerContext();
 	ctx.compileStatement(sourceElements);
 	ctx.compileReturn(COMPILER_UNDEFINED_VALUE);
-	//console.log( ctx.texts.join('\n'));
+	//console.log(ctx.texts.join('\n'));
 	return ctx.finish();
 }
 
