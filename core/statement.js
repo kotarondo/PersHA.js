@@ -652,18 +652,45 @@ function CaseBlock(A, defaultClause, B) {
 		return CompletionValue("normal", V, empty);
 	};
 
-	return CompilerContext.statement(evaluate, function(ctx) {
+	return CompilerContext.statement(evaluate, function(ctx, input) {
 		// TODO in case of all case-values are literal -> more optimized version
+		ctx.text("Lcases:{");
 		for (var i = 0; i < A.length; i++) {
+			var C = A[i];
+			var clauseSelector = ctx.compileExpression(C);
+			ctx.text("if(" + input.name + " === " + clauseSelector.name + "){");
+			ctx.text("var swidx= " + i + ";");
+			ctx.text("break Lcases;");
+			ctx.text("}");
 		}
-		for (var i = 0; i < B.length; i++) {
+		for (var j = 0; j < B.length; j++) {
+			var C = B[j];
+			var clauseSelector = ctx.compileExpression(C);
+			ctx.text("if(" + input.name + " === " + clauseSelector.name + "){");
+			ctx.text("var swidx= " + (i + j) + ";");
+			ctx.text("break Lcases;");
+			ctx.text("}");
 		}
-		//defaultClause
+		ctx.text("var swidx =-1;");
+		ctx.text("}");
 		ctx.text("switch(swidx){");
 		for (var i = 0; i < A.length; i++) {
+			var C = A[i];
+			ctx.text("case " + i + ":");
+			if (C.statementList) {
+				ctx.compileStatement(C.statementList);
+			}
 		}
-		//defaultClause
-		for (var i = 0; i < B.length; i++) {
+		if (defaultClause) {
+			ctx.text("default:");
+			ctx.compileStatement(defaultClause);
+		}
+		for (var j = 0; j < B.length; j++) {
+			var C = B[j];
+			ctx.text("case " + (i + j) + ":");
+			if (C.statementList) {
+				ctx.compileStatement(C.statementList);
+			}
 		}
 		ctx.text("}");
 	});
