@@ -545,22 +545,28 @@ function WithStatement(expression, statement, pos) {
 }
 
 function SwitchStatement(expression, caseBlock, labelset, pos) {
-	return function() {
+	var evaluate = function() {
 		runningSourcePos = pos;
 		var exprRef = expression();
 		var R = caseBlock(GetValue(exprRef));
 		if (R.type === "break" && isInLabelSet(R.target, labelset) === true) return CompletionValue("normal", R.value, empty);
 		return R;
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.compileRunningPos(pos);
+		var exprRef = ctx.compileExpression(expression);
+		caseBlock.compile(ctx, ctx.compileGetValue(exprRef));
+	});
 }
 
 function CaseBlock(A, defaultClause, B) {
-	if (defaultClause === undefined) return function(input) {
+	if (defaultClause === undefined) var evaluate = function(input) {
 		var V = empty;
 		var searching = true;
 		for (var i = 0; searching && (i < A.length); i++) {
 			var C = A[i];
-			var clauseSelector = C.evaluate();
+			var clauseSelector = C();
 			if (input === clauseSelector) {
 				searching = false;
 				if (C.statementList !== undefined) {
@@ -583,13 +589,13 @@ function CaseBlock(A, defaultClause, B) {
 		return CompletionValue("normal", V, empty);
 	};
 
-	return function(input) {
+	else var evaluate = function(input) {
 		var V = empty;
 		var found = false;
 		for (var i = 0; i < A.length; i++) {
 			var C = A[i];
 			if (found === false) {
-				var clauseSelector = C.evaluate();
+				var clauseSelector = C();
 				if (input === clauseSelector) {
 					found = true;
 				}
@@ -608,7 +614,7 @@ function CaseBlock(A, defaultClause, B) {
 		if (found === false) {
 			for (var j = 0; foundInB === false && (j < B.length); j++) {
 				var C = B[j];
-				var clauseSelector = C.evaluate();
+				var clauseSelector = C();
 				if (input === clauseSelector) {
 					foundInB = true;
 					if (C.statementList !== undefined) {
@@ -645,17 +651,31 @@ function CaseBlock(A, defaultClause, B) {
 		}
 		return CompletionValue("normal", V, empty);
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		// TODO in case of all case-values are literal -> more optimized version
+		for (var i = 0; i < A.length; i++) {
+		}
+		for (var i = 0; i < B.length; i++) {
+		}
+		//defaultClause
+		ctx.text("switch(swidx){");
+		for (var i = 0; i < A.length; i++) {
+		}
+		//defaultClause
+		for (var i = 0; i < B.length; i++) {
+		}
+		ctx.text("}");
+	});
 }
 
 function CaseClause(expression, statementList, pos) {
-	return ({
-		statementList : statementList,
-		evaluate : function() {
-			runningSourcePos = pos;
-			var exprRef = expression();
-			return GetValue(exprRef);
-		}
+	var evaluate = CompilerContext.expression(function(ctx) {
+		var exprRef = ctx.compileExpression(expression);
+		return ctx.compileGetValue(exprRef);
 	});
+	evaluate.statementList = statementList;
+	return evaluate;
 }
 
 function isInLabelSet(target, labelset) {
