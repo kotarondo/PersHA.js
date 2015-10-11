@@ -181,7 +181,7 @@ function IfStatement(expression, firstStatement, secondStatement, pos) {
 }
 
 function DoWhileStatement(statement, expression, labelset, pos) {
-	return function() {
+	var evaluate = function() {
 		var V = empty;
 		while (true) {
 			var stmt = statement();
@@ -201,10 +201,25 @@ function DoWhileStatement(statement, expression, labelset, pos) {
 		}
 		return CompletionValue("normal", V, empty);
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.iterables++;
+		var i = ctx.defineBoolean("false");
+		ctx.text("for(;; " + i.name + " =true){");
+		ctx.text("if(" + i.name + "){");
+		ctx.compileRunningPos(pos);
+		var exprRef = ctx.compileExpression(expression);
+		var val = ctx.compileGetValue(exprRef);
+		ctx.text("if(! " + val.name + ")break;");
+		ctx.text("}");
+		ctx.compileStatement(statement);
+		ctx.text("}");
+		ctx.iterables--;
+	});
 }
 
 function WhileStatement(expression, statement, labelset, pos) {
-	return function() {
+	var evaluate = function() {
 		var V = empty;
 		while (true) {
 			runningSourcePos = pos;
@@ -224,6 +239,18 @@ function WhileStatement(expression, statement, labelset, pos) {
 		}
 		return CompletionValue("normal", V, empty);
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.iterables++;
+		ctx.text("while(true){");
+		ctx.compileRunningPos(pos);
+		var exprRef = ctx.compileExpression(expression);
+		var val = ctx.compileGetValue(exprRef);
+		ctx.text("if(! " + val.name + ")break;");
+		ctx.compileStatement(statement);
+		ctx.text("}");
+		ctx.iterables--;
+	});
 }
 
 function ForStatement(expressionNoIn, firstExpression, secondExpression, statement, labelset, pos1, pos2, pos3) {
@@ -440,17 +467,31 @@ function ForVarInStatement(variableDeclarationNoIn, expression, statement, label
 }
 
 function ContinueStatement(identifier) {
-	return function() {
+	var evaluate = function() {
 		if (identifier === undefined) return CompletionValue("continue", empty, empty);
 		else return CompletionValue("continue", empty, identifier);
 	};
+
+	if (identifier) {
+		return evaluate;
+	}
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.text("continue;");
+	});
 }
 
 function BreakStatement(identifier) {
-	return function() {
+	var evaluate = function() {
 		if (identifier === undefined) return CompletionValue("break", empty, empty);
 		else return CompletionValue("break", empty, identifier);
 	};
+
+	if (identifier) {
+		return evaluate;
+	}
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.text("break;");
+	});
 }
 
 function ReturnStatement(expression, pos) {
