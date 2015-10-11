@@ -38,17 +38,20 @@
 var COMPILER_UNDEFINED_VALUE = {
 	name : "undefined",
 	types : COMPILER_UNDEFINED_TYPE,
-	isLiteral : true
+	isLiteral : true,
+	value : undefined
 };
 var COMPILER_TRUE_VALUE = {
 	name : "true",
 	types : COMPILER_BOOLEAN_TYPE,
-	isLiteral : true
+	isLiteral : true,
+	value : true
 };
 var COMPILER_FALSE_VALUE = {
 	name : "false",
 	types : COMPILER_BOOLEAN_TYPE,
-	isLiteral : true
+	isLiteral : true,
+	value : false
 };
 
 function ThisExpression() {
@@ -106,7 +109,8 @@ function Literal(value) {
 		return {
 			name : ctx.quote(value),
 			types : types,
-			isLiteral : true
+			isLiteral : true,
+			value : value
 		};
 	});
 	return evaluate;
@@ -190,8 +194,10 @@ function PropertyAccessor(base, name, strict) {
 		var baseValue = ctx.compileGetValue(baseReference);
 		var propertyNameReference = ctx.compileExpression(name);
 		var propertyNameValue = ctx.compileGetValue(propertyNameReference);
-		ctx.text("if(" + baseValue.name + " ===undefined|| " + baseValue.name + " ===null)" + //
-		"throwPropertyAccessorError(" + baseValue.name + "," + propertyNameValue.name + ");");
+		if (!(baseValue.types.isNotUndefined() && baseValue.types.isNotNull())) {
+			ctx.text("if(" + baseValue.name + " ===undefined|| " + baseValue.name + " ===null)" + //
+			"throwPropertyAccessorError(" + baseValue.name + "," + propertyNameValue.name + ");");
+		}
 		if (!propertyNameValue.types.isNotObject()) {
 			ctx.text("if(Type(" + propertyNameValue.name + ")===TYPE_Object){");
 			ctx.merge(propertyNameValue, ctx.compileToString(propertyNameValue));
@@ -239,21 +245,22 @@ function FunctionCall(expression, args, strict) {
 		ctx.text("if(! " + func.name + " ||! " + func.name + " ._Call)throw VMTypeError();");
 		if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
 			var thisValue = ref.base;
-			return ctx.defineValue(func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
 		}
 		else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
-			var base = ref.base;
-			var thisValue = ctx.defineValue(base.name + " .ImplicitThisValue()");
-			ctx.text("if(" + func.name + " ===vm.theEvalFunction&& " + ref.name + " ==='eval')");
-			var mval = ctx.defineValue("Global_eval(" + thisValue.name + "," + argList.name + ",true," + strict + ")");
-			ctx.text("else");
-			ctx.text("var " + mval.name + "= " + func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
-			return mval;
+			var thisValue = ctx.defineValue(ref.base.name + " .ImplicitThisValue()");
 		}
 		else {
 			assert(ref.types.isValue(), ref); // provided that all expressions have own compilers
-			return ctx.defineValue(func.name + " .Call(undefined," + argList.name + ")");
+			var thisValue = COMPILER_UNDEFINED_VALUE;
 		}
+		if (ref.name === '"eval"' && ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
+			ctx.text("if(" + func.name + " ===vm.theEvalFunction)");
+			var mval = ctx.defineValue("Global_eval(" + thisValue.name + "," + argList.name + ",true," + strict + ")");
+			ctx.text("else");
+			ctx.mergeDefineValue(mval, func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
+			return mval;
+		}
+		return ctx.defineValue(func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
 	});
 }
 
@@ -310,19 +317,24 @@ function typeofOperator(expression) {
 			var val = ctx.compileGetValue(val);
 		}
 		else if (val.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
-			var mval = ctx.defineValue("undefined");
 			ctx.text("if(" + val.base.name + " !==undefined){");
-			ctx.merge(mval, ctx.compileGetValue(val));
-			ctx.text("}");
-			val = mval;
+			var val = ctx.compileGetValue(val);
+			ctx.text("}else");
+			ctx.merge(val, COMPILER_UNDEFINED_VALUE);
 		}
 		else {
 			assert(val.types.isValue(), val); // provided that all expressions have own compilers
 		}
+		if (val.types.isObject()) {
+			return ctx.defineString(val.name + " ._Call?'function':'object'");
+		}
+		if (val.types.isNotObject()) {
+			return ctx.defineString("typeof " + val.name);
+		}
 		ctx.text("if(Type(" + val.name + ")===TYPE_Object)");
 		var mval = ctx.defineString(val.name + " ._Call?'function':'object'");
 		ctx.text("else");
-		ctx.text("var " + mval.name + "=typeof " + val.name);
+		ctx.mergeDefineString(mval, "typeof " + val.name);
 		return mval;
 	});
 }
@@ -643,7 +655,13 @@ function LogicalAndOperator(leftExpression, rightExpression) {
 	return CompilerContext.expression(function(ctx) {
 		var lref = ctx.compileExpression(leftExpression);
 		var lval = ctx.compileGetValue(lref);
-		if (lval.isLiteral) var lval = ctx.define(lval.name, lval.types);
+		if (lval.isLiteral) {
+			if (!lval.value) {
+				return lval;
+			}
+			var rref = ctx.compileExpression(rightExpression);
+			return ctx.compileGetValue(rref);
+		}
 		ctx.text("if(" + lval.name + "){");
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
@@ -657,7 +675,13 @@ function LogicalOrOperator(leftExpression, rightExpression) {
 	return CompilerContext.expression(function(ctx) {
 		var lref = ctx.compileExpression(leftExpression);
 		var lval = ctx.compileGetValue(lref);
-		if (lval.isLiteral) var lval = ctx.define(lval.name, lval.types);
+		if (lval.isLiteral) {
+			if (lval.value) {
+				return lval;
+			}
+			var rref = ctx.compileExpression(rightExpression);
+			return ctx.compileGetValue(rref);
+		}
 		ctx.text("if(! " + lval.name + "){");
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
