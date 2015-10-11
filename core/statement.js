@@ -653,11 +653,16 @@ function CaseBlock(A, defaultClause, B) {
 	};
 
 	return CompilerContext.statement(evaluate, function(ctx, input) {
-		// TODO in case of all case-values are literal -> more optimized version
+		var mark = ctx.texts.length;
+		var selectors = [];
+		var direct = true;
 		ctx.text("Lcases:{");
 		for (var i = 0; i < A.length; i++) {
 			var C = A[i];
+			var l = ctx.texts.length;
 			var clauseSelector = ctx.compileExpression(C);
+			direct = clauseSelector.isLiteral ? direct : false;
+			selectors[i] = clauseSelector;
 			ctx.text("if(" + input.name + " === " + clauseSelector.name + "){");
 			ctx.text("var swidx= " + i + ";");
 			ctx.text("break Lcases;");
@@ -666,6 +671,8 @@ function CaseBlock(A, defaultClause, B) {
 		for (var j = 0; j < B.length; j++) {
 			var C = B[j];
 			var clauseSelector = ctx.compileExpression(C);
+			direct = clauseSelector.isLiteral ? direct : false;
+			selectors[i + j] = clauseSelector;
 			ctx.text("if(" + input.name + " === " + clauseSelector.name + "){");
 			ctx.text("var swidx= " + (i + j) + ";");
 			ctx.text("break Lcases;");
@@ -673,10 +680,16 @@ function CaseBlock(A, defaultClause, B) {
 		}
 		ctx.text("var swidx =-1;");
 		ctx.text("}");
-		ctx.text("switch(swidx){");
+		direct = (ctx.texts.length === mark + (i + j) * 4 + 3) ? direct : false;
+		if (direct) {
+			ctx.texts.length = mark;
+			ctx.text("switch(" + input.name + "){");
+		}
+		else ctx.text("switch(swidx){");
 		for (var i = 0; i < A.length; i++) {
 			var C = A[i];
-			ctx.text("case " + i + ":");
+			if (direct) ctx.text("case " + selectors[i].name + ":");
+			else ctx.text("case " + i + ":");
 			if (C.statementList) {
 				ctx.compileStatement(C.statementList);
 			}
@@ -687,7 +700,8 @@ function CaseBlock(A, defaultClause, B) {
 		}
 		for (var j = 0; j < B.length; j++) {
 			var C = B[j];
-			ctx.text("case " + (i + j) + ":");
+			if (direct) ctx.text("case " + selectors[i + j].name + ":");
+			else ctx.text("case " + (i + j) + ":");
 			if (C.statementList) {
 				ctx.compileStatement(C.statementList);
 			}
