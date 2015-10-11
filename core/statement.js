@@ -534,9 +534,8 @@ function WithStatement(expression, statement, pos) {
 		var val = ctx.compileExpression(expression);
 		var obj = ctx.compileToObject(ctx.compileGetValue(val));
 		var oldEnv = ctx.defineAny("LexicalEnvironment");
-		var newEnv = ctx.defineAny("NewObjectEnvironment(" + obj.name + "," + oldEnv.name + ")");
-		ctx.text(newEnv.name + " .environmentRecord.provideThis=true;");
-		ctx.text("LexicalEnvironment= " + newEnv.name + ";");
+		ctx.text("LexicalEnvironment=NewObjectEnvironment(" + obj.name + "," + oldEnv.name + ")");
+		ctx.text("LexicalEnvironment.environmentRecord.provideThis=true;");
 		ctx.text("try{");
 		ctx.compileStatement(statement);
 		ctx.text("}finally{");
@@ -675,28 +674,35 @@ function LabelledStatement(identifier, statement) {
 }
 
 function ThrowStatement(expression, pos) {
-	return function() {
+	var evaluate = function() {
 		runningSourcePos = pos;
 		var exprRef = expression();
 		return CompletionValue("throw", GetValue(exprRef), empty);
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.compileRunningPos(pos);
+		var exprRef = ctx.compileExpression(expression);
+		var val = ctx.compileGetValue(exprRef);
+		ctx.text("throw " + val.name + ";");
+	});
 }
 
 function TryStatement(block, catchBlock, finallyBlock) {
-	if (finallyBlock === undefined) return function() {
+	if (finallyBlock === undefined) var evaluate = function() {
 		var B = block();
 		if (B.type !== "throw") return B;
 		return catchBlock(B.value);
 	};
 
-	if (catchBlock === undefined) return function() {
+	else if (catchBlock === undefined) var evaluate = function() {
 		var B = block();
 		var F = finallyBlock();
 		if (F.type === "normal") return B;
 		return F;
 	};
 
-	return function() {
+	else var evaluate = function() {
 		var B = block();
 		if (B.type === "throw") {
 			var C = catchBlock(B.value);
@@ -708,10 +714,24 @@ function TryStatement(block, catchBlock, finallyBlock) {
 		if (F.type === "normal") return C;
 		return F;
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.text("try{");
+		ctx.compileStatement(block);
+		if (catchBlock) {
+			ctx.text("}catch(err){");
+			catchBlock.compile(ctx);
+		}
+		if (finallyBlock) {
+			ctx.text("}finally{");
+			ctx.compileStatement(finallyBlock);
+		}
+		ctx.text("}");
+	});
 }
 
 function CatchBlock(identifier, block) {
-	return function(C) {
+	var evaluate = function(C) {
 		var oldEnv = LexicalEnvironment;
 		var catchEnv = NewDeclarativeEnvironment(oldEnv);
 		var envRec = catchEnv.environmentRecord;
@@ -722,12 +742,30 @@ function CatchBlock(identifier, block) {
 		LexicalEnvironment = oldEnv;
 		return B;
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		var oldEnv = ctx.defineAny("LexicalEnvironment");
+		ctx.text("LexicalEnvironment=NewDeclarativeEnvironment(" + oldEnv.name + ")");
+		var name = ctx.quote(identifier);
+		ctx.text("LexicalEnvironment.environmentRecord.CreateMutableBinding(" + name + ");");
+		ctx.text("LexicalEnvironment.environmentRecord.SetMutableBinding(" + name + ",err,false);");
+		ctx.text("try{");
+		ctx.compileStatement(block);
+		ctx.text("}finally{");
+		ctx.text("LexicalEnvironment= " + oldEnv.name + ";");
+		ctx.text("}");
+	});
 }
 
 function DebuggerStatement(pos) {
-	return function() {
+	var evaluate = function() {
 		runningSourcePos = pos;
 		debugger;
 		return CompletionValue("normal", empty, empty);
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.compileRunningPos(pos);
+		ctx.text("debugger;");
+	});
 }
