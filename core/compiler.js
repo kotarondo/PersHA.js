@@ -57,6 +57,27 @@ var COMPILER_IDENTIFIER_REFERENCE_TYPE = new CompilerTypes("iref");
 var COMPILER_PROPERTY_REFERENCE_TYPE = new CompilerTypes("pref");
 var COMPILER_ANY_TYPE = new CompilerTypes(COMPILER_VALUE_TYPE, "iref", "pref", "list", "envRec");
 
+var COMPILER_UNDEFINED_VALUE = {
+	name : "undefined",
+	types : COMPILER_UNDEFINED_TYPE,
+	isLiteral : true,
+	value : undefined
+};
+
+var COMPILER_TRUE_VALUE = {
+	name : "true",
+	types : COMPILER_BOOLEAN_TYPE,
+	isLiteral : true,
+	value : true
+};
+
+var COMPILER_FALSE_VALUE = {
+	name : "false",
+	types : COMPILER_BOOLEAN_TYPE,
+	isLiteral : true,
+	value : false
+};
+
 CompilerTypes.prototype.isPrimitive = function() {
 	return this.types.every(function(type) {
 		return (COMPILER_PRIMITIVE_TYPE.types.indexOf(type) >= 0);
@@ -124,6 +145,37 @@ function CompilerContext() {
 	this.variables = 0;
 }
 
+CompilerContext.prototype.compileExpression = function(expr) {
+	assert(expr.compile, expr.toString()); // check if all expressions have own compilers
+	if (expr.compile) {
+		return expr.compile(this);
+	}
+	// compiler doesn't exit (under development)
+	var name = this.literal(expr);
+	var v = this.defineAny(name + "()");
+	return v;
+};
+
+CompilerContext.prototype.compileStatement = function(stmt) {
+	//assert(stmt.compile, stmt.toString()); // check if all statements have own compilers
+	if (stmt.compile) {
+		return stmt.compile(this);
+	}
+	// compiler doesn't exit (under development)
+	var name = this.literal(stmt);
+	this.text("var stmt= " + name + "();");
+	this.text("if(stmt.type==='return')return stmt.value;");
+	this.text("if(stmt.type==='throw')throw stmt.value;");
+	this.text("assertEquals(stmt.target,empty,stmt);");
+	if (this.iterables) {
+		this.text("if(stmt.type==='continue')continue;");
+	}
+	if (this.iterables || this.switches) {
+		this.text("if(stmt.type==='break')break;");
+	}
+	this.text("assertEquals(stmt.type,'normal',stmt);");
+};
+
 CompilerContext.expression = function(compile) {
 	var cached;
 	function evaluate() {
@@ -150,6 +202,11 @@ CompilerContext.reference = function(compile) {
 		}
 		return cached();
 	}
+	evaluate.compile = compile;
+	return evaluate;
+};
+
+CompilerContext.statement = function(evaluate, compile) {
 	evaluate.compile = compile;
 	return evaluate;
 };
@@ -245,7 +302,6 @@ CompilerContext.prototype.merge = function(mval, rval) {
 
 CompilerContext.prototype.finish = function() {
 	var code = this.texts.join('\n');
-	//console.log(code);
 	try {
 		if (this.literals.length === 0) {
 			return new Function(code);
@@ -260,17 +316,6 @@ CompilerContext.prototype.finish = function() {
 CompilerContext.prototype.compileReturn = function(val) {
 	this.text("return " + val.name + ";");
 }
-
-CompilerContext.prototype.compileExpression = function(expr) {
-	assert(expr.compile, expr.toString()); // check if all expressions have own compilers
-	if (expr.compile) {
-		return expr.compile(this);
-	}
-	// compiler doesn't exit (under development)
-	var name = this.literal(expr);
-	var v = this.defineAny(name + "()");
-	return v;
-};
 
 CompilerContext.prototype.compileGetValue = function(ref) {
 	if (ref.types.isValue()) return ref;
@@ -359,4 +404,8 @@ CompilerContext.prototype.compileEvaluateArguments = function(args) {
 		this.text(argList.name + " .push(" + arg.name + ");");
 	}
 	return argList;
-}
+};
+
+CompilerContext.prototype.compileRunningPos = function(pos) {
+	this.text("runningPos= " + pos + ");");
+};

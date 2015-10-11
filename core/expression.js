@@ -35,25 +35,6 @@
 
 // ECMAScript 5.1: 11 Expressions
 
-var COMPILER_UNDEFINED_VALUE = {
-	name : "undefined",
-	types : COMPILER_UNDEFINED_TYPE,
-	isLiteral : true,
-	value : undefined
-};
-var COMPILER_TRUE_VALUE = {
-	name : "true",
-	types : COMPILER_BOOLEAN_TYPE,
-	isLiteral : true,
-	value : true
-};
-var COMPILER_FALSE_VALUE = {
-	name : "false",
-	types : COMPILER_BOOLEAN_TYPE,
-	isLiteral : true,
-	value : false
-};
-
 function ThisExpression() {
 	var evaluate = function() {
 		return ThisBinding;

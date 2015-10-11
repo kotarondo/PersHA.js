@@ -36,15 +36,20 @@
 // ECMAScript 5.1: 12 Statements
 
 function BlockStatement(statementList) {
-	return function() {
+	var evaluate = function() {
 		if (statementList === undefined) return CompletionValue("normal", empty, empty);
 		return statementList();
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		if (statementList === undefined) return;
+		ctx.compileStatement(statementList);
+	});
 }
 
 function StatementList(statements) {
 	if (statements.length === 0) return undefined;
-	if (statements.length === 1) return function() {
+	if (statements.length === 1) var evaluate = function() {
 		try {
 			var s = statements[0]();
 		} catch (V) {
@@ -54,7 +59,7 @@ function StatementList(statements) {
 		return s;
 	};
 
-	return function() {
+	var evaluate = function() {
 		try {
 			var sl = statements[0]();
 		} catch (V) {
@@ -79,19 +84,31 @@ function StatementList(statements) {
 		}
 		return sl;
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		for (var i = 0; i < statements.length; i++) {
+			ctx.compileStatement(statements[i]);
+		}
+	});
 }
 
 function VariableStatement(variableDeclarationList) {
-	return function() {
+	var evaluate = function() {
 		for (var i = 0; i !== variableDeclarationList.length; i++) {
 			variableDeclarationList[i]();
 		}
 		return CompletionValue("normal", empty, empty);
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		for (var i = 0; i !== variableDeclarationList.length; i++) {
+			ctx.compileStatement(variableDeclarationList[i]);
+		}
+	});
 }
 
 function VariableDeclaration(identifier, initialiser, strict, pos) {
-	return function() {
+	var evaluate = function() {
 		if (initialiser !== undefined) {
 			runningSourcePos = pos;
 			var env = LexicalEnvironment;
@@ -102,12 +119,27 @@ function VariableDeclaration(identifier, initialiser, strict, pos) {
 		}
 		return identifier;
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		for (var i = 0; i !== variableDeclarationList.length; i++) {
+			ctx.compileRunningPos(pos);
+			var name = ctx.quote(identifier);
+			var lhs = ctx.defineAny("GetIdentifierEnvironmentRecord(LexicalEnvironment," + name + ")");
+			var rhs = ctx.compileExpression(initialiser);
+			var value = ctx.compileGetValue(rhs);
+			ctx.compilePutValue(lhs, value);
+		}
+		return identifier;
+	});
 }
 
 function EmptyStatement() {
 	return function() {
 		return CompletionValue("normal", empty, empty);
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+	});
 }
 
 function ExpressionStatement(expression, pos) {
@@ -116,6 +148,12 @@ function ExpressionStatement(expression, pos) {
 		var exprRef = expression();
 		return CompletionValue("normal", GetValue(exprRef), empty);
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.compileRunningPos(pos);
+		var exprRef = ctx.compileExpression(expression);
+		ctx.compileGetValue(exprRef);
+	});
 }
 
 function IfStatement(expression, firstStatement, secondStatement, pos) {
@@ -128,6 +166,12 @@ function IfStatement(expression, firstStatement, secondStatement, pos) {
 			return secondStatement();
 		}
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.compileRunningPos(pos);
+		var exprRef = ctx.compileExpression(expression);
+		ctx.compileGetValue(exprRef);
+	});
 }
 
 function DoWhileStatement(statement, expression, labelset, pos) {
@@ -139,7 +183,8 @@ function DoWhileStatement(statement, expression, labelset, pos) {
 				V = stmt.value;
 			}
 			if (stmt.type !== "continue" || isInLabelSet(stmt.target, labelset) === false) {
-				if (stmt.type === "break" && isInLabelSet(stmt.target, labelset) === true) return CompletionValue("normal", V, empty);
+				if (stmt.type === "break" && isInLabelSet(stmt.target, labelset) === true)
+					return CompletionValue("normal", V, empty);
 				if (stmt.type !== "normal") return stmt;
 			}
 			runningSourcePos = pos;
@@ -166,7 +211,8 @@ function WhileStatement(expression, statement, labelset, pos) {
 				V = stmt.value;
 			}
 			if (stmt.type !== "continue" || isInLabelSet(stmt.target, labelset) === false) {
-				if (stmt.type === "break" && isInLabelSet(stmt.target, labelset) === true) return CompletionValue("normal", V, empty);
+				if (stmt.type === "break" && isInLabelSet(stmt.target, labelset) === true)
+					return CompletionValue("normal", V, empty);
 				if (stmt.type !== "normal") return stmt;
 			}
 		}
@@ -192,7 +238,8 @@ function ForStatement(expressionNoIn, firstExpression, secondExpression, stateme
 			if (stmt.value !== empty) {
 				V = stmt.value;
 			}
-			if (stmt.type === "break" && isInLabelSet(stmt.target, labelset) === true) return CompletionValue("normal", V, empty);
+			if (stmt.type === "break" && isInLabelSet(stmt.target, labelset) === true)
+				return CompletionValue("normal", V, empty);
 			if (stmt.type !== "continue" || isInLabelSet(stmt.target, labelset) === false) {
 				if (stmt.type !== "normal") return stmt;
 			}
@@ -221,7 +268,8 @@ function ForVarStatement(variableDeclarationList, firstExpression, secondExpress
 			if (stmt.value !== empty) {
 				V = stmt.value;
 			}
-			if (stmt.type === "break" && isInLabelSet(stmt.target, labelset) === true) return CompletionValue("normal", V, empty);
+			if (stmt.type === "break" && isInLabelSet(stmt.target, labelset) === true)
+				return CompletionValue("normal", V, empty);
 			if (stmt.type !== "continue" || isInLabelSet(stmt.target, labelset) === false) {
 				if (stmt.type !== "normal") return stmt;
 			}
@@ -253,7 +301,8 @@ function ForInStatement(leftHandSideExpression, expression, statement, labelset,
 			if (stmt.value !== empty) {
 				V = stmt.value;
 			}
-			if (stmt.type === "break" && isInLabelSet(stmt.target, labelset) === true) return CompletionValue("normal", V, empty);
+			if (stmt.type === "break" && isInLabelSet(stmt.target, labelset) === true)
+				return CompletionValue("normal", V, empty);
 			if (stmt.type !== "continue" || isInLabelSet(stmt.target, labelset) === false) {
 				if (stmt.type !== "normal") return stmt;
 			}
@@ -282,7 +331,8 @@ function ForVarInStatement(variableDeclarationNoIn, expression, statement, label
 			if (stmt.value !== empty) {
 				V = stmt.value;
 			}
-			if (stmt.type === "break" && isInLabelSet(stmt.target, labelset) === true) return CompletionValue("normal", V, empty);
+			if (stmt.type === "break" && isInLabelSet(stmt.target, labelset) === true)
+				return CompletionValue("normal", V, empty);
 			if (stmt.type !== "continue" || isInLabelSet(stmt.target, labelset) === false) {
 				if (stmt.type !== "normal") return stmt;
 			}

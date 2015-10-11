@@ -53,7 +53,7 @@ function FunctionExpression(name, parameters, body) {
 		});
 	}
 
-	function evaluate() {
+	var evaluate = function() {
 		var env = LexicalEnvironment;
 		var funcEnv = NewDeclarativeEnvironment(env);
 		var envRec = funcEnv.environmentRecord;
@@ -61,18 +61,24 @@ function FunctionExpression(name, parameters, body) {
 		var closure = CreateFunction(parameters, body, funcEnv, body.strict);
 		envRec.InitializeImmutableBinding(name, closure);
 		return closure;
-	}
-	;
+	};
+
 	return CompilerContext.expression(function(ctx) {
 		return ctx.defineObject(ctx.literal(evaluate) + "()");
 	});
 }
 
 function FunctionBody(sourceElements) {
-	return function() {
-		if (sourceElements !== undefined) return sourceElements();
-		else return CompletionValue("normal", undefined, empty);
-	};
+	if (sourceElements === undefined) {
+		return function() {
+			return undefined;
+		};
+	}
+	var ctx = new CompilerContext();
+	ctx.compileStatement(sourceElements);
+	ctx.compileReturn(COMPILER_UNDEFINED_VALUE);
+	//console.log( ctx.texts.join('\n'));
+	return ctx.finish();
 }
 
 function CreateFunction(parameters, body, Scope, Strict) {
@@ -99,17 +105,11 @@ function CreateFunction(parameters, body, Scope, Strict) {
 function Function_ClassCall(thisValue, argumentsList) {
 	var F = this;
 	enterExecutionContextForFunctionCode(F, thisValue, argumentsList);
-	if (F.Code === undefined) {
-		var result = CompletionValue("normal", undefined, empty);
+	try {
+		return F.Code.evaluate();
+	} finally {
+		exitExecutionContext();
 	}
-	else {
-		var result = F.Code.evaluate();
-	}
-	exitExecutionContext();
-	if (result.type === "throw") throw result.value;
-	if (result.type === "return") return result.value;
-	assertEquals(result.type, "normal", result);
-	return undefined;
 }
 
 function Function_ClassConstruct(argumentsList) {
