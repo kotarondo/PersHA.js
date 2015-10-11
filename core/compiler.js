@@ -143,6 +143,8 @@ function CompilerContext() {
 	this.texts = [ "'use strict';" ];
 	this.literals = [];
 	this.variables = 0;
+	this.iterables = 0;
+	this.switches = 0;
 }
 
 CompilerContext.prototype.compileExpression = function(expr) {
@@ -384,10 +386,9 @@ CompilerContext.prototype.compileToString = function(val) {
 	return this.defineString("ToString(" + val.name + ")");
 };
 
-CompilerContext.prototype.compileToBoolean = function(val) {
-	if (val.types.isBoolean()) return val;
-	if (val.types.isPrimitive()) return this.defineBoolean("!! " + val.name);
-	return this.defineBoolean("ToBoolean(" + val.name + ")");
+CompilerContext.prototype.compileToObject = function(val) {
+	if (val.types.isObject()) return val;
+	return this.defineObject("ToObject(" + val.name + ")");
 };
 
 CompilerContext.prototype.compileToPrimitive = function(val, hint) {

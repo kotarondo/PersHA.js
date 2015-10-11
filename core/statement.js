@@ -234,7 +234,7 @@ function WhileStatement(expression, statement, labelset, pos) {
 }
 
 function ForStatement(expressionNoIn, firstExpression, secondExpression, statement, labelset, pos1, pos2, pos3) {
-	return function() {
+	var evaluate = function() {
 		if (expressionNoIn !== undefined) {
 			runningSourcePos = pos1;
 			var exprRef = expressionNoIn();
@@ -263,10 +263,37 @@ function ForStatement(expressionNoIn, firstExpression, secondExpression, stateme
 			}
 		}
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.iterables++;
+		if (expressionNoIn !== undefined) {
+			ctx.compileRunningPos(pos1);
+			var exprRef = ctx.compileExpression(expressionNoIn);
+			ctx.compileGetValue(exprRef);
+		}
+		var i = ctx.defineBoolean("false");
+		ctx.text("for(;; " + i.name + " =true){");
+		if (secondExpression !== undefined) {
+			ctx.text("if(" + i.name + "){");
+			ctx.compileRunningPos(pos3);
+			var incExprRef = ctx.compileExpression(secondExpression);
+			ctx.compileGetValue(incExprRef);
+			ctx.text("}");
+		}
+		if (firstExpression !== undefined) {
+			ctx.compileRunningPos(pos2);
+			var testExprRef = ctx.compileExpression(firstExpression);
+			var val = ctx.compileGetValue(testExprRef);
+			ctx.text("if(! " + val.name + ")break;");
+		}
+		ctx.compileStatement(statement);
+		ctx.text("}");
+		ctx.iterables--;
+	});
 }
 
 function ForVarStatement(variableDeclarationList, firstExpression, secondExpression, statement, labelset, pos1, pos2) {
-	return function() {
+	var evaluate = function() {
 		for (var i = 0; i < variableDeclarationList.length; i++) {
 			variableDeclarationList[i]();
 		}
@@ -293,10 +320,35 @@ function ForVarStatement(variableDeclarationList, firstExpression, secondExpress
 			}
 		}
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.iterables++;
+		for (var i = 0; i < variableDeclarationList.length; i++) {
+			variableDeclarationList[i].compile(ctx);
+		}
+		var i = ctx.defineBoolean("false");
+		ctx.text("for(;; " + i.name + " =true){");
+		if (secondExpression !== undefined) {
+			ctx.text("if(" + i.name + "){");
+			ctx.compileRunningPos(pos2);
+			var incExprRef = ctx.compileExpression(secondExpression);
+			ctx.compileGetValue(incExprRef);
+			ctx.text("}");
+		}
+		if (firstExpression !== undefined) {
+			ctx.compileRunningPos(pos1);
+			var testExprRef = ctx.compileExpression(firstExpression);
+			var val = ctx.compileGetValue(testExprRef);
+			ctx.text("if(! " + val.name + ")break;");
+		}
+		ctx.compileStatement(statement);
+		ctx.text("}");
+		ctx.iterables--;
+	});
 }
 
 function ForInStatement(leftHandSideExpression, expression, statement, labelset, pos1, pos2) {
-	return function() {
+	var evaluate = function() {
 		runningSourcePos = pos2;
 		var exprRef = expression();
 		var experValue = GetValue(exprRef);
@@ -321,10 +373,30 @@ function ForInStatement(leftHandSideExpression, expression, statement, labelset,
 			}
 		}
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.iterables++;
+		ctx.compileRunningPos(pos2);
+		var exprRef = ctx.compileExpression(expression);
+		var experValue = ctx.compileGetValue(exprRef);
+		ctx.text("if(!(" + experValue.name + " ===null|| " + experValue.name + " ===undefined)){");
+		var obj = ctx.compileToObject(experValue);
+		var next = ctx.defineAny(obj.name + " .enumerator(false,true)");
+		ctx.text("while(true){");
+		var P = ctx.defineString(next.name + "()");
+		ctx.text("if(" + P.name + " ===undefined)break;");
+		ctx.compileRunningPos(pos1);
+		var lhsRef = ctx.compileExpression(leftHandSideExpression);
+		ctx.compilePutValue(lhsRef, P);
+		ctx.compileStatement(statement);
+		ctx.text("}");
+		ctx.text("}");
+		ctx.iterables--;
+	});
 }
 
 function ForVarInStatement(variableDeclarationNoIn, expression, statement, labelset, strict, pos1, pos2) {
-	return function() {
+	var evaluate = function() {
 		var varName = variableDeclarationNoIn();
 		runningSourcePos = pos2;
 		var exprRef = expression();
@@ -351,6 +423,34 @@ function ForVarInStatement(variableDeclarationNoIn, expression, statement, label
 			}
 		}
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.iterables++;
+		var varName = variableDeclarationNoIn.compile(ctx);
+		ctx.compileRunningPos(pos2);
+		var exprRef = ctx.compileExpression(expression);
+		var experValue = ctx.compileGetValue(exprRef);
+		ctx.text("if(!(" + experValue.name + " ===null|| " + experValue.name + " ===undefined)){");
+		var obj = ctx.compileToObject(experValue);
+		var next = ctx.defineAny(obj.name + " .enumerator(false,true)");
+		ctx.text("while(true){");
+		var P = ctx.defineString(next.name + "()");
+		ctx.text("if(" + P.name + " ===undefined)break;");
+		ctx.compileRunningPos(pos1);
+		var name = ctx.quote(varName);
+		var base = ctx.defineAny("GetIdentifierEnvironmentRecord(LexicalEnvironment," + name + ")");
+		var varRef = {
+			name : name,
+			types : COMPILER_IDENTIFIER_REFERENCE_TYPE,
+			base : base,
+			strict : strict
+		};
+		ctx.compilePutValue(varRef, P);
+		ctx.compileStatement(statement);
+		ctx.text("}");
+		ctx.text("}");
+		ctx.iterables--;
+	});
 }
 
 function ContinueStatement(identifier) {

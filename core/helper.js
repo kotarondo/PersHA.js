@@ -46,7 +46,7 @@ function assert(condition, info) {
 function assertEquals(a, b, info) {
 	if (a !== b) {
 		debugger;
-		console.trace("assertion failed: " + info);
+		console.trace(info);
 		process.abort();
 	}
 }
