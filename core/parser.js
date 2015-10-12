@@ -312,7 +312,7 @@ var theParser = function() {
 		}
 		var i = labelset.length;
 		while (i-- !== 0) {
-			statement = LabelledStatement(labelset[i], statement);
+			statement = LabelledStatement(labelset[i], statement, iterable);
 		}
 		return statement;
 	}

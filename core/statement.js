@@ -205,6 +205,7 @@ function DoWhileStatement(statement, expression, labelset, pos) {
 	return CompilerContext.statement(evaluate, function(ctx) {
 		ctx.iterables++;
 		var i = ctx.defineBoolean("false");
+		ctx.compileLabelset(labelset);
 		ctx.text("for(;; " + i.name + " =true){");
 		ctx.text("if(" + i.name + "){");
 		ctx.compileRunningPos(pos);
@@ -242,6 +243,7 @@ function WhileStatement(expression, statement, labelset, pos) {
 
 	return CompilerContext.statement(evaluate, function(ctx) {
 		ctx.iterables++;
+		ctx.compileLabelset(labelset);
 		ctx.text("while(true){");
 		ctx.compileRunningPos(pos);
 		var exprRef = ctx.compileExpression(expression);
@@ -292,6 +294,7 @@ function ForStatement(expressionNoIn, firstExpression, secondExpression, stateme
 			ctx.compileGetValue(exprRef);
 		}
 		var i = ctx.defineBoolean("false");
+		ctx.compileLabelset(labelset);
 		ctx.text("for(;; " + i.name + " =true){");
 		if (secondExpression !== undefined) {
 			ctx.text("if(" + i.name + "){");
@@ -347,6 +350,7 @@ function ForVarStatement(variableDeclarationList, firstExpression, secondExpress
 			variableDeclarationList[i].compile(ctx);
 		}
 		var i = ctx.defineBoolean("false");
+		ctx.compileLabelset(labelset);
 		ctx.text("for(;; " + i.name + " =true){");
 		if (secondExpression !== undefined) {
 			ctx.text("if(" + i.name + "){");
@@ -402,6 +406,7 @@ function ForInStatement(leftHandSideExpression, expression, statement, labelset,
 		ctx.text("if(!(" + experValue.name + " ===null|| " + experValue.name + " ===undefined)){");
 		var obj = ctx.compileToObject(experValue);
 		var next = ctx.defineAny(obj.name + " .enumerator(false,true)");
+		ctx.compileLabelset(labelset);
 		ctx.text("while(true){");
 		var P = ctx.defineString(next.name + "()");
 		ctx.text("if(" + P.name + " ===undefined)break;");
@@ -453,6 +458,7 @@ function ForVarInStatement(variableDeclarationNoIn, expression, statement, label
 		ctx.text("if(!(" + experValue.name + " ===null|| " + experValue.name + " ===undefined)){");
 		var obj = ctx.compileToObject(experValue);
 		var next = ctx.defineAny(obj.name + " .enumerator(false,true)");
+		ctx.compileLabelset(labelset);
 		ctx.text("while(true){");
 		var P = ctx.defineString(next.name + "()");
 		ctx.text("if(" + P.name + " ===undefined)break;");
@@ -472,11 +478,12 @@ function ContinueStatement(identifier) {
 		else return CompletionValue("continue", empty, identifier);
 	};
 
-	if (identifier) {
-		return evaluate;
-	}
 	return CompilerContext.statement(evaluate, function(ctx) {
-		ctx.text("continue;");
+		if (!identifier) {
+			ctx.text("continue;");
+			return;
+		}
+		ctx.text("continue " + ctx.findLabel(identifier) + ";");
 	});
 }
 
@@ -486,11 +493,12 @@ function BreakStatement(identifier) {
 		else return CompletionValue("break", empty, identifier);
 	};
 
-	if (identifier) {
-		return evaluate;
-	}
 	return CompilerContext.statement(evaluate, function(ctx) {
-		ctx.text("break;");
+		if (!identifier) {
+			ctx.text("break;");
+			return;
+		}
+		ctx.text("break " + ctx.findLabel(identifier) + ";");
 	});
 }
 
@@ -554,9 +562,11 @@ function SwitchStatement(expression, caseBlock, labelset, pos) {
 	};
 
 	return CompilerContext.statement(evaluate, function(ctx) {
+		ctx.switches++;
 		ctx.compileRunningPos(pos);
 		var exprRef = ctx.compileExpression(expression);
 		caseBlock.compile(ctx, ctx.compileGetValue(exprRef));
+		ctx.switches--;
 	});
 }
 
@@ -726,12 +736,20 @@ function isInLabelSet(target, labelset) {
 	return false;
 }
 
-function LabelledStatement(identifier, statement) {
-	return function() {
+function LabelledStatement(identifier, statement, iterable) {
+	var evaluate = function() {
 		var stmt = statement();
 		if (stmt.type === "break" && stmt.target === identifier) return CompletionValue("normal", stmt.value, empty);
 		return stmt;
 	};
+
+	return CompilerContext.statement(evaluate, function(ctx) {
+		var label = ctx.openLabel(identifier);
+		if (!iterable) ctx.text(label + ":{");
+		ctx.compileStatement(statement);
+		if (!iterable) ctx.text("}");
+		ctx.closeLabel(identifier);
+	});
 }
 
 function ThrowStatement(expression, pos) {

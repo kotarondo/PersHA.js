@@ -145,6 +145,7 @@ function CompilerContext() {
 	this.variables = 0;
 	this.iterables = 0;
 	this.switches = 0;
+	this.labels = [];
 }
 
 CompilerContext.prototype.compileExpression = function(expr) {
@@ -158,7 +159,7 @@ CompilerContext.prototype.compileExpression = function(expr) {
 };
 
 CompilerContext.prototype.compileStatement = function(stmt) {
-	//assert(stmt.compile, stmt.toString()); // check if all statements have own compilers
+	assert(stmt.compile, stmt.toString()); // check if all statements have own compilers
 	if (stmt.compile) {
 		stmt.compile(this);
 		return;
@@ -421,3 +422,29 @@ CompilerContext.prototype.compileEvaluateArguments = function(args) {
 CompilerContext.prototype.compileRunningPos = function(pos) {
 	this.text("runningSourcePos= " + pos + ";");
 };
+
+CompilerContext.prototype.openLabel = function(identifier) {
+	var i = this.labels.length;
+	this.labels.push(identifier);
+	return "L" + i;
+};
+
+CompilerContext.prototype.closeLabel = function(identifier) {
+	var exp = this.labels.pop();
+	assertEquals(exp, identifier);
+};
+
+CompilerContext.prototype.findLabel = function(identifier) {
+	var i = this.labels.length;
+	while (i-- !== 0) {
+		if (identifier === this.labels[i]) return "L" + i;
+	}
+	assert(false, identifier);
+}
+
+CompilerContext.prototype.compileLabelset = function(labelset) {
+	if (!labelset) return;
+	for (var i = 0; i < labelset.length; i++) {
+		this.text(this.findLabel(labelset[i]) + ":");
+	}
+}
