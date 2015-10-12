@@ -139,7 +139,8 @@ CompilerTypes.prototype.isNotUndefined = function() {
 };
 
 // constructor
-function CompilerContext() {
+function CompilerContext(params) {
+	this.params = params;
 	this.texts = [ "'use strict';" ];
 	this.literals = [];
 	this.variables = 0;
@@ -307,9 +308,9 @@ CompilerContext.prototype.finish = function() {
 	var code = this.texts.join('\n');
 	try {
 		if (this.literals.length === 0) {
-			return new Function(code);
+			return new Function(this.params, code);
 		}
-		return new Function("literals", code).bind(undefined, this.literals);
+		return new Function("literals", this.params, code).bind(undefined, this.literals);
 	} catch (e) {
 		console.error("COMPILE ERROR:\n" + code);
 		throw e;

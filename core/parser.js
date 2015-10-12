@@ -102,6 +102,7 @@ var theParser = function() {
 			variables : [],
 			existsDirectEval : false,
 			existsArgumentsRef : false,
+			sourceElements : undefined,
 			evaluate : undefined,
 			sourceObject : sourceObject,
 			index : subcodes.length,
@@ -168,9 +169,9 @@ var theParser = function() {
 		var body = code;
 		body.isFunctionCode = true;
 		body.functionName = name;
-		var sourceElements = readSourceElements();
+		body.sourceElements = readSourceElements();
 		body.strict = strict;
-		body.evaluate = FunctionBody(sourceElements);
+		body.evaluate = delayedFunctionBody;
 		strict = outerStrict;
 		code = outerCode;
 		stack = outerStack;

@@ -64,28 +64,9 @@ function FunctionExpression(name, parameters, body) {
 	};
 
 	return CompilerContext.expression(function(ctx) {
+		//TODO inline expansion
 		return ctx.defineObject(ctx.literal(evaluate) + "()");
 	});
-}
-
-function FunctionBody(sourceElements) {
-	if (sourceElements === undefined) {
-		return function() {
-			return undefined;
-		};
-	}
-	var delayed;
-	return function() {
-		if (!delayed) {
-			var ctx = new CompilerContext();
-			ctx.compileStatement(sourceElements);
-			ctx.compileReturn(COMPILER_UNDEFINED_VALUE);
-			//console.log(ctx.texts.join('\n'));
-			sourceElements = null;
-			delayed = ctx.finish();
-		}
-		return delayed();
-	};
 }
 
 function CreateFunction(parameters, body, Scope, Strict) {
@@ -109,11 +90,24 @@ function CreateFunction(parameters, body, Scope, Strict) {
 	return F;
 }
 
+function delayedFunctionBody(F, thisValue, argumentsList) {
+	var ctx = new CompilerContext("F, thisValue, argumentsList");
+	ctx.text("enterExecutionContextForFunctionCode(F, thisValue, argumentsList);");
+	if (this.sourceElements !== undefined) {
+		ctx.compileStatement(this.sourceElements);
+		this.sourceElements = null;
+	}
+	ctx.compileReturn(COMPILER_UNDEFINED_VALUE);
+	var evaluate = ctx.finish();
+	this.evaluate = evaluate;
+	console.log(ctx.texts.join('\n'));
+	return evaluate(F, thisValue, argumentsList);
+}
+
 function Function_ClassCall(thisValue, argumentsList) {
 	var F = this;
-	enterExecutionContextForFunctionCode(F, thisValue, argumentsList);
 	try {
-		return F.Code.evaluate();
+		return F.Code.evaluate(F, thisValue, argumentsList);
 	} finally {
 		exitExecutionContext();
 	}
