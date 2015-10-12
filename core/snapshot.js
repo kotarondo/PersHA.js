@@ -440,7 +440,6 @@ function Function_readObject(istream) {
 	var sourceObject = istream.readValue();
 	var index = istream.readInt();
 	this.Code = sourceObject.subcodes[index];
-	var length = istream.readInt();
 	istream.assert(this.vm.ClassID === CLASSID_vm);
 	istream.assert(Type(this.Scope) === TYPE_Environment);
 	istream.assert(this.Code !== undefined);
