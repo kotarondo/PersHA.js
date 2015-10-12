@@ -1,6 +1,6 @@
 #!/bin/sh
 
-TESTS="node test262"
+TESTS="node test262 comp"
 
 cd $(dirname $0)
 WORKINGDIR=$(pwd -P)
