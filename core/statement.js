@@ -40,6 +40,7 @@ function BlockStatement(statementList) {
 		if (statementList === undefined) return CompletionValue("normal", empty, empty);
 		return statementList();
 	};
+	evaluate.statementList = statementList;
 
 	return CompilerContext.statement(evaluate, function(ctx) {
 		if (statementList === undefined) return;
@@ -823,6 +824,7 @@ function CatchBlock(identifier, block) {
 	};
 
 	return CompilerContext.statement(evaluate, function(ctx) {
+		if (!block.statementList) return;
 		var oldEnv = ctx.defineAny("LexicalEnvironment");
 		ctx.text("LexicalEnvironment=NewDeclarativeEnvironment(" + oldEnv.name + ")");
 		var name = ctx.quote(identifier);
