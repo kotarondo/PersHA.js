@@ -1050,7 +1050,6 @@ var theParser = function() {
 		return a;
 	}
 
-	//TODO
 	function disallowDuplicated(parameters) {
 		for (var i = 0; i < parameters.length; i++) {
 			for (var j = 0; j < i; j++) {
@@ -1059,7 +1058,6 @@ var theParser = function() {
 		}
 	}
 
-	//TODO
 	function disallowEvalOrArguments(identifier) {
 		if (identifier === "eval" || identifier === "arguments") throw SyntaxError(prevTokenPos);
 	}

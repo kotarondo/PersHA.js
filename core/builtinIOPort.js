@@ -210,7 +210,6 @@ function IOPort_unwrap(A, stack) {
 			var name = ToString(A.Get("name"));
 			var message = ToString(A.Get("message"));
 		} catch (e) {
-			//TODO
 		}
 		switch (name) {
 		case "TypeError":
