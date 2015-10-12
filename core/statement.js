@@ -526,7 +526,7 @@ function WithStatement(expression, statement, pos) {
 		var obj = ToObject(GetValue(val));
 		var oldEnv = LexicalEnvironment;
 		var newEnv = NewObjectEnvironment(obj, oldEnv);
-		newEnv.environmentRecord.provideThis = true;
+		newEnv.provideThis = true;
 		LexicalEnvironment = newEnv;
 		try {
 			var C = statement();
@@ -544,7 +544,7 @@ function WithStatement(expression, statement, pos) {
 		var obj = ctx.compileToObject(ctx.compileGetValue(val));
 		var oldEnv = ctx.defineAny("LexicalEnvironment");
 		ctx.text("LexicalEnvironment=NewObjectEnvironment(" + obj.name + "," + oldEnv.name + ")");
-		ctx.text("LexicalEnvironment.environmentRecord.provideThis=true;");
+		ctx.text("LexicalEnvironment.provideThis=true;");
 		ctx.text("try{");
 		ctx.compileStatement(statement);
 		ctx.text("}finally{");
@@ -814,7 +814,7 @@ function CatchBlock(identifier, block) {
 	var evaluate = function(C) {
 		var oldEnv = LexicalEnvironment;
 		var catchEnv = NewDeclarativeEnvironment(oldEnv);
-		var envRec = catchEnv.environmentRecord;
+		var envRec = catchEnv;
 		envRec.CreateMutableBinding(identifier);
 		envRec.SetMutableBinding(identifier, C, false);
 		LexicalEnvironment = catchEnv;
@@ -828,8 +828,8 @@ function CatchBlock(identifier, block) {
 		var oldEnv = ctx.defineAny("LexicalEnvironment");
 		ctx.text("LexicalEnvironment=NewDeclarativeEnvironment(" + oldEnv.name + ")");
 		var name = ctx.quote(identifier);
-		ctx.text("LexicalEnvironment.environmentRecord.CreateMutableBinding(" + name + ");");
-		ctx.text("LexicalEnvironment.environmentRecord.SetMutableBinding(" + name + ",err,false);");
+		ctx.text("LexicalEnvironment.CreateMutableBinding(" + name + ");");
+		ctx.text("LexicalEnvironment.SetMutableBinding(" + name + ",err,false);");
 		ctx.text("try{");
 		ctx.compileStatement(block);
 		ctx.text("}finally{");

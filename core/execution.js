@@ -35,12 +35,17 @@
 
 // ECMAScript 5.1: 10 Executable Code and Execution Contexts
 
-var Class_DeclarativeEnvironmentRecord = ({
+var Class_DeclarativeEnvironment = ({
 	// $attributes
 	// 0: Mutable Deletable
 	// 1: Mutable Undeletable
 	// 2: Immutable Initialized
 	// 3: Immutable Uninitialized
+
+	ClassID : CLASSID_DeclarativeEnvironment,
+	walkObject : DeclarativeEnvironment_walkObject,
+	writeObject : DeclarativeEnvironment_writeObject,
+	readObject : DeclarativeEnvironment_readObject,
 
 	HasBinding : function(N) {
 		if (this.$attributes[N] !== undefined) return true;
@@ -98,7 +103,12 @@ var Class_DeclarativeEnvironmentRecord = ({
 	},
 });
 
-var Class_ObjectEnvironmentRecord = ({
+var Class_ObjectEnvironment = ({
+	ClassID : CLASSID_ObjectEnvironment,
+	walkObject : ObjectEnvironment_walkObject,
+	writeObject : ObjectEnvironment_writeObject,
+	readObject : ObjectEnvironment_readObject,
+
 	HasBinding : function(N) {
 		var bindings = this.bindings;
 		return bindings.HasProperty(N);
@@ -144,7 +154,7 @@ var Class_ObjectEnvironmentRecord = ({
 
 function GetIdentifierReference(lex, name, strict) {
 	if (lex === null) return ReferenceValue(undefined, name, strict);
-	var envRec = lex.environmentRecord;
+	var envRec = lex;
 	var exists = envRec.HasBinding(name);
 	if (exists === true) return ReferenceValue(envRec, name, strict);
 	else {
@@ -156,54 +166,26 @@ function GetIdentifierReference(lex, name, strict) {
 function GetIdentifierEnvironmentRecord(lex, name) {
 	while (true) {
 		if (lex === null) return undefined;
-		var envRec = lex.environmentRecord;
+		var envRec = lex;
 		var exists = envRec.HasBinding(name);
 		if (exists === true) return envRec;
 		lex = lex.outer;
 	}
 }
 
-function DeclarativeEnvironmentRecord() {
-	var obj = Object.create(Class_DeclarativeEnvironmentRecord);
+function NewDeclarativeEnvironment(E) {
+	var obj = Object.create(Class_DeclarativeEnvironment);
 	obj.$values = Object.create(null);
 	obj.$attributes = Object.create(null);
-	return obj;
-}
-
-function ObjectEnvironmentRecord(bindings) {
-	var obj = Object.create(Class_ObjectEnvironmentRecord);
-	obj.bindings = bindings;
-	obj.provideThis = false;
-	return obj;
-}
-
-function NewDeclarativeEnvironment(E) {
-	if (Class_DeclarativeEnvironment === undefined) {
-		Class_DeclarativeEnvironment = ({
-			ClassID : CLASSID_DeclarativeEnvironment,
-			walkObject : DeclarativeEnvironment_walkObject,
-			writeObject : DeclarativeEnvironment_writeObject,
-			readObject : DeclarativeEnvironment_readObject,
-		});
-	}
-	var obj = Object.create(Class_DeclarativeEnvironment);
-	obj.environmentRecord = DeclarativeEnvironmentRecord();
 	obj.outer = E;
 	obj.ID = 0;
 	return obj;
 }
 
 function NewObjectEnvironment(O, E) {
-	if (Class_ObjectEnvironment === undefined) {
-		Class_ObjectEnvironment = ({
-			ClassID : CLASSID_ObjectEnvironment,
-			walkObject : ObjectEnvironment_walkObject,
-			writeObject : ObjectEnvironment_writeObject,
-			readObject : ObjectEnvironment_readObject,
-		});
-	}
 	var obj = Object.create(Class_ObjectEnvironment);
-	obj.environmentRecord = ObjectEnvironmentRecord(O);
+	obj.bindings = O;
+	obj.provideThis = false;
 	obj.outer = E;
 	obj.ID = 0;
 	return obj;
@@ -309,7 +291,7 @@ function enterExecutionContextForEvalCode(code, direct) {
 }
 
 function DeclarationBindingInstantiation(code) {
-	var env = VariableEnvironment.environmentRecord;
+	var env = VariableEnvironment;
 	if (code.isEvalCode) {
 		var configurableBindings = true;
 	}
@@ -380,7 +362,7 @@ function compileDeclarationBindingInstantiation0(ctx, code) {
 	var names = code.parameters;
 	var strict = code.strict;
 	var envClass = Object.create(null);
-	ctx.text("var env = VariableEnvironment.environmentRecord;");
+	ctx.text("var env = VariableEnvironment;");
 	for (var i = 0; i < names.length; i++) {
 		var argName = names[i];
 		var quote = ctx.quote(argName);

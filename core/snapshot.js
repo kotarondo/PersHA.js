@@ -574,19 +574,19 @@ function Arguments_readObject(istream) {
 }
 
 function ObjectEnvironment_walkObject(mark) {
-	var envRec = this.environmentRecord;
+	var envRec = this;
 	mark(this.outer);
 	mark(envRec.bindings);
 }
 
 function ObjectEnvironment_writeObject(ostream) {
-	var envRec = this.environmentRecord;
+	var envRec = this;
 	ostream.writeValue(this.outer);
 	ostream.writeValue(envRec.bindings);
 }
 
 function ObjectEnvironment_readObject(istream) {
-	var envRec = this.environmentRecord;
+	var envRec = this;
 	this.outer = istream.readValue();
 	envRec.bindings = istream.readValue();
 	istream.assert(this.outer === null || Type(this.outer) === TYPE_Environment);
@@ -594,7 +594,7 @@ function ObjectEnvironment_readObject(istream) {
 }
 
 function DeclarativeEnvironment_walkObject(mark) {
-	var envRec = this.environmentRecord;
+	var envRec = this;
 	var $values = envRec.$values;
 	mark(this.outer);
 	for ( var N in $values) {
@@ -603,7 +603,7 @@ function DeclarativeEnvironment_walkObject(mark) {
 }
 
 function DeclarativeEnvironment_writeObject(ostream) {
-	var envRec = this.environmentRecord;
+	var envRec = this;
 	var $values = envRec.$values;
 	var $attributes = envRec.$attributes;
 	ostream.writeValue(this.outer);
@@ -616,7 +616,7 @@ function DeclarativeEnvironment_writeObject(ostream) {
 }
 
 function DeclarativeEnvironment_readObject(istream) {
-	var envRec = this.environmentRecord;
+	var envRec = this;
 	var $values = envRec.$values;
 	var $attributes = envRec.$attributes;
 	this.outer = istream.readValue();

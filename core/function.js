@@ -57,7 +57,7 @@ function FunctionExpression(body) {
 	var evaluate = function() {
 		var env = LexicalEnvironment;
 		var funcEnv = NewDeclarativeEnvironment(env);
-		var envRec = funcEnv.environmentRecord;
+		var envRec = funcEnv;
 		envRec.CreateImmutableBinding(body.functionName);
 		var closure = CreateFunction(body, funcEnv);
 		envRec.InitializeImmutableBinding(body.functionName, closure);

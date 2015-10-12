@@ -43,7 +43,7 @@ var TYPE_Null = 5;
 var TYPE_Object = 6;
 var TYPE_Reference = 7;
 var TYPE_EnvironmentRecord = 8;
-var TYPE_Environment = 9;
+var TYPE_Environment = 8;
 
 function Type(x) {
 	switch (typeof x) {
@@ -60,7 +60,6 @@ function Type(x) {
 	if (x.Class !== undefined) return TYPE_Object;
 	if (x.strictReference !== undefined) return TYPE_Reference;
 	if (x.HasBinding !== undefined) return TYPE_EnvironmentRecord;
-	if (x.environmentRecord !== undefined) return TYPE_Environment;
 	assert(false, x);
 }
 
