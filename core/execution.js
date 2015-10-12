@@ -308,30 +308,6 @@ function enterExecutionContextForEvalCode(code, direct) {
 	DeclarationBindingInstantiation(code);
 }
 
-function enterExecutionContextForFunctionCode(F, thisValue, argumentsList) {
-	saveExecutionContext();
-	var code = F.Code;
-	if (code.strict) {
-		ThisBinding = thisValue;
-	}
-	else if (thisValue === null || thisValue === undefined) {
-		ThisBinding = vm.theGlobalObject;
-	}
-	else if (Type(thisValue) !== TYPE_Object) {
-		ThisBinding = ToObject(thisValue);
-	}
-	else {
-		ThisBinding = thisValue;
-	}
-	var localEnv = NewDeclarativeEnvironment(F.Scope);
-	LexicalEnvironment = localEnv;
-	VariableEnvironment = localEnv;
-	runningFunction = F;
-	runningCode = code;
-	runningSourcePos = 0;
-	DeclarationBindingInstantiation(code, argumentsList, F);
-}
-
 function DeclarationBindingInstantiation(code, args, func) {
 	var env = VariableEnvironment.environmentRecord;
 	if (code.isEvalCode) {
@@ -397,6 +373,82 @@ function DeclarationBindingInstantiation(code, args, func) {
 		var varAlreadyDeclared = env.HasBinding(dn);
 		if (varAlreadyDeclared === false) {
 			env.CreateMutableBinding(dn, configurableBindings);
+			env.SetMutableBinding(dn, undefined, strict);
+		}
+	}
+}
+
+function enterExecutionContextForFunctionCode0(F, thisValue) {
+	saveExecutionContext();
+	var code = F.Code;
+	if (code.strict) {
+		ThisBinding = thisValue;
+	}
+	else if (thisValue === null || thisValue === undefined) {
+		ThisBinding = vm.theGlobalObject;
+	}
+	else if (Type(thisValue) !== TYPE_Object) {
+		ThisBinding = ToObject(thisValue);
+	}
+	else {
+		ThisBinding = thisValue;
+	}
+	var localEnv = NewDeclarativeEnvironment(F.Scope);
+	LexicalEnvironment = localEnv;
+	VariableEnvironment = localEnv;
+	runningFunction = F;
+	runningCode = code;
+	runningSourcePos = 0;
+}
+
+function DeclarationBindingInstantiation0(F, argumentsList) {
+	var code = F.Code;
+	var strict = code.strict;
+	var envClass = Object.create(null);
+	var env = VariableEnvironment.environmentRecord;
+
+	var names = F.FormalParameters;
+	for (var i = 0; i < names.length; i++) {
+		var argName = names[i];
+		if (!envClass[argName]){
+			envClass[argName] = true;
+			env.CreateMutableBinding(argName);
+		}
+		var v = argumentsList[i];
+		env.SetMutableBinding(argName, v, strict);
+	}
+
+	var functions = code.functions;
+	for (var i = 0; i < functions.length; i++) {
+		var f = functions[i];
+		var fn = f.name;
+		var fo = f.instantiate();
+		if (!envClass[fn]){
+			envClass[fn] = true;
+			env.CreateMutableBinding(fn);
+		}
+		env.SetMutableBinding(fn, fo, strict);
+	}
+
+	if (!envClass["arguments"] && (code.existsDirectEval || code.existsArgumentsRef)) {
+		envClass["arguments"] = true;
+		var argsObj = CreateArgumentsObject(F, names, argumentsList, VariableEnvironment, strict);
+		if (strict) {
+			env.CreateImmutableBinding("arguments");
+			env.InitializeImmutableBinding("arguments", argsObj);
+		}
+		else {
+			env.CreateMutableBinding("arguments");
+			env.SetMutableBinding("arguments", argsObj, false);
+		}
+	}
+
+	var variables = code.variables;
+	for (var i = 0; i < variables.length; i++) {
+		var dn = variables[i];
+		if (!envClass[dn]){
+			envClass[dn] = true;
+			env.CreateMutableBinding(dn, false);
 			env.SetMutableBinding(dn, undefined, strict);
 		}
 	}

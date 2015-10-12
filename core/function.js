@@ -92,15 +92,16 @@ function CreateFunction(parameters, body, Scope, Strict) {
 
 function delayedFunctionBody(F, thisValue, argumentsList) {
 	var ctx = new CompilerContext("F, thisValue, argumentsList");
-	ctx.text("enterExecutionContextForFunctionCode(F, thisValue, argumentsList);");
-	if (this.sourceElements !== undefined) {
-		ctx.compileStatement(this.sourceElements);
-		this.sourceElements = null;
+	ctx.text("enterExecutionContextForFunctionCode0(F, thisValue);");
+	ctx.text("DeclarationBindingInstantiation0(F, argumentsList);");
+	if (F.Code.sourceElements !== undefined) {
+		ctx.compileStatement(F.Code.sourceElements);
+		F.Code.sourceElements = null;
 	}
 	ctx.compileReturn(COMPILER_UNDEFINED_VALUE);
 	var evaluate = ctx.finish();
-	this.evaluate = evaluate;
-	console.log(ctx.texts.join('\n'));
+	F.Code.evaluate = evaluate;
+	//console.log(ctx.texts.join('\n'));
 	return evaluate(F, thisValue, argumentsList);
 }
 
