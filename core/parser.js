@@ -102,6 +102,7 @@ var theParser = function() {
 			variables : [],
 			existsDirectEval : false,
 			existsArgumentsRef : false,
+			existsWithStatement : false,
 			sourceElements : undefined,
 			evaluate : undefined,
 			sourceObject : sourceObject,
@@ -269,6 +270,7 @@ var theParser = function() {
 		case "return":
 			return readReturnStatement();
 		case "with":
+			code.existsWithStatement = true;
 			return readWithStatement();
 		case "switch":
 			stack.switches++;
