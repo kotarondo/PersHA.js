@@ -53,8 +53,11 @@ function Global_eval(thisValue, argumentsList, direct, strict) {
 	}
 	prog.isEvalCode = true;
 	enterExecutionContextForEvalCode(prog, direct);
-	var result = prog.evaluate();
-	exitExecutionContext();
+	try {
+		var result = prog.evaluate();
+	} finally {
+		exitExecutionContext();
+	}
 	if (result.type === "normal" && result.value === empty) return undefined;
 	if (result.type === "normal") return result.value;
 	assert(result.type === "throw", result);
@@ -82,8 +85,11 @@ function Global_evaluateProgram(thisValue, argumentsList) {
 		}
 	}
 	enterExecutionContextForGlobalCode(prog);
-	var result = prog.evaluate();
-	exitExecutionContext();
+	try {
+		var result = prog.evaluate();
+	} finally {
+		exitExecutionContext();
+	}
 	if (result.type === "normal" && result.value === empty) return undefined;
 	if (result.type === "normal") return result.value;
 	assert(result.type === "throw", result);

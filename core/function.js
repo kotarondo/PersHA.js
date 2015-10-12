@@ -105,8 +105,8 @@ function delayedFunctionBody(F, argumentsList) {
 
 function Function_ClassCall(thisValue, argumentsList) {
 	var F = this;
+	enterExecutionContextForFunctionCode0(F, thisValue);
 	try {
-		enterExecutionContextForFunctionCode0(F, thisValue);
 		return F.Code.evaluate(F, argumentsList);
 	} finally {
 		exitExecutionContext();
