@@ -35,25 +35,22 @@
 
 // ECMAScript 5.1: 13 Function Definition
 
-function FunctionDeclaration(name, parameters, body) {
+function FunctionDeclaration(body) {
 	return ({
-		name : name,
+		name : body.functionName,
 		instantiate : function() {
-			var env = VariableEnvironment;
-			return CreateFunction(parameters, body, env, body.strict);
+			return CreateFunction(body, VariableEnvironment);
 		},
 		compile : function(ctx) {
-			return ctx.defineObject("CreateFunction(" + ctx.literal(parameters) + "," + ctx.literal(body)
-					+ ",VariableEnvironment," + body.strict + ");");
+			return ctx.defineObject("CreateFunction(" + ctx.literal(body) + ",VariableEnvironment);");
 		},
 	});
 }
 
-function FunctionExpression(name, parameters, body) {
-	if (name === undefined) {
+function FunctionExpression(body) {
+	if (body.functionName === undefined) {
 		return CompilerContext.expression(function(ctx) {
-			return ctx.defineObject("CreateFunction(" + ctx.literal(parameters) + "," + ctx.literal(body)
-					+ ",LexicalEnvironment," + body.strict + ")");
+			return ctx.defineObject("CreateFunction(" + ctx.literal(body) + ",LexicalEnvironment)");
 		});
 	}
 
@@ -61,9 +58,9 @@ function FunctionExpression(name, parameters, body) {
 		var env = LexicalEnvironment;
 		var funcEnv = NewDeclarativeEnvironment(env);
 		var envRec = funcEnv.environmentRecord;
-		envRec.CreateImmutableBinding(name);
-		var closure = CreateFunction(parameters, body, funcEnv, body.strict);
-		envRec.InitializeImmutableBinding(name, closure);
+		envRec.CreateImmutableBinding(body.functionName);
+		var closure = CreateFunction(body, funcEnv);
+		envRec.InitializeImmutableBinding(body.functionName, closure);
 		return closure;
 	};
 
@@ -72,20 +69,19 @@ function FunctionExpression(name, parameters, body) {
 	});
 }
 
-function CreateFunction(parameters, body, Scope, Strict) {
+function CreateFunction(body, Scope) {
 	var F = VMObject(CLASSID_Function);
 	F.vm = vm;
 	F.Prototype = vm.Function_prototype;
 	F.Scope = Scope;
-	F.FormalParameters = parameters;
 	F.Code = body;
 	F.Extensible = true;
-	var len = parameters.length;
+	var len = body.parameters.length;
 	F.DefineOwnProperty("length", DataPropertyDescriptor(len, false, false, false), false);
 	var proto = Object_Construct([]);
 	proto.DefineOwnProperty("constructor", DataPropertyDescriptor(F, true, false, true), false);
 	F.DefineOwnProperty("prototype", DataPropertyDescriptor(proto, true, false, false), false);
-	if (Strict === true) {
+	if (body.strict) {
 		var thrower = vm.theThrowTypeError;
 		F.DefineOwnProperty("caller", AccessorPropertyDescriptor(thrower, thrower, false, false), false);
 		F.DefineOwnProperty("arguments", AccessorPropertyDescriptor(thrower, thrower, false, false), false);
@@ -95,7 +91,7 @@ function CreateFunction(parameters, body, Scope, Strict) {
 
 function delayedFunctionBody(F, argumentsList) {
 	var ctx = new CompilerContext("F, argumentsList");
-	compileDeclarationBindingInstantiation0(ctx, F.FormalParameters, F.Code);
+	compileDeclarationBindingInstantiation0(ctx, F.Code);
 	if (F.Code.sourceElements !== undefined) {
 		ctx.compileStatement(F.Code.sourceElements);
 		F.Code.sourceElements = null;

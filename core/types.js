@@ -182,7 +182,6 @@ function VMObject(ClassID) {
 		var obj = Object.create(Class_Function);
 		obj.vm = undefined;
 		obj.Scope = undefined;
-		obj.FormalParameters = undefined;
 		obj.Code = undefined;
 		break;
 	case CLASSID_BindFunction:

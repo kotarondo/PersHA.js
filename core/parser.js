@@ -152,7 +152,7 @@ var theParser = function() {
 	function readFunctionCode(programText, parameters, subcodes, filename) {
 		setup(programText, false, subcodes, filename);
 		sourceObject.isFunctionBody = true;
-		var body = readFunctionBody();
+		var body = readFunctionBody(undefined, parameters);
 		if (body.strict) {
 			disallowDuplicated(parameters);
 			parameters.forEach(disallowEvalOrArguments);
@@ -160,7 +160,7 @@ var theParser = function() {
 		return body;
 	}
 
-	function readFunctionBody(name) {
+	function readFunctionBody(name, parameters) {
 		var outerStrict = strict;
 		var outerCode = code;
 		var outerStack = stack;
@@ -169,6 +169,7 @@ var theParser = function() {
 		var body = code;
 		body.isFunctionCode = true;
 		body.functionName = name;
+		body.parameters = parameters;
 		body.sourceElements = readSourceElements();
 		body.strict = strict;
 		body.evaluate = delayedFunctionBody;
@@ -224,14 +225,14 @@ var theParser = function() {
 			}
 		}
 		expectingToken('{');
-		var body = readFunctionBody(name);
+		var body = readFunctionBody(name, parameters);
 		expectingToken('}');
 		if (body.strict) {
 			disallowEvalOrArguments(name);
 			disallowDuplicated(parameters);
 			parameters.forEach(disallowEvalOrArguments);
 		}
-		var func = FunctionDeclaration(name, parameters, body);
+		var func = FunctionDeclaration(body);
 		return func;
 	}
 
@@ -919,14 +920,14 @@ var theParser = function() {
 			}
 		}
 		expectingToken('{');
-		var body = readFunctionBody(name);
+		var body = readFunctionBody(name, parameters);
 		expectingToken('}');
 		if (body.strict) {
 			disallowEvalOrArguments(name);
 			disallowDuplicated(parameters);
 			parameters.forEach(disallowEvalOrArguments);
 		}
-		return FunctionExpression(name, parameters, body);
+		return FunctionExpression(body);
 	}
 
 	function readPrimaryExpression() {
@@ -1024,7 +1025,7 @@ var theParser = function() {
 			expectingToken('(');
 			expectingToken(')');
 			expectingToken('{');
-			var body = readFunctionBody("get_" + name);
+			var body = readFunctionBody("get_" + name, []);
 			expectingToken('}');
 			var a = PropertyAssignmentGet(name, body);
 		}
@@ -1037,12 +1038,12 @@ var theParser = function() {
 			var identifier = expectingIdentifier();
 			expectingToken(')');
 			expectingToken('{');
-			var body = readFunctionBody("set_" + name);
+			var body = readFunctionBody("set_" + name, [ identifier ]);
 			expectingToken('}');
 			if (body.strict) {
 				disallowEvalOrArguments(identifier);
 			}
-			var a = PropertyAssignmentSet(name, identifier, body);
+			var a = PropertyAssignmentSet(name, body);
 		}
 		else {
 			expectingToken(':');

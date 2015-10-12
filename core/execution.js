@@ -308,7 +308,7 @@ function enterExecutionContextForEvalCode(code, direct) {
 	DeclarationBindingInstantiation(code);
 }
 
-function DeclarationBindingInstantiation(code, args, func) {
+function DeclarationBindingInstantiation(code) {
 	var env = VariableEnvironment.environmentRecord;
 	if (code.isEvalCode) {
 		var configurableBindings = true;
@@ -321,19 +321,6 @@ function DeclarationBindingInstantiation(code, args, func) {
 	}
 	else {
 		var strict = false;
-	}
-	if (code.isFunctionCode) {
-		var names = func.FormalParameters;
-		var n = 0;
-		for (var i = 0; i < names.length; i++) {
-			var argName = names[i];
-			var v = args[n++];
-			var argAlreadyDeclared = env.HasBinding(argName);
-			if (argAlreadyDeclared === false) {
-				env.CreateMutableBinding(argName);
-			}
-			env.SetMutableBinding(argName, v, strict);
-		}
 	}
 	var functions = code.functions;
 	for (var i = 0; i < functions.length; i++) {
@@ -354,18 +341,6 @@ function DeclarationBindingInstantiation(code, args, func) {
 					|| !(existingProp.Writable === true && existingProp.Enumerable === true)) throw VMTypeError();
 		}
 		env.SetMutableBinding(fn, fo, strict);
-	}
-	var argumentsAlreadyDeclared = env.HasBinding("arguments");
-	if (code.isFunctionCode && argumentsAlreadyDeclared === false && (code.existsDirectEval || code.existsArgumentsRef)) {
-		var argsObj = CreateArgumentsObject(func, names, args, VariableEnvironment, strict);
-		if (strict === true) {
-			env.CreateImmutableBinding("arguments");
-			env.InitializeImmutableBinding("arguments", argsObj);
-		}
-		else {
-			env.CreateMutableBinding("arguments");
-			env.SetMutableBinding("arguments", argsObj, false);
-		}
 	}
 	var variables = code.variables;
 	for (var i = 0; i < variables.length; i++) {
@@ -401,7 +376,8 @@ function enterExecutionContextForFunctionCode0(F, thisValue) {
 	runningSourcePos = 0;
 }
 
-function compileDeclarationBindingInstantiation0(ctx, names, code) {
+function compileDeclarationBindingInstantiation0(ctx, code) {
+	var names = code.parameters;
 	var strict = code.strict;
 	var envClass = Object.create(null);
 	ctx.text("var env = VariableEnvironment.environmentRecord;");
@@ -428,7 +404,7 @@ function compileDeclarationBindingInstantiation0(ctx, names, code) {
 	}
 	if (!envClass["arguments"] && (code.existsDirectEval || code.existsArgumentsRef)) {
 		envClass["arguments"] = true;
-		ctx.text("var argsObj=CreateArgumentsObject(F,F.FormalParameters,argumentsList,VariableEnvironment," + strict + ");");
+		ctx.text("var argsObj=CreateArgumentsObject(F,argumentsList,VariableEnvironment);");
 		if (strict) {
 			ctx.text("env.CreateImmutableBinding('arguments');");
 			ctx.text("env.InitializeImmutableBinding('arguments',argsObj);");
@@ -450,7 +426,10 @@ function compileDeclarationBindingInstantiation0(ctx, names, code) {
 	}
 }
 
-function CreateArgumentsObject(func, names, args, env, strict) {
+function CreateArgumentsObject(func, args, env) {
+	var code = func.Code;
+	var names = code.parameters;
+	var strict = code.strict;
 	var len = args.length;
 	if (strict === true || len === 0 || names.length === 0) {
 		var obj = VMObject(CLASSID_PlainArguments);

@@ -146,17 +146,15 @@ function PropertyAssignment(name, expression) {
 
 function PropertyAssignmentGet(name, body) {
 	return function(ctx, obj) {
-		var closure = ctx.defineValue("CreateFunction([]," + //
-		ctx.literal(body) + ",LexicalEnvironment," + body.strict + ")");
+		var closure = ctx.defineValue("CreateFunction(" + ctx.literal(body) + ",LexicalEnvironment)");
 		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + //
 		",AccessorPropertyDescriptor(" + closure.name + ",absent,true,true),false);");
 	};
 }
 
-function PropertyAssignmentSet(name, parameter, body) {
+function PropertyAssignmentSet(name, body) {
 	return function(ctx, obj) {
-		var closure = ctx.defineValue("CreateFunction([" + ctx.quote(parameter) + "]," + //
-		ctx.literal(body) + ",LexicalEnvironment," + body.strict + ")");
+		var closure = ctx.defineValue("CreateFunction(" + ctx.literal(body) + ",LexicalEnvironment)");
 		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + //
 		",AccessorPropertyDescriptor(absent," + closure.name + ",true,true),false);");
 	};

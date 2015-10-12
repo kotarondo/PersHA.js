@@ -431,11 +431,6 @@ function Function_writeObject(ostream) {
 	ostream.writeValue(this.Scope);
 	ostream.writeValue(this.Code.sourceObject);
 	ostream.writeInt(this.Code.index);
-	var length = this.FormalParameters.length;
-	ostream.writeInt(length);
-	for (var i = 0; i < length; i++) {
-		ostream.writeString(this.FormalParameters[i]);
-	}
 }
 
 function Function_readObject(istream) {
@@ -446,10 +441,6 @@ function Function_readObject(istream) {
 	var index = istream.readInt();
 	this.Code = sourceObject.subcodes[index];
 	var length = istream.readInt();
-	this.FormalParameters = [];
-	for (var i = 0; i < length; i++) {
-		this.FormalParameters[i] = istream.readString();
-	}
 	istream.assert(this.vm.ClassID === CLASSID_vm);
 	istream.assert(Type(this.Scope) === TYPE_Environment);
 	istream.assert(this.Code !== undefined);

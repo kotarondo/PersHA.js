@@ -72,7 +72,7 @@ function Function_Construct(argumentsList) {
 		}
 		throw e;
 	}
-	return CreateFunction(parameters, body, vm.theGlobalEnvironment, body.strict);
+	return CreateFunction(body, vm.theGlobalEnvironment);
 }
 
 function Function_prototype_toString(thisValue, argumentsList) {
@@ -83,7 +83,7 @@ function Function_prototype_toString(thisValue, argumentsList) {
 		func = func.TargetFunction;
 	}
 	if (func.Code) {
-		var param = func.FormalParameters;
+		var param = func.Code.parameters;
 		var name = func.Code.functionName || "anonymous";
 		var startPos = func.Code.startPos;
 		var endPos = func.Code.endPos;
@@ -204,7 +204,8 @@ function BindFunction_HasInstance(V) {
 function Function_Get(P) {
 	var F = this;
 	var v = default_Get.call(F, P);
-	if (P === "caller" && Type(v) === TYPE_Object && v.Class === "Function" && v.Code !== undefined && v.Code.strict) throw VMTypeError();
+	if (P === "caller" && Type(v) === TYPE_Object && v.Class === "Function" && v.Code !== undefined && v.Code.strict)
+		throw VMTypeError();
 	return v;
 }
 
