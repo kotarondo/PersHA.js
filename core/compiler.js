@@ -179,30 +179,30 @@ CompilerContext.prototype.compileStatement = function(stmt) {
 };
 
 CompilerContext.expression = function(compile) {
-	var cached;
+	var delayed;
 	function evaluate() {
-		if (!cached) {
+		if (!delayed) {
 			var ctx = new CompilerContext();
 			var v = compile(ctx);
 			ctx.compileReturn(v);
-			cached = ctx.finish();
+			delayed = ctx.finish();
 		}
-		return cached();
+		return delayed();
 	}
 	evaluate.compile = compile;
 	return evaluate;
 };
 
 CompilerContext.reference = function(compile) {
-	var cached;
+	var delayed;
 	function evaluate() {
-		if (!cached) {
+		if (!delayed) {
 			var ctx = new CompilerContext();
 			var ref = compile(ctx);
 			ctx.text("return ReferenceValue(" + ref.base.name + "," + ref.name + "," + ref.strict + ");");
-			cached = ctx.finish();
+			delayed = ctx.finish();
 		}
-		return cached();
+		return delayed();
 	}
 	evaluate.compile = compile;
 	return evaluate;

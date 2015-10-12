@@ -74,11 +74,18 @@ function FunctionBody(sourceElements) {
 			return undefined;
 		};
 	}
-	var ctx = new CompilerContext();
-	ctx.compileStatement(sourceElements);
-	ctx.compileReturn(COMPILER_UNDEFINED_VALUE);
-	//console.log(ctx.texts.join('\n'));
-	return ctx.finish();
+	var delayed;
+	return function() {
+		if (!delayed) {
+			var ctx = new CompilerContext();
+			ctx.compileStatement(sourceElements);
+			ctx.compileReturn(COMPILER_UNDEFINED_VALUE);
+			//console.log(ctx.texts.join('\n'));
+			sourceElements = null;
+			delayed = ctx.finish();
+		}
+		return delayed();
+	};
 }
 
 function CreateFunction(parameters, body, Scope, Strict) {
