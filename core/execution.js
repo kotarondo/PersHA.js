@@ -48,7 +48,7 @@ var Class_DeclarativeEnvironmentRecord = ({
 	},
 
 	CreateMutableBinding : function(N, D) {
-		assertEquals(this.$attributes[N], undefined, N);
+		assert(this.$attributes[N] === undefined, N);
 		if (D === true) {
 			this.$attributes[N] = 0;
 		}
@@ -87,12 +87,12 @@ var Class_DeclarativeEnvironmentRecord = ({
 	},
 
 	CreateImmutableBinding : function(N) {
-		assertEquals(this.$attributes[N], undefined, N);
+		assert(this.$attributes[N] === undefined, N);
 		this.$attributes[N] = 3;
 	},
 
 	InitializeImmutableBinding : function(N, V) {
-		assertEquals(this.$attributes[N], 3, N);
+		assert(this.$attributes[N] === 3, N);
 		this.$values[N] = V;
 		this.$attributes[N] = 2;
 	},
@@ -106,7 +106,7 @@ var Class_ObjectEnvironmentRecord = ({
 
 	CreateMutableBinding : function(N, D) {
 		var bindings = this.bindings;
-		assertEquals(bindings.HasProperty(N), false, N);
+		assert(bindings.HasProperty(N) === false, N);
 		if (D === true) {
 			var configValue = true;
 		}

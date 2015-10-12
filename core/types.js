@@ -474,7 +474,7 @@ function GetValue(V) {
 		else return specialGet(base, GetReferencedName(V));
 	}
 	else {
-		assertEquals(Type(base), TYPE_EnvironmentRecord, base);
+		assert(Type(base) === TYPE_EnvironmentRecord, base);
 		return base.GetBindingValue(GetReferencedName(V), IsStrictReference(V));
 	}
 }
@@ -508,7 +508,7 @@ function PutValue(V, W) {
 		}
 	}
 	else {
-		assertEquals(Type(base), TYPE_EnvironmentRecord, base);
+		assert(Type(base) === TYPE_EnvironmentRecord, base);
 		base.SetMutableBinding(GetReferencedName(V), W, IsStrictReference(V));
 	}
 	return;

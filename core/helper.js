@@ -43,14 +43,6 @@ function assert(condition, info) {
 	}
 }
 
-function assertEquals(a, b, info) {
-	if (a !== b) {
-		debugger;
-		console.trace(info);
-		process.abort();
-	}
-}
-
 var MAX_VALUE = Number.MAX_VALUE;
 var MIN_VALUE = Number.MIN_VALUE;
 

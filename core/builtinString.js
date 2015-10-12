@@ -442,7 +442,7 @@ function String_prototype_split(thisValue, argumentsList) {
 
 	function SplitMatch(S, q, R) {
 		if (Type(R) === TYPE_Object && R.Class === "RegExp") return R.Match(S, q);
-		assertEquals(Type(R), TYPE_String, R);
+		assert(Type(R) === TYPE_String, R);
 		var r = R.length;
 		var s = S.length;
 		if (q + r > s) return failure;

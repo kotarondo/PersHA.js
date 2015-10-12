@@ -57,7 +57,7 @@ function Global_eval(thisValue, argumentsList, direct, strict) {
 	exitExecutionContext();
 	if (result.type === "normal" && result.value === empty) return undefined;
 	if (result.type === "normal") return result.value;
-	assertEquals(result.type, "throw", result);
+	assert(result.type === "throw", result);
 	throw result.value;
 }
 
@@ -86,7 +86,7 @@ function Global_evaluateProgram(thisValue, argumentsList) {
 	exitExecutionContext();
 	if (result.type === "normal" && result.value === empty) return undefined;
 	if (result.type === "normal") return result.value;
-	assertEquals(result.type, "throw", result);
+	assert(result.type === "throw", result);
 	throw result.value;
 }
 

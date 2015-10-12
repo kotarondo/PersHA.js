@@ -209,7 +209,7 @@ function RegExpFactory() {
 		NCapturingParens = regexp.NCapturingParens;
 		var m = evaluateDisjunction();
 		if (current !== undefined) throw SyntaxError();
-		assertEquals(NCapturingParens, leftCapturingParentheses);
+		assert(NCapturingParens === leftCapturingParentheses);
 
 		var ignoreCase = regexp.ignoreCase;
 		var multiline = regexp.multiline;
@@ -229,7 +229,7 @@ function RegExpFactory() {
 	}
 
 	function pending(c, x) {
-		assertEquals(x.pendingContinuation, undefined, x);
+		assert(x.pendingContinuation === undefined, x);
 		if (c !== noContinuation) {
 			x.pendingContinuation = c;
 		}

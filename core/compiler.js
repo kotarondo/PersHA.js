@@ -169,14 +169,14 @@ CompilerContext.prototype.compileStatement = function(stmt) {
 	this.text("var stmt= " + name + "();");
 	this.text("if(stmt.type==='return')return stmt.value;");
 	this.text("if(stmt.type==='throw')throw stmt.value;");
-	this.text("assertEquals(stmt.target,empty,stmt);");
+	this.text("assert(stmt.target===empty,stmt);");
 	if (this.iterables) {
 		this.text("if(stmt.type==='continue')continue;");
 	}
 	if (this.iterables || this.switches) {
 		this.text("if(stmt.type==='break')break;");
 	}
-	this.text("assertEquals(stmt.type,'normal',stmt);");
+	this.text("assert(stmt.type==='normal',stmt);");
 };
 
 CompilerContext.expression = function(compile) {
@@ -431,7 +431,7 @@ CompilerContext.prototype.openLabel = function(identifier) {
 
 CompilerContext.prototype.closeLabel = function(identifier) {
 	var exp = this.labels.pop();
-	assertEquals(exp, identifier);
+	assert(exp === identifier, identifier);
 };
 
 CompilerContext.prototype.findLabel = function(identifier) {
