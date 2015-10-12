@@ -423,9 +423,8 @@ function compileDeclarationBindingInstantiation0(ctx, names, code) {
 			envClass[fn] = true;
 			ctx.text("env.CreateMutableBinding(" + quote + ");");
 		}
-		//TODO inline
-		ctx.text("var fo = F.Code.functions[" + i + "].instantiate();");
-		ctx.text("env.SetMutableBinding(" + quote + ",fo," + strict + ");");
+		var fo = f.compile(ctx);
+		ctx.text("env.SetMutableBinding(" + quote + "," + fo.name + "," + strict + ");");
 	}
 	if (!envClass["arguments"] && (code.existsDirectEval || code.existsArgumentsRef)) {
 		envClass["arguments"] = true;

@@ -41,7 +41,11 @@ function FunctionDeclaration(name, parameters, body) {
 		instantiate : function() {
 			var env = VariableEnvironment;
 			return CreateFunction(parameters, body, env, body.strict);
-		}
+		},
+		compile : function(ctx) {
+			return ctx.defineObject("CreateFunction(" + ctx.literal(parameters) + "," + ctx.literal(body)
+					+ ",VariableEnvironment," + body.strict + ");");
+		},
 	});
 }
 
