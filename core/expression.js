@@ -102,18 +102,18 @@ function RegExpLiteral(regexp) {
 
 function ArrayInitialiser(elements) {
 	return CompilerContext.expression(function(ctx) {
-		var array = ctx.defineObject("Array_Construct([])");
+		var length = elements.length;
+		if (elements[length - 1] === empty) {
+			length = length - 1;
+		}
+		var array = ctx.defineObject("Array_Construct([" + length + "])");
 		for (var i = 0; i < elements.length; i++) {
 			var e = elements[i];
 			if (e !== empty) {
 				var initResult = ctx.compileExpression(e);
 				var initValue = ctx.compileGetValue(initResult);
-				ctx.text(array.name + " .DefineOwnProperty(" + i + //
-				",DataPropertyDescriptor(" + initValue.name + ",true,true,true),false);");
+				ctx.text("intrinsic_createData(" + array.name + "," + i + "," + initValue.name + ",true,true,true);");
 			}
-		}
-		if (e === empty) {
-			ctx.text(array.name + " .Put('length'," + (i - 1) + ",false);");
 		}
 		return array;
 	});
@@ -139,8 +139,7 @@ function PropertyAssignment(name, expression) {
 				return;
 			}
 		}
-		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + //
-		",DataPropertyDescriptor(" + propValue.name + ",true,true,true),false);");
+		ctx.text("intrinsic_createData(" + obj.name + "," + ctx.quote(name) + "," + propValue.name + ",true,true,true);");
 	};
 }
 
