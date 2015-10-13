@@ -344,7 +344,7 @@ function enterExecutionContextForFunctionCode0(F, thisValue) {
 	else if (thisValue === null || thisValue === undefined) {
 		ThisBinding = vm.theGlobalObject;
 	}
-	else if (Type(thisValue) !== TYPE_Object) {
+	else if (typeof (thisValue) !== 'object') {
 		ThisBinding = ToObject(thisValue);
 	}
 	else {
