@@ -33,7 +33,8 @@
 
 'use strict'
 
-function profile_print(threshold) {
+function profile_print() {
+	var threshold = 1000000;
 	console.log("profile_print");
 	var results = Object.keys(profile);
 	results.sort(function(x, y) {

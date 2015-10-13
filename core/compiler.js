@@ -342,7 +342,7 @@ CompilerContext.prototype.compileGetValue = function(ref) {
 		if (base.types.isNotObject()) {
 			return this.defineValue("specialGet(" + base.name + "," + ref.name + ")");
 		}
-		this.text("if(Type(" + base.name + ")===TYPE_Object)");
+		this.text("if(typeof(" + base.name + ")==='object')");
 		var mval = this.defineValue(base.name + " .Get(" + ref.name + ")");
 		this.text("else");
 		this.mergeDefineValue(mval, "specialGet(" + base.name + "," + ref.name + ")");
@@ -369,7 +369,7 @@ CompilerContext.prototype.compilePutValue = function(ref, val) {
 			this.text("specialPut(" + base.name + "," + ref.name + "," + val.name + "," + ref.strict + ");");
 			return;
 		}
-		this.text("if(Type(" + base.name + ")===TYPE_Object)");
+		this.text("if(typeof(" + base.name + ")==='object')");
 		this.text(base.name + " .Put(" + ref.name + "," + val.name + "," + ref.strict + ");");
 		this.text("else");
 		this.text("specialPut(" + base.name + "," + ref.name + "," + val.name + "," + ref.strict + ");");
@@ -390,24 +390,27 @@ CompilerContext.prototype.compilePutValue = function(ref, val) {
 CompilerContext.prototype.compileToNumber = function(val) {
 	if (val.types.isNumber()) return val;
 	if (val.types.isPrimitive()) return this.defineNumber("Number(" + val.name + ")");
-	return this.defineNumber("ToNumber(" + val.name + ")");
+	return this.defineNumber("Number(typeof " + val.name + "!=='object'||" + val.name + "===null?" + val.name + //
+	":" + val.name + ".DefaultValue(TYPE_Number))");
 };
 
 CompilerContext.prototype.compileToString = function(val) {
 	if (val.types.isString()) return val;
 	if (val.types.isPrimitive()) return this.defineString("String(" + val.name + ")");
-	return this.defineString("ToString(" + val.name + ")");
+	return this.defineString("String(typeof " + val.name + "!=='object'||" + val.name + "===null?" + //
+	val.name + ":" + val.name + ".DefaultValue(TYPE_String))");
 };
 
 CompilerContext.prototype.compileToObject = function(val) {
 	if (val.types.isObject()) return val;
-	return this.defineObject("ToObject(" + val.name + ")");
+	return this.defineObject("typeof " + val.name + "!=='object'||" + val.name + "===null?" + //
+	"ToObject(" + val.name + "):" + val.name);
 };
 
 CompilerContext.prototype.compileToPrimitive = function(val, hint) {
 	if (val.types.isPrimitive()) return val;
-	if (!hint) return this.definePrimitive("ToPrimitive(" + val.name + ")");
-	return this.definePrimitive("ToPrimitive(" + val.name + "," + hint + ")");
+	return this.definePrimitive("typeof " + val.name + "!=='object'||" + val.name + "===null?" + //
+	val.name + ":" + val.name + ".DefaultValue(" + hint + ")");
 };
 
 CompilerContext.prototype.compileEvaluateArguments = function(args) {

@@ -171,7 +171,7 @@ function PropertyAccessor(base, name, strict) {
 			"throwPropertyAccessorError(" + baseValue.name + "," + propertyNameValue.name + ");");
 		}
 		if (!propertyNameValue.types.isNotObject()) {
-			ctx.text("if(Type(" + propertyNameValue.name + ")===TYPE_Object){");
+			ctx.text("if(typeof(" + propertyNameValue.name + ")==='object'){");
 			ctx.merge(propertyNameValue, ctx.compileToString(propertyNameValue));
 			ctx.text("}");
 		}
@@ -566,8 +566,8 @@ function DoesNotEqualOperator(leftExpression, rightExpression) {
 }
 
 function abstractEqualityComparison(x, y) {
-	if (Type(x) === TYPE_Object) {
-		if (Type(y) === TYPE_Object) {
+	if (typeof (x) === 'object' && x !== null) {
+		if (typeof (y) === 'object' && y !== null) {
 			return (x === y);
 		}
 		if (y === null || y === undefined) return false;
@@ -575,7 +575,7 @@ function abstractEqualityComparison(x, y) {
 		return (x == y);
 	}
 	else {
-		if (Type(y) !== TYPE_Object) {
+		if (typeof (y) !== 'object' || y === null) {
 			return (x == y);
 		}
 		if (x === null || x === undefined) return false;
