@@ -1,6 +1,7 @@
 *.swp
 *.log
 bin/*.js
+main/enable*
 test/*/results
 test/test262/*.json
 test/test262/sta.js

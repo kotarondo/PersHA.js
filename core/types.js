@@ -849,7 +849,6 @@ function default_DefaultValue(hint) {
 var emptyPropertyDescriptor = FullPropertyDescriptor(absent, absent, absent, absent, absent, absent);
 
 function default_DefineOwnProperty(P, Desc, Throw) {
-	caller_profiler_point(3)
 	var O = this;
 	var current = O.GetOwnProperty(P);
 	var extensible = O.Extensible;

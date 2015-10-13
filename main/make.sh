@@ -9,8 +9,8 @@ do
 	cat core/${file} >>${TARGET}
 done
 
-node main/stripper.js ${TARGET}
-node main/profiler.js ${TARGET}
+[ -e "main/enableStripper" ] && node main/stripper.js ${TARGET}
+[ -e "main/enableProfiler" ] && node main/profiler.js ${TARGET}
 
 TARGET=bin/main.js
 
