@@ -227,11 +227,14 @@ function FunctionCall(expression, args, strict) {
 		if (ref.name === '"eval"' && ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 			ctx.text("if(" + func.name + " ===vm.theEvalFunction)");
 			var mval = ctx.defineValue("Global_eval(" + thisValue.name + "," + argList.name + ",true," + strict + ")");
-			ctx.text("else");
-			ctx.mergeDefineValue(mval, func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
-			return mval;
 		}
-		return ctx.defineValue(func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
+		else {
+			ctx.text("if(" + func.name + " .vm===vm)");
+			var mval = ctx.defineValue(func.name + " ._Call(" + thisValue.name + "," + argList.name + ")");
+		}
+		ctx.text("else");
+		ctx.mergeDefineValue(mval, func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
+		return mval;
 	});
 }
 
