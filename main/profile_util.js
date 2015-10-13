@@ -52,8 +52,9 @@ function profile_print() {
 
 var caller_profile = {};
 
-function caller_profiler_point() {
-	Error.stackTraceLimit = 2;
+function caller_profiler_point(depth) {
+	if(!(2 <= depth)) depth = 2;
+	Error.stackTraceLimit = depth;
 	var x = {};
 	Error.captureStackTrace(x, caller_profiler_point);
 	x = x.stack;

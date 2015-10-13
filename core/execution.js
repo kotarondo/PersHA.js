@@ -386,7 +386,7 @@ function compileDeclarationBindingInstantiation0(ctx, code) {
 	}
 	if (!envClass["arguments"] && (code.existsDirectEval || code.existsArgumentsRef)) {
 		envClass["arguments"] = true;
-		ctx.text("var argsObj=CreateArgumentsObject(F,argumentsList,VariableEnvironment);");
+		ctx.text("var argsObj=CreateArgumentsObject(F,argumentsList);");
 		if (strict) {
 			ctx.text("env.CreateImmutableBinding('arguments');");
 			ctx.text("env.InitializeImmutableBinding('arguments',argsObj);");
@@ -408,7 +408,8 @@ function compileDeclarationBindingInstantiation0(ctx, code) {
 	}
 }
 
-function CreateArgumentsObject(func, args, env) {
+function CreateArgumentsObject(func, args) {
+	var env = VariableEnvironment;
 	var code = func.Code;
 	var names = code.parameters;
 	var strict = code.strict;
@@ -421,13 +422,13 @@ function CreateArgumentsObject(func, args, env) {
 	}
 	obj.Prototype = vm.Object_prototype;
 	obj.Extensible = true;
-	default_DefineOwnProperty.call(obj, "length", DataPropertyDescriptor(len, true, false, true), false);
+	define(obj, "length", len);
 	var map = [];
 	var mappedNames = [];
 	var indx = len - 1;
 	while (indx >= 0) {
 		var val = args[indx];
-		default_DefineOwnProperty.call(obj, ToString(indx), DataPropertyDescriptor(val, true, true, true), false);
+		defineFree(obj, indx, val);
 		if (indx < names.length) {
 			var name = names[indx];
 			if (strict === false && isIncluded(name, mappedNames) === false) {
@@ -442,12 +443,12 @@ function CreateArgumentsObject(func, args, env) {
 		obj.ArgumentsScope = env;
 	}
 	if (strict === false) {
-		obj.DefineOwnProperty("callee", DataPropertyDescriptor(func, true, false, true), false);
+		define(obj, "callee", func);
 	}
 	else {
 		var thrower = vm.theThrowTypeError;
-		obj.DefineOwnProperty("caller", AccessorPropertyDescriptor(thrower, thrower, false, false), false);
-		obj.DefineOwnProperty("callee", AccessorPropertyDescriptor(thrower, thrower, false, false), false);
+		intrinsic_createAccessor(obj, "caller", thrower, thrower, false, false);
+		intrinsic_createAccessor(obj, "callee", thrower, thrower, false, false);
 	}
 	return obj;
 }
