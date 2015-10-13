@@ -10,4 +10,5 @@ var sandbox = vm.createContext();
 sandbox.print = console.log;
 sandbox.load = load;
 load("run.js");
+process.exit(0);
 EOF
