@@ -33,9 +33,11 @@
 
 'use strict'
 
+var profile = {};
+
 function profile_print() {
 	var threshold = 1000000;
-	console.log("profile_print");
+	console.log("callee profile");
 	var results = Object.keys(profile);
 	results.sort(function(x, y) {
 		return profile[y] - profile[x];
@@ -43,6 +45,31 @@ function profile_print() {
 	results.every(function(x) {
 		if (profile[x] < threshold) return false;
 		console.log(profile[x] + " : " + x);
+		return true;
+	});
+	caller_profile_print();
+}
+
+var caller_profile = {};
+
+function caller_profiler_point() {
+	Error.stackTraceLimit = 2;
+	var x = {};
+	Error.captureStackTrace(x, caller_profiler_point);
+	x = x.stack;
+	caller_profile[x] = caller_profile[x] + 1 || 1;
+}
+
+function caller_profile_print() {
+	var threshold = 100000;
+	console.log("caller profile");
+	var results = Object.keys(caller_profile);
+	results.sort(function(x, y) {
+		return caller_profile[y] - caller_profile[x];
+	});
+	results.every(function(x) {
+		if (caller_profile[x] < threshold) return false;
+		console.log(caller_profile[x] + " : " + x);
 		return true;
 	});
 }
