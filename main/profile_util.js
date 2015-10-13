@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015, Kotaro Endo.
+ Copyright (c) 2015, Kotaro Endo.
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without
@@ -33,29 +33,15 @@ Copyright (c) 2015, Kotaro Endo.
 
 'use strict'
 
-module.exports = {
-	syncIO : syncIO,
-	asyncIO : asyncIO,
-};
-
-function syncIO(func, args) {
-	if (func === 'debug') {
-		console.error(args[0]);
-		return;
-	}
-	if (func === '_pid') {
-		return process.pid;
-	}
-	if (func === 'exit' || func === 'reallyExit') {
-		if(profile_print) profile_print(10000);
-	}
-	return process[func].apply(process, args);
-}
-
-function asyncIO(func, args, callback) {
-	if (func === 'setImmediate') {
-		setImmediate(callback);
-		return;
-	}
-	console.log("[unhandled] process asyncIO: " + func);
+function profile_print(threshold) {
+	console.log("profile_print");
+	var results = Object.keys(profile);
+	results.sort(function(x, y) {
+		return profile[y] - profile[x];
+	});
+	results.every(function(x) {
+		if (profile[x] < threshold) return false;
+		console.log(profile[x] + " : " + x);
+		return true;
+	});
 }

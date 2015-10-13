@@ -36,6 +36,7 @@
 global.require = require;
 global.PERSHA_HOME = undefined;
 global.PERSHA_DATA = undefined;
+global.profile = {};
 
 var path = require('path');
 var fs = require('fs');

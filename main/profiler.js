@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015, Kotaro Endo.
+ Copyright (c) 2015, Kotaro Endo.
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without
@@ -33,29 +33,12 @@ Copyright (c) 2015, Kotaro Endo.
 
 'use strict'
 
-module.exports = {
-	syncIO : syncIO,
-	asyncIO : asyncIO,
-};
+var fs = require('fs');
 
-function syncIO(func, args) {
-	if (func === 'debug') {
-		console.error(args[0]);
-		return;
-	}
-	if (func === '_pid') {
-		return process.pid;
-	}
-	if (func === 'exit' || func === 'reallyExit') {
-		if(profile_print) profile_print(10000);
-	}
-	return process[func].apply(process, args);
-}
+var filename = process.argv[2];
+var code = fs.readFileSync(filename).toString();
 
-function asyncIO(func, args, callback) {
-	if (func === 'setImmediate') {
-		setImmediate(callback);
-		return;
-	}
-	console.log("[unhandled] process asyncIO: " + func);
-}
+code = code.replace(/^function *(\S+) *\(.*?\) *\{$/gm, "$&\n\tprofile.$1 = profile.$1 + 1 || 1;");
+code += fs.readFileSync("main/profile_util.js").toString();
+
+fs.writeFileSync(filename, code);

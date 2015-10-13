@@ -9,6 +9,10 @@ do
 	cat core/${file} >>${TARGET}
 done
 
+
+node main/profiler.js ${TARGET}
+
+
 TARGET=bin/main.js
 
 echo "// This is a generated file by make.sh" >${TARGET}
