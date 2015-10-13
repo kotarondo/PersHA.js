@@ -106,8 +106,9 @@ function ArrayInitialiser(elements) {
 		if (elements[length - 1] === empty) {
 			length = length - 1;
 		}
-		var array = ctx.defineObject("Array_Construct([" + length + "])");
-		for (var i = 0; i < elements.length; i++) {
+		var array = ctx.defineObject("Array_Construct([])");
+		ctx.text("intrinsic_set_value(" + array.name + ",'length'," + length + ");");
+		for (var i = 0; i < length; i++) {
 			var e = elements[i];
 			if (e !== empty) {
 				var initResult = ctx.compileExpression(e);
