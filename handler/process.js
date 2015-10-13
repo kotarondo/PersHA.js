@@ -47,7 +47,10 @@ function syncIO(func, args) {
 		return process.pid;
 	}
 	if (func === 'exit' || func === 'reallyExit') {
-		if(profile_print) profile_print();
+		try {
+			profile_print();
+		} catch (e) {
+		}
 	}
 	return process[func].apply(process, args);
 }
