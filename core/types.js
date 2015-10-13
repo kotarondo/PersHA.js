@@ -776,7 +776,12 @@ function default_FastPut(P, V, Throw) {
 	}
 	else if (O.Extensible) {
 		var proto = O.Prototype;
-		if (proto === null || proto.GetProperty(P) === undefined) {
+		if (proto === null) {
+			intrinsic_createData(O, P, V, true, true, true);
+			return;
+		}
+		var desc = proto.GetProperty(P);
+		if (desc === undefined || desc.Writable === true) {
 			intrinsic_createData(O, P, V, true, true, true);
 			return;
 		}
@@ -844,7 +849,7 @@ function default_DefaultValue(hint) {
 var emptyPropertyDescriptor = FullPropertyDescriptor(absent, absent, absent, absent, absent, absent);
 
 function default_DefineOwnProperty(P, Desc, Throw) {
-caller_profiler_point(3)
+	caller_profiler_point(3)
 	var O = this;
 	var current = O.GetOwnProperty(P);
 	var extensible = O.Extensible;
@@ -909,11 +914,11 @@ caller_profiler_point(3)
 		assert(IsAccessorDescriptor(current), current);
 		assert(IsAccessorDescriptor(Desc), Desc);
 		if (current.Configurable === false) {
-			if (Desc.Set !== absent && SameValue(Desc.Set, current.Set) === false) {
+			if (Desc.Set !== absent && Desc.Set !== current.Set) {
 				if (Throw === true) throw VMTypeError();
 				else return false;
 			}
-			if (Desc.Get !== absent && SameValue(Desc.Get, current.Get) === false) {
+			if (Desc.Get !== absent && Desc.Get !== current.Get) {
 				if (Throw === true) throw VMTypeError();
 				else return false;
 			}
@@ -930,23 +935,23 @@ function isEveryFieldOcurrsAndSameAs(Desc, x) {
 	}
 	if (Desc.Writable !== absent) {
 		if (x.Writable === absent) return false;
-		if (!SameValue(Desc.Writable, x.Writable)) return false;
+		if (Desc.Writable !== x.Writable) return false;
 	}
 	if (Desc.Get !== absent) {
 		if (x.Get === absent) return false;
-		if (!SameValue(Desc.Get, x.Get)) return false;
+		if (Desc.Get !== x.Get) return false;
 	}
 	if (Desc.Set !== absent) {
 		if (x.Set === absent) return false;
-		if (!SameValue(Desc.Set, x.Set)) return false;
+		if (Desc.Set !== x.Set) return false;
 	}
 	if (Desc.Configurable !== absent) {
 		if (x.Configurable === absent) return false;
-		if (!SameValue(Desc.Configurable, x.Configurable)) return false;
+		if (Desc.Configurable !== x.Configurable) return false;
 	}
 	if (Desc.Enumerable !== absent) {
 		if (x.Enumerable === absent) return false;
-		if (!SameValue(Desc.Enumerable, x.Enumerable)) return false;
+		if (Desc.Enumerable !== x.Enumerable) return false;
 	}
 	return true;
 }
