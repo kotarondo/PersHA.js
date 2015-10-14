@@ -108,7 +108,7 @@ function VariableStatement(variableDeclarationList) {
 	});
 }
 
-function VariableDeclaration(identifier, initialiser, strict, pos) {
+function VariableDeclaration(staticEnv, identifier, initialiser, strict, pos) {
 	var evaluate = function() {
 		if (initialiser !== undefined) {
 			runningSourcePos = pos;
@@ -124,12 +124,15 @@ function VariableDeclaration(identifier, initialiser, strict, pos) {
 	return CompilerContext.statement(evaluate, function(ctx) {
 		if (initialiser !== undefined) {
 			ctx.compileRunningPos(pos);
-			var lhs = ctx.compileGetIdentifierReferece(identifier, strict);
+			var lhs = ctx.compileGetIdentifierReferece(staticEnv, identifier, strict);
 			var rhs = ctx.compileExpression(initialiser);
 			var value = ctx.compileGetValue(rhs);
 			ctx.compilePutValue(lhs, value);
 		}
-		return identifier;
+		return {
+			env : staticEnv,
+			name : identifier,
+		};
 	});
 }
 
@@ -452,7 +455,7 @@ function ForVarInStatement(variableDeclarationNoIn, expression, statement, label
 
 	return CompilerContext.statement(evaluate, function(ctx) {
 		ctx.iterables++;
-		var varName = variableDeclarationNoIn.compile(ctx);
+		var varRef = variableDeclarationNoIn.compile(ctx);
 		ctx.compileRunningPos(pos2);
 		var exprRef = ctx.compileExpression(expression);
 		var experValue = ctx.compileGetValue(exprRef);
@@ -464,7 +467,7 @@ function ForVarInStatement(variableDeclarationNoIn, expression, statement, label
 		var P = ctx.defineString(next.name + "()");
 		ctx.text("if(" + P.name + " ===undefined)break;");
 		ctx.compileRunningPos(pos1);
-		var varRef = ctx.compileGetIdentifierReferece(varName, strict);
+		var varRef = ctx.compileGetIdentifierReferece(varRef.env, varRef.name, strict);
 		ctx.compilePutValue(varRef, P);
 		ctx.compileStatement(statement);
 		ctx.text("}");
@@ -543,7 +546,7 @@ function WithStatement(expression, statement, pos) {
 		var val = ctx.compileExpression(expression);
 		var obj = ctx.compileToObject(ctx.compileGetValue(val));
 		var oldEnv = ctx.defineAny("LexicalEnvironment");
-		ctx.text("LexicalEnvironment=NewObjectEnvironment(" + obj.name + "," + oldEnv.name + ")");
+		ctx.text("LexicalEnvironment=NewObjectEnvironment(" + obj.name + "," + oldEnv.name + ");");
 		ctx.text("LexicalEnvironment.provideThis=true;");
 		ctx.text("try{");
 		ctx.compileStatement(statement);
@@ -810,7 +813,7 @@ function TryStatement(block, catchBlock, finallyBlock) {
 	});
 }
 
-function CatchBlock(identifier, block) {
+function CatchBlock(staticEnv, identifier, block) {
 	var evaluate = function(C) {
 		var oldEnv = LexicalEnvironment;
 		var catchEnv = NewDeclarativeEnvironment(oldEnv);
@@ -826,7 +829,7 @@ function CatchBlock(identifier, block) {
 	return CompilerContext.statement(evaluate, function(ctx) {
 		if (!block.statementList) return;
 		var oldEnv = ctx.defineAny("LexicalEnvironment");
-		ctx.text("LexicalEnvironment=NewDeclarativeEnvironment(" + oldEnv.name + ")");
+		ctx.text("LexicalEnvironment=NewDeclarativeEnvironment(" + oldEnv.name + ");");
 		var name = ctx.quote(identifier);
 		ctx.text("LexicalEnvironment.CreateMutableBinding(" + name + ");");
 		ctx.text("LexicalEnvironment.SetMutableBinding(" + name + ",err,false);");

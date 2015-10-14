@@ -74,6 +74,16 @@ function isIncluded(m, a) {
 	return (a.indexOf(m) >= 0);
 }
 
+function setIncluded(m, a) {
+	if (m instanceof Array) {
+		m.forEach(function(m) {
+			setIncluded(m, a);
+		});
+		return;
+	}
+	(a.indexOf(m) >= 0) || a.push(m);
+}
+
 function floor(x) {
 	return Math.floor(x);
 }

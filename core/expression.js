@@ -45,13 +45,13 @@ function ThisExpression() {
 	return evaluate;
 }
 
-function IdentifierReference(identifier, strict) {
+function IdentifierReference(staticEnv, identifier, strict) {
 	var evaluate = function() {
 		var env = LexicalEnvironment;
 		return GetIdentifierReference(env, identifier, strict);
 	};
 	evaluate.compile = (function(ctx) {
-		return ctx.compileGetIdentifierReferece(identifier, strict);
+		return ctx.compileGetIdentifierReferece(staticEnv, identifier, strict);
 	});
 	return evaluate;
 }

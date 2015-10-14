@@ -110,6 +110,7 @@ var theParser = function() {
 			startPos : undefined,
 			endPos : undefined,
 			functionName : undefined,
+			varEnv : undefined,
 		});
 		subcodes.push(code);
 		return code;
@@ -124,14 +125,39 @@ var theParser = function() {
 		});
 	}
 
+	function Env(type, outer) {
+		var env = ({
+			type : type,
+			outer : outer,
+			code : code,
+			inners : [],
+			defs : [],
+			refs : [],
+			inboundRefs : [],
+			locals : [],
+			existsDirectEval : false,
+			analyzed : false,
+		});
+		if (outer) {
+			outer.inners.push(env);
+		}
+		return env;
+	}
+
+	var varEnv;
+	var lexEnv;
+
 	function readProgram(programText, strictMode, subcodes, filename) {
 		setup(programText, strictMode, subcodes, filename);
 		code = Code();
 		stack = Stack();
+		varEnv = Env("program", null);
+		lexEnv = varEnv;
 		var sourceElements = readSourceElements();
 		if (token !== undefined) throw SyntaxError(tokenPos);
 		code.strict = strict;
 		code.evaluate = Program(sourceElements);
+		code.varEnv = varEnv;
 		return code;
 	}
 
@@ -153,7 +179,7 @@ var theParser = function() {
 	function readFunctionCode(programText, parameters, subcodes, filename) {
 		setup(programText, false, subcodes, filename);
 		sourceObject.isFunctionBody = true;
-		var body = readFunctionBody(undefined, parameters);
+		var body = readFunctionBody(undefined, parameters, null);
 		if (body.strict) {
 			disallowDuplicated(parameters);
 			parameters.forEach(disallowEvalOrArguments);
@@ -161,12 +187,18 @@ var theParser = function() {
 		return body;
 	}
 
-	function readFunctionBody(name, parameters) {
+	function readFunctionBody(name, parameters, scope) {
 		var outerStrict = strict;
 		var outerCode = code;
 		var outerStack = stack;
+		var outerVarEnv = varEnv;
+		var outerLexEnv = lexEnv;
 		code = Code();
 		stack = Stack();
+		varEnv = Env("function", scope);
+		lexEnv = varEnv;
+		setIncluded(parameters, varEnv.defs);
+		setIncluded("arguments", varEnv.defs);
 		var body = code;
 		body.isFunctionCode = true;
 		body.functionName = name;
@@ -174,9 +206,12 @@ var theParser = function() {
 		body.sourceElements = readSourceElements();
 		body.strict = strict;
 		body.evaluate = delayedFunctionBody;
+		body.varEnv = varEnv;
 		strict = outerStrict;
 		code = outerCode;
 		stack = outerStack;
+		varEnv = outerVarEnv;
+		lexEnv = outerLexEnv;
 		return body;
 	}
 
@@ -226,7 +261,8 @@ var theParser = function() {
 			}
 		}
 		expectingToken('{');
-		var body = readFunctionBody(name, parameters);
+		setIncluded(name, varEnv.defs);
+		var body = readFunctionBody(name, parameters, varEnv);
 		expectingToken('}');
 		if (body.strict) {
 			disallowEvalOrArguments(name);
@@ -368,10 +404,9 @@ var theParser = function() {
 		if (testToken('=')) {
 			var initialiser = readAssignmentExpression(isNoIn);
 		}
-		if (isIncluded(identifier, code.variables) === false) {
-			code.variables.push(identifier);
-		}
-		return VariableDeclaration(identifier, initialiser, strict, pos);
+		setIncluded(identifier, code.variables);
+		setIncluded(identifier, varEnv.defs);
+		return VariableDeclaration(lexEnv, identifier, initialiser, strict, pos);
 	}
 
 	function readIfStatement() {
@@ -507,7 +542,10 @@ var theParser = function() {
 		var pos = tokenPos;
 		var expression = readExpression();
 		expectingToken(')');
+		var outerLexEnv = lexEnv;
+		lexEnv = Env("with", lexEnv);
 		var statement = readStatement();
+		lexEnv = outerLexEnv;
 		return WithStatement(expression, statement, pos);
 	}
 
@@ -569,7 +607,11 @@ var theParser = function() {
 				disallowEvalOrArguments(identifier);
 			}
 			expectingToken(')');
-			var catchBlock = CatchBlock(identifier, readBlockStatement());
+			var outerLexEnv = lexEnv;
+			lexEnv = Env("catch", lexEnv);
+			setIncluded(identifier, lexEnv.defs);
+			var catchBlock = CatchBlock(lexEnv, identifier, readBlockStatement());
+			lexEnv = outerLexEnv;
 			if (testToken("finally")) {
 				var finallyBlock = readBlockStatement();
 			}
@@ -870,6 +912,7 @@ var theParser = function() {
 			case '(':
 				if (expression === lastIdentifierReference && lastIdentifier === "eval" && newOperators === 0) {
 					code.existsDirectEval = true;
+					lexEnv.existsDirectEval = true;
 				}
 				var args = readArguments();
 				if (newOperators !== 0) {
@@ -922,7 +965,11 @@ var theParser = function() {
 			}
 		}
 		expectingToken('{');
-		var body = readFunctionBody(name, parameters);
+		var outerLexEnv = lexEnv;
+		lexEnv = Env("named-function", lexEnv);
+		setIncluded(name, lexEnv.defs);
+		var body = readFunctionBody(name, parameters, lexEnv);
+		lexEnv = outerLexEnv;
 		expectingToken('}');
 		if (body.strict) {
 			disallowEvalOrArguments(name);
@@ -940,13 +987,14 @@ var theParser = function() {
 		}
 		if (isIdentifierName && !isReservedWord(token)) {
 			var identifier = proceedToken();
-			var expression = IdentifierReference(identifier, strict);
+			var expression = IdentifierReference(lexEnv, identifier, strict);
 			lastIdentifierReference = expression;
 			lastIdentifier = identifier;
 			lastReference = expression;
 			if (identifier === "arguments") {
 				code.existsArgumentsRef = true;
 			}
+			setIncluded(identifier, lexEnv.refs);
 			return expression;
 		}
 		if (token === '/' || token === '/=') {
@@ -1027,7 +1075,7 @@ var theParser = function() {
 			expectingToken('(');
 			expectingToken(')');
 			expectingToken('{');
-			var body = readFunctionBody("get_" + name, []);
+			var body = readFunctionBody("get_" + name, [], lexEnv);
 			expectingToken('}');
 			var a = PropertyAssignmentGet(name, body);
 		}
@@ -1040,7 +1088,7 @@ var theParser = function() {
 			var identifier = expectingIdentifier();
 			expectingToken(')');
 			expectingToken('{');
-			var body = readFunctionBody("set_" + name, [ identifier ]);
+			var body = readFunctionBody("set_" + name, [ identifier ], lexEnv);
 			expectingToken('}');
 			if (body.strict) {
 				disallowEvalOrArguments(identifier);

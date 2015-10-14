@@ -42,7 +42,7 @@ function FunctionDeclaration(body) {
 			return CreateFunction(body, VariableEnvironment);
 		},
 		compile : function(ctx) {
-			return ctx.defineObject("CreateFunction(" + ctx.literal(body) + ",VariableEnvironment);");
+			return ctx.defineObject("CreateFunction(" + ctx.literal(body) + ",VariableEnvironment)");
 		},
 	});
 }
