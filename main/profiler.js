@@ -39,6 +39,11 @@ var filename = process.argv[2];
 var code = fs.readFileSync(filename).toString();
 
 code = code.replace(/^function *(\S+) *\(.*?\) *\{$/gm, "$&\n\tprofile.$1 = profile.$1 + 1 || 1;");
+code = code.replace(/^\s*(\S+) *: *function *\(.*?\) *\{$/gm, function(matched, cap1, pos) {
+	var name = cap1 + "$" + pos;
+	return matched + "\n\t\tprofile." + name + " = profile." + name + " + 1 || 1;";
+});
+
 code = fs.readFileSync("main/profile_util.js").toString() + code;
 
 fs.writeFileSync(filename, code);
