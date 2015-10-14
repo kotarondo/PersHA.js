@@ -865,6 +865,24 @@ function Array_FastPut(P, V, Throw) {
 		V = ToNumber(V);
 		var newLen = ToUint32(V);
 		if (newLen !== V) throw VMRangeError();
+		if (oldLen - newLen > 2 * O.numProps) {
+			for ( var P in O.$properties) {
+				var index = ToArrayIndex(P);
+				if (index >= newLen) {
+					if (O.$properties[P].Configurable === false) {
+						newLen = index;
+					}
+				}
+			}
+			ownDesc.Value = newLen;
+			for ( var P in O.$properties) {
+				var index = ToArrayIndex(P);
+				if (index >= newLen) {
+					intrinsic_remove(O, P);
+				}
+			}
+			return;
+		}
 		ownDesc.Value = newLen;
 		while (newLen < oldLen) {
 			oldLen = oldLen - 1;

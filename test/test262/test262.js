@@ -35,7 +35,6 @@ var vm = require('vm');
 var fs = require('fs');
 
 var stopIfFailed = false;
-var skipVeryHeavyTests = true;
 var skipHeavyTests = false;
 try {
 	fs.statSync("stopIfFailed");
@@ -120,7 +119,6 @@ function nextTest() {
 			return;
 		}
 		if (specificTest && !test.path.match(specificTest)) continue;
-		if (skipVeryHeavyTests && VeryHeavyTests.indexOf(test.path) >= 0) continue;
 		if (skipHeavyTests && HeavyTests.indexOf(test.path) >= 0) continue;
 		break;
 	}
@@ -153,12 +151,9 @@ function nextTest() {
 	setImmediate(nextTest);
 }
 
-var VeryHeavyTests = [ //
+var HeavyTests = [ //
 "TestCases/ch15/15.1/15.1.3/15.1.3.1/S15.1.3.1_A2.5_T1.js",//
 "TestCases/ch15/15.1/15.1.3/15.1.3.2/S15.1.3.2_A2.5_T1.js",//
-"TestCases/ch15/15.4/15.4.5/15.4.5.2/S15.4.5.2_A3_T4.js",//
-];
-var HeavyTests = [ //
 "TestCases/ch07/7.4/S7.4_A5.js",//
 "TestCases/ch07/7.4/S7.4_A6.js",//
 "TestCases/ch07/7.8/7.8.5/S7.8.5_A1.1_T2.js",//

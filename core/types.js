@@ -417,6 +417,7 @@ function VMObject(ClassID) {
 	obj.Prototype = undefined;
 	obj.Extensible = undefined;
 	obj.ID = 0;
+	obj.numProps = 0;
 	return obj;
 }
 
@@ -974,10 +975,11 @@ function intrinsic_set_value(O, P, V) {
 }
 
 function intrinsic_remove(O, P) {
-	delete O.$properties[P];
+	delete O.$properties[P] && O.numProps--;
 }
 
 function intrinsic_createData(O, P, Value, Writable, Enumerable, Configurable) {
+	O.numProps++; // maybe inaccurate
 	O.$properties[P] = ({
 		Value : (Value !== absent) ? Value : undefined,
 		Writable : (Writable !== absent) ? Writable : false,
@@ -989,6 +991,7 @@ function intrinsic_createData(O, P, Value, Writable, Enumerable, Configurable) {
 }
 
 function intrinsic_createAccessor(O, P, Get, Set, Enumerable, Configurable) {
+	O.numProps++; // maybe inaccurate
 	O.$properties[P] = ({
 		Value : absent,
 		Writable : absent,
