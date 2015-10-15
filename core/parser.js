@@ -160,6 +160,7 @@ var theParser = function() {
 		code.strict = strict;
 		code.evaluate = Program(sourceElements);
 		code.varEnv = varEnv;
+		analyzeStaticEnv(varEnv);
 		return code;
 	}
 
@@ -186,6 +187,7 @@ var theParser = function() {
 			disallowDuplicated(parameters);
 			parameters.forEach(disallowEvalOrArguments);
 		}
+		analyzeStaticEnv(body.varEnv);
 		return body;
 	}
 

@@ -36,7 +36,7 @@
 var profile = {};
 
 function profile_print() {
-	var threshold = 1000000;
+	var threshold = 500000;
 	console.log("callee profile");
 	var results = Object.keys(profile);
 	results.sort(function(x, y) {

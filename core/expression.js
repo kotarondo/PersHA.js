@@ -201,7 +201,11 @@ function NewOperator(expression, args) {
 			return COMPILER_UNDEFINED_VALUE;
 		}
 		ctx.text("if(! " + cntr.name + " ||! " + cntr.name + " ._Construct)throw VMTypeError();");
-		return ctx.defineValue(cntr.name + " .Construct(" + argList.name + ")");
+		ctx.text("if(" + cntr.name + " .vm===vm)");
+		var mval = ctx.defineValue(cntr.name + " ._Construct(" + argList.name + ")");
+		ctx.text("else");
+		ctx.mergeDefineValue(mval, cntr.name + " .Construct(" + argList.name + ")");
+		return mval;
 	});
 }
 

@@ -931,7 +931,10 @@ function default_DefineOwnProperty(P, Desc, Throw) {
 function isEveryFieldOcurrsAndSameAs(Desc, x) {
 	if (Desc.Value !== absent) {
 		if (x.Value === absent) return false;
-		if (!SameValue(Desc.Value, x.Value)) return false;
+		if (Desc.Value || x.Value) {
+			if (Desc.Value !== x.Value) return false;
+		}
+		else if (!SameValue(Desc.Value, x.Value)) return false;
 	}
 	if (Desc.Writable !== absent) {
 		if (x.Writable === absent) return false;

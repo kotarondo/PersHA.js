@@ -104,7 +104,7 @@ function IOManager_bindPort(port) {
 }
 
 function IOManager_portEvent(entry) {
-	assert(entry.type === 'portEvent');
+	assert(entry.type === 'portEvent', entry);
 	var txid = entry.txid;
 	var port = IOManager_openPorts[txid];
 	if (port === undefined) {
@@ -190,7 +190,7 @@ function IOManager_syncIO(port, func, args, callback) {
 				return entry;
 			}
 			if (entry.type === 'return') {
-				assert(entry.func === func, entry.func + " === " + func);
+				assert(entry.func === func, entry);
 				if (callback && entry.success) {
 					IOManager_asyncCallbacks[txid] = callback;
 				}
@@ -253,7 +253,7 @@ function IOManager_syncIO(port, func, args, callback) {
 }
 
 function IOManager_completionEvent(entry) {
-	assert(entry.type === 'completionEvent');
+	assert(entry.type === 'completionEvent', entry);
 	var txid = entry.txid;
 	var callback = IOManager_asyncCallbacks[txid];
 	if (callback === undefined) {
@@ -275,7 +275,7 @@ function IOManager_date_now() {
 		}
 		var entry = Journal_read();
 		if (entry !== undefined) {
-			assert(entry.now !== undefined);
+			assert(entry.now !== undefined, entry);
 			return entry.now;
 		}
 	}
@@ -293,7 +293,7 @@ function IOManager_date_parse(str) {
 		}
 		var entry = Journal_read();
 		if (entry !== undefined) {
-			assert(entry.parse !== undefined);
+			assert(entry.parse !== undefined, entry);
 			return entry.parse;
 		}
 	}
@@ -311,7 +311,7 @@ function IOManager_math_random() {
 		}
 		var entry = Journal_read();
 		if (entry !== undefined) {
-			assert(entry.random !== undefined);
+			assert(entry.random !== undefined, entry);
 			return entry.random;
 		}
 	}

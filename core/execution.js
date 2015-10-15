@@ -371,7 +371,6 @@ function compileDeclarationBindingInstantiation0(ctx, code) {
 	var strict = code.strict;
 	var envClass = Object.create(null);
 	var staticEnv = code.varEnv;
-	analyzeStaticEnv(staticEnv);
 	ctx.compileNewDeclarativeEnvironment(staticEnv);
 	ctx.text("VariableEnvironment = LexicalEnvironment;");
 	for (var i = 0; i < names.length; i++) {

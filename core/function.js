@@ -125,10 +125,10 @@ function Function_ClassConstruct(argumentsList) {
 	var obj = VMObject(CLASSID_Object);
 	obj.Extensible = true;
 	var proto = F.Get("prototype");
-	if (Type(proto) === TYPE_Object) {
+	if (typeof (proto) === "object" && proto !== null) {
 		obj.Prototype = proto;
 	}
-	if (Type(proto) !== TYPE_Object) {
+	else {
 		obj.Prototype = vm.Object_prototype;
 	}
 	var result = F.Call(obj, argumentsList);
