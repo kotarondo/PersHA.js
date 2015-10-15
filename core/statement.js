@@ -828,10 +828,13 @@ function CatchBlock(staticEnv, identifier, block) {
 
 	return CompilerContext.statement(evaluate, function(ctx) {
 		if (!block.statementList) return;
-		var oldEnv = ctx.defineAny("LexicalEnvironment");
-		ctx.text("LexicalEnvironment=NewDeclarativeEnvironment(" + oldEnv.name + ");");
+		var oldEnv = ctx.compileNewDeclarativeEnvironment(staticEnv);
 		ctx.compileCreateMutableBinding(staticEnv, identifier);
 		ctx.compileSetMutableBinding(staticEnv, identifier, ctx.defineValue("err"), false);
+		if (!oldEnv) {
+			ctx.compileStatement(block);
+			return;
+		}
 		ctx.text("try{");
 		ctx.compileStatement(block);
 		ctx.text("}finally{");

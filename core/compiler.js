@@ -353,7 +353,15 @@ function analyzeStaticEnv(env) {
 		if (env.code.existsArgumentsRef && !env.code.strict && isIncluded(name, env.code.parameters)) return;
 		if (!isIncluded(name, env.inboundRefs)) setIncluded(name, env.locals);
 	});
+	if (env.defs.length === env.locals.length) env.collapsed = true;
 }
+
+CompilerContext.prototype.compileNewDeclarativeEnvironment = function(staticEnv) {
+	if (staticEnv.collapsed) return null;
+	var oldEnv = this.defineAny("LexicalEnvironment");
+	this.text("LexicalEnvironment=NewDeclarativeEnvironment(" + oldEnv.name + ");");
+	return oldEnv;
+};
 
 CompilerContext.prototype.compileCreateMutableBinding = function(staticEnv, name) {
 	if (isIncluded(name, staticEnv.locals)) {
@@ -420,7 +428,7 @@ CompilerContext.prototype.compileGetIdentifierReferece = function(staticEnv, nam
 		if (env.code.existsDirectEval || env.type === "with" || env.type === "program") {
 			ambiguous = true;
 		}
-		if (!ambiguous) {
+		if (!ambiguous && !env.collapsed) {
 			skip++;
 		}
 		env = env.outer;

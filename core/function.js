@@ -55,12 +55,11 @@ function FunctionExpression(staticEnv, body) {
 	}
 
 	return CompilerContext.expression(function(ctx) {
-		var oldEnv = ctx.defineAny("LexicalEnvironment");
-		ctx.text("LexicalEnvironment=NewDeclarativeEnvironment(" + oldEnv.name + ");");
+		var oldEnv = ctx.compileNewDeclarativeEnvironment(staticEnv);
 		ctx.compileCreateImmutableBinding(staticEnv, body.functionName);
 		var closure = ctx.defineObject("CreateFunction(" + ctx.literal(body) + ",LexicalEnvironment)");
 		ctx.compileInitializeImmutableBinding(staticEnv, body.functionName, closure);
-		ctx.text("LexicalEnvironment= " + oldEnv.name + ";");
+		if (oldEnv) ctx.text("LexicalEnvironment= " + oldEnv.name + ";");
 		return closure;
 	});
 }

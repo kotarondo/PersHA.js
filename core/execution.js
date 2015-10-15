@@ -360,9 +360,7 @@ function enterExecutionContextForFunctionCode0(F, thisValue) {
 	else {
 		ThisBinding = thisValue;
 	}
-	var localEnv = NewDeclarativeEnvironment(F.Scope);
-	LexicalEnvironment = localEnv;
-	VariableEnvironment = localEnv;
+	LexicalEnvironment = F.Scope;
 	runningFunction = F;
 	runningCode = code;
 	runningSourcePos = 0;
@@ -374,6 +372,8 @@ function compileDeclarationBindingInstantiation0(ctx, code) {
 	var envClass = Object.create(null);
 	var staticEnv = code.varEnv;
 	analyzeStaticEnv(staticEnv);
+	ctx.compileNewDeclarativeEnvironment(staticEnv);
+	ctx.text("VariableEnvironment = LexicalEnvironment;");
 	for (var i = 0; i < names.length; i++) {
 		var argName = names[i];
 		if (!envClass[argName]) {

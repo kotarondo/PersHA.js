@@ -137,6 +137,7 @@ var theParser = function() {
 			locals : [],
 			bindings : Object.create(null),
 			existsDirectEval : false,
+			collapsed : false,
 			analyzed : false,
 		});
 		if (outer) {
@@ -480,8 +481,10 @@ var theParser = function() {
 			if (testToken("in")) {
 				if (expressionNoIn !== lastLeftHandSide) throw SyntaxError(prevTokenPos);
 				if (expressionNoIn !== lastReference) throw ReferenceError(prevTokenPos);
-				if (strict && expressionNoIn === lastIdentifierReference) {
-					disallowEvalOrArguments(lastIdentifier);
+				if (!STRICT_CONFORMANCE) {
+					if (strict && expressionNoIn === lastIdentifierReference) {
+						disallowEvalOrArguments(lastIdentifier);
+					}
 				}
 				var pos2 = tokenPos;
 				var expression = readExpression();
@@ -972,10 +975,11 @@ var theParser = function() {
 		expectingToken('{');
 		var outerLexEnv = lexEnv;
 		if (name) {
-			var env = lexEnv = Env("named-function", lexEnv);
+			lexEnv = Env("named-function", lexEnv);
 			setIncluded(name, lexEnv.defs);
 		}
 		var body = readFunctionBody(name, parameters, lexEnv);
+		var expression = FunctionExpression(lexEnv, body);
 		lexEnv = outerLexEnv;
 		expectingToken('}');
 		if (body.strict) {
@@ -983,7 +987,7 @@ var theParser = function() {
 			disallowDuplicated(parameters);
 			parameters.forEach(disallowEvalOrArguments);
 		}
-		return FunctionExpression(env, body);
+		return expression;
 	}
 
 	function readPrimaryExpression() {
