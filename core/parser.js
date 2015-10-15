@@ -972,7 +972,7 @@ var theParser = function() {
 		expectingToken('{');
 		var outerLexEnv = lexEnv;
 		if (name) {
-			lexEnv = Env("named-function", lexEnv);
+			var env = lexEnv = Env("named-function", lexEnv);
 			setIncluded(name, lexEnv.defs);
 		}
 		var body = readFunctionBody(name, parameters, lexEnv);
@@ -983,7 +983,7 @@ var theParser = function() {
 			disallowDuplicated(parameters);
 			parameters.forEach(disallowEvalOrArguments);
 		}
-		return FunctionExpression(body);
+		return FunctionExpression(env, body);
 	}
 
 	function readPrimaryExpression() {

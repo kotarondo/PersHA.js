@@ -47,25 +47,21 @@ function FunctionDeclaration(body) {
 	});
 }
 
-function FunctionExpression(body) {
+function FunctionExpression(staticEnv, body) {
 	if (body.functionName === undefined) {
 		return CompilerContext.expression(function(ctx) {
 			return ctx.defineObject("CreateFunction(" + ctx.literal(body) + ",LexicalEnvironment)");
 		});
 	}
 
-	var evaluate = function() {
-		var env = LexicalEnvironment;
-		var funcEnv = NewDeclarativeEnvironment(env);
-		var envRec = funcEnv;
-		envRec.CreateImmutableBinding(body.functionName);
-		var closure = CreateFunction(body, funcEnv);
-		envRec.InitializeImmutableBinding(body.functionName, closure);
-		return closure;
-	};
-
 	return CompilerContext.expression(function(ctx) {
-		return ctx.defineObject(ctx.literal(evaluate) + "()");
+		var oldEnv = ctx.defineAny("LexicalEnvironment");
+		ctx.text("LexicalEnvironment=NewDeclarativeEnvironment(" + oldEnv.name + ");");
+		ctx.compileCreateImmutableBinding(staticEnv, body.functionName);
+		var closure = ctx.defineObject("CreateFunction(" + ctx.literal(body) + ",LexicalEnvironment)");
+		ctx.compileInitializeImmutableBinding(staticEnv, body.functionName, closure);
+		ctx.text("LexicalEnvironment= " + oldEnv.name + ";");
+		return closure;
 	});
 }
 

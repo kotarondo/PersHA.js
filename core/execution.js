@@ -374,13 +374,6 @@ function compileDeclarationBindingInstantiation0(ctx, code) {
 	var envClass = Object.create(null);
 	var staticEnv = code.varEnv;
 	analyzeStaticEnv(staticEnv);
-	staticEnv.inboundRefs.forEach(function(name) {
-		ctx.text("//inboundRefs: " + name);
-	});
-	staticEnv.locals.forEach(function(name) {
-		ctx.text("//local: " + name);
-	});
-	ctx.text("var env = VariableEnvironment;");
 	for (var i = 0; i < names.length; i++) {
 		var argName = names[i];
 		if (!envClass[argName]) {
