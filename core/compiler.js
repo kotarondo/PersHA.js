@@ -343,9 +343,9 @@ function analyzeStaticEnv(env) {
 		});
 	});
 	if (env.existsDirectEval || env.code.existsWithStatement) return;
-	if (env.code.existsArgumentsRef) return; // TODO
-	if (env.type !== "function") return; // TODO
+	if (env.type === "program" || env.type === "with") return;
 	env.defs.forEach(function(name) {
+		if (env.code.existsArgumentsRef && !env.code.strict && isIncluded(name, env.code.parameters)) return;
 		if (!isIncluded(name, env.inboundRefs)) setIncluded(name, env.locals);
 	});
 }
@@ -368,6 +368,27 @@ CompilerContext.prototype.compileSetMutableBinding = function(staticEnv, name, v
 	else {
 		assert(isIncluded(name, staticEnv.defs));
 		this.text("LexicalEnvironment.SetMutableBinding(" + this.quote(name) + "," + val.name + "," + strict + ");");
+	}
+};
+
+CompilerContext.prototype.compileCreateImmutableBinding = function(staticEnv, name) {
+	if (isIncluded(name, staticEnv.locals)) {
+		staticEnv.bindings[name] = "V" + (this.variables++);
+		this.text("var " + staticEnv.bindings[name] + "; // " + name);
+	}
+	else {
+		assert(isIncluded(name, staticEnv.defs));
+		this.text("LexicalEnvironment.CreateImmutableBinding(" + this.quote(name) + ");");
+	}
+};
+
+CompilerContext.prototype.compileInitializeImmutableBinding = function(staticEnv, name, val) {
+	if (isIncluded(name, staticEnv.locals)) {
+		this.text(staticEnv.bindings[name] + " = " + val.name);
+	}
+	else {
+		assert(isIncluded(name, staticEnv.defs));
+		this.text("LexicalEnvironment.InitializeImmutableBinding(" + this.quote(name) + "," + val.name + ");");
 	}
 };
 

@@ -393,20 +393,19 @@ function compileDeclarationBindingInstantiation0(ctx, code) {
 	}
 	if (!envClass["arguments"] && (code.existsDirectEval || code.existsArgumentsRef)) {
 		envClass["arguments"] = true;
-		ctx.text("var argsObj=CreateArgumentsObject(F,argumentsList);");
+		var argsObj = ctx.defineObject("CreateArgumentsObject(F,argumentsList)");
 		if (strict) {
-			ctx.text("env.CreateImmutableBinding('arguments');");
-			ctx.text("env.InitializeImmutableBinding('arguments',argsObj);");
+			ctx.compileCreateImmutableBinding(staticEnv, 'arguments');
+			ctx.compileInitializeImmutableBinding(staticEnv, 'arguments', argsObj);
 		}
 		else {
-			ctx.text("env.CreateMutableBinding('arguments');");
-			ctx.text("env.SetMutableBinding('arguments',argsObj,false);");
+			ctx.compileCreateMutableBinding(staticEnv, 'arguments');
+			ctx.compileSetMutableBinding(staticEnv, 'arguments', argsObj, false);
 		}
 	}
 	var variables = code.variables;
 	for (var i = 0; i < variables.length; i++) {
 		var dn = variables[i];
-		var quote = ctx.quote(dn);
 		if (!envClass[dn]) {
 			envClass[dn] = true;
 			ctx.compileCreateMutableBinding(staticEnv, dn);

@@ -100,7 +100,7 @@ function delayedFunctionBody(F, argumentsList) {
 		ctx.compileReturn(COMPILER_UNDEFINED_VALUE);
 	} catch (e) {
 		console.error("CODEGEN ERROR:\n" + ctx.texts.join('\n'));
-		console.error(e);
+		console.error(e.stack);
 		process.reallyExit(1);
 	}
 	var evaluate = ctx.finish();
@@ -110,7 +110,7 @@ function delayedFunctionBody(F, argumentsList) {
 	} catch (e) {
 		if (!isInternalError(e)) throw e;
 		console.error("FIRST EXEC ERROR:\n" + ctx.texts.join('\n'));
-		console.error(e);
+		console.error(e.stack);
 		process.reallyExit(1);
 	}
 }
