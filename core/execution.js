@@ -163,12 +163,22 @@ function GetIdentifierReference(lex, name, strict) {
 	}
 }
 
-function GetIdentifierEnvironmentRecord(lex, name) {
+function SkipEnvironmentRecord(skip) {
+	var lex = LexicalEnvironment;
+	while (skip--) {
+		lex = lex.outer;
+	}
+	return lex;
+}
+
+function GetIdentifierEnvironmentRecord(skip, name) {
+	var lex = LexicalEnvironment;
+	while (skip--) {
+		lex = lex.outer;
+	}
 	while (true) {
 		if (lex === null) return undefined;
-		var envRec = lex;
-		var exists = envRec.HasBinding(name);
-		if (exists === true) return envRec;
+		if (lex.HasBinding(name)) return lex;
 		lex = lex.outer;
 	}
 }

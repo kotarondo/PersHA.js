@@ -402,11 +402,33 @@ CompilerContext.prototype.compileGetIdentifierReferece = function(staticEnv, nam
 		};
 	}
 	var qname = this.quote(name);
-	if (isIncluded(name, staticEnv.defs)) {
-		var base = this.defineEnvRec("LexicalEnvironment");
+	var resolvable = false;
+	var ambiguous = false;
+	var skip = 0;
+	var env = staticEnv;
+	while (env) {
+		if (isIncluded(name, env.defs)) {
+			resolvable = true;
+			break;
+		}
+		if (env.code.existsDirectEval || env.type === "with" || env.type === "program") {
+			ambiguous = true;
+		}
+		if (!ambiguous) {
+			skip++;
+		}
+		env = env.outer;
+	}
+	if (resolvable && !ambiguous) {
+		if (skip === 0) var base = this.defineEnvRec("LexicalEnvironment");
+		if (skip === 1) var base = this.defineEnvRec("LexicalEnvironment.outer");
+		else var base = this.defineEnvRec("SkipEnvironmentRecord(" + skip + ")");
+	}
+	else if (resolvable && ambiguous) {
+		var base = this.defineEnvRec("GetIdentifierEnvironmentRecord(" + skip + "," + qname + ")");
 	}
 	else {
-		var base = this.defineAny("GetIdentifierEnvironmentRecord(LexicalEnvironment," + qname + ")");
+		var base = this.defineAny("GetIdentifierEnvironmentRecord(" + skip + "," + qname + ")");
 	}
 	return {
 		name : qname,
