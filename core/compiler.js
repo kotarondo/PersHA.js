@@ -53,10 +53,11 @@ var COMPILER_STRING_TYPE = new CompilerTypes("string");
 var COMPILER_PRIMITIVE_TYPE = new CompilerTypes("undefined", "null", COMPILER_BOOLEAN_TYPE, "number", "string");
 var COMPILER_OBJECT_TYPE = new CompilerTypes("object");
 var COMPILER_VALUE_TYPE = new CompilerTypes(COMPILER_PRIMITIVE_TYPE, COMPILER_OBJECT_TYPE);
+var COMPILER_LOCAL_REFERENCE_TYPE = new CompilerTypes("lref");
 var COMPILER_IDENTIFIER_REFERENCE_TYPE = new CompilerTypes("iref");
 var COMPILER_PROPERTY_REFERENCE_TYPE = new CompilerTypes("pref");
 var COMPILER_ENVREC_TYPE = new CompilerTypes("envRec");
-var COMPILER_ANY_TYPE = new CompilerTypes(COMPILER_VALUE_TYPE, "iref", "pref", "list", "envRec");
+var COMPILER_ANY_TYPE = new CompilerTypes(COMPILER_VALUE_TYPE, "lref", "iref", "pref", "list", "envRec");
 
 var COMPILER_UNDEFINED_VALUE = {
 	name : "undefined",
@@ -320,7 +321,8 @@ CompilerContext.prototype.finish = function() {
 		return new Function("literals", this.params, code).bind(undefined, this.literals);
 	} catch (e) {
 		console.error("COMPILE ERROR:\n" + code);
-		throw e;
+		console.error(e);
+		process.reallyExit(1);
 	}
 };
 
@@ -328,7 +330,56 @@ CompilerContext.prototype.compileReturn = function(val) {
 	this.text("return " + val.name + ";");
 }
 
+function analyzeStaticEnv(env) {
+	if (env.analyzed) return;
+	env.inners.forEach(function(inner) {
+		analyzeStaticEnv(inner);
+		env.existsDirectEval |= inner.existsDirectEval;
+		inner.refs.forEach(function(name) {
+			if (!isIncluded(name, inner.defs)) setIncluded(name, env.inboundRefs); //TODO env.code===inner.code
+		});
+		inner.inboundRefs.forEach(function(name) {
+			if (!isIncluded(name, inner.defs)) setIncluded(name, env.inboundRefs);
+		});
+	});
+	if (env.existsDirectEval || env.code.existsWithStatement) return;
+	if (env.code.existsArgumentsRef) return; // TODO
+	if (env.type !== "function") return; // TODO
+	env.defs.forEach(function(name) {
+		if (!isIncluded(name, env.inboundRefs)) setIncluded(name, env.locals);
+	});
+}
+
+CompilerContext.prototype.compileCreateMutableBinding = function(staticEnv, name) {
+	if (isIncluded(name, staticEnv.locals)) {
+		staticEnv.bindings[name] = "V" + (this.variables++);
+		this.text("var " + staticEnv.bindings[name] + "; // " + name);
+	}
+	else {
+		assert(isIncluded(name, staticEnv.defs));
+		this.text("LexicalEnvironment.CreateMutableBinding(" + this.quote(name) + ");");
+	}
+};
+
+CompilerContext.prototype.compileSetMutableBinding = function(staticEnv, name, val, strict) {
+	if (isIncluded(name, staticEnv.locals)) {
+		this.text(staticEnv.bindings[name] + " = " + val.name);
+	}
+	else {
+		assert(isIncluded(name, staticEnv.defs));
+		this.text("LexicalEnvironment.SetMutableBinding(" + this.quote(name) + "," + val.name + "," + strict + ");");
+	}
+};
+
 CompilerContext.prototype.compileGetIdentifierReferece = function(staticEnv, name, strict) {
+	if (isIncluded(name, staticEnv.locals)) {
+		return {
+			name : name,
+			types : COMPILER_LOCAL_REFERENCE_TYPE,
+			base : staticEnv,
+			strict : strict,
+		};
+	}
 	var qname = this.quote(name);
 	if (isIncluded(name, staticEnv.defs)) {
 		var base = this.defineEnvRec("LexicalEnvironment");
@@ -368,6 +419,9 @@ CompilerContext.prototype.compileGetValue = function(ref) {
 		}
 		return this.defineValue(base.name + " .GetBindingValue(" + ref.name + "," + ref.strict + ")");
 	}
+	else if (ref.types === COMPILER_LOCAL_REFERENCE_TYPE) {
+		return this.defineValue(ref.base.bindings[ref.name]);
+	}
 	else {
 		return this.defineValue("GetValue(" + ref.name + ")");
 	}
@@ -398,6 +452,9 @@ CompilerContext.prototype.compilePutValue = function(ref, val) {
 			this.text("else");
 		}
 		this.text(base.name + " .SetMutableBinding(" + ref.name + "," + val.name + "," + ref.strict + ");");
+	}
+	else if (ref.types === COMPILER_LOCAL_REFERENCE_TYPE) {
+		this.text(ref.base.bindings[ref.name] + " = " + val.name + ";");
 	}
 	else {
 		this.text("PutValue(" + ref.name + "," + val.name + ");");

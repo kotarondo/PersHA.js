@@ -358,58 +358,38 @@ function enterExecutionContextForFunctionCode0(F, thisValue) {
 	runningSourcePos = 0;
 }
 
-function analyzeStaticEnv(env) {
-	if (env.analyzed) return;
-	env.inners.forEach(function(inner) {
-		analyzeStaticEnv(inner);
-		env.existsDirectEval |= inner.existsDirectEval;
-		inner.refs.forEach(function(name) {
-			if (!isIncluded(name, inner.defs)) setIncluded(name, env.inboundRefs); //TODO env.code===inner.code
-		});
-		inner.inboundRefs.forEach(function(name) {
-			if (!isIncluded(name, inner.defs)) setIncluded(name, env.inboundRefs);
-		});
-	});
-	if (env.existsDirectEval || env.code.existsWithStatement) return;
-	if (env.code.existsArgumentsRef) return; // TODO
-	env.defs.forEach(function(name) {
-		if (!isIncluded(name, env.inboundRefs)) setIncluded(name, env.locals);
-	});
-}
-
 function compileDeclarationBindingInstantiation0(ctx, code) {
 	var names = code.parameters;
 	var strict = code.strict;
 	var envClass = Object.create(null);
-	var env = code.varEnv;
-	analyzeStaticEnv(env);
-	env.inboundRefs.forEach(function(name) {
+	var staticEnv = code.varEnv;
+	analyzeStaticEnv(staticEnv);
+	staticEnv.inboundRefs.forEach(function(name) {
 		ctx.text("//inboundRefs: " + name);
 	});
-	env.locals.forEach(function(name) {
+	staticEnv.locals.forEach(function(name) {
 		ctx.text("//local: " + name);
 	});
 	ctx.text("var env = VariableEnvironment;");
 	for (var i = 0; i < names.length; i++) {
 		var argName = names[i];
-		var quote = ctx.quote(argName);
 		if (!envClass[argName]) {
 			envClass[argName] = true;
-			ctx.text("env.CreateMutableBinding(" + quote + ");");
+			ctx.compileCreateMutableBinding(staticEnv, argName);
 		}
-		ctx.text("env.SetMutableBinding(" + quote + ", argumentsList[" + i + "]," + strict + ");");
+		var v = ctx.defineValue("argumentsList[" + i + "]");
+		ctx.compileSetMutableBinding(staticEnv, argName, v, strict);
 	}
 	var functions = code.functions;
 	for (var i = 0; i < functions.length; i++) {
 		var f = functions[i];
 		var fn = f.name;
-		var quote = ctx.quote(fn);
 		if (!envClass[fn]) {
 			envClass[fn] = true;
-			ctx.text("env.CreateMutableBinding(" + quote + ");");
+			ctx.compileCreateMutableBinding(staticEnv, fn);
 		}
 		var fo = f.compile(ctx);
-		ctx.text("env.SetMutableBinding(" + quote + "," + fo.name + "," + strict + ");");
+		ctx.compileSetMutableBinding(staticEnv, fn, fo, strict);
 	}
 	if (!envClass["arguments"] && (code.existsDirectEval || code.existsArgumentsRef)) {
 		envClass["arguments"] = true;
@@ -429,8 +409,8 @@ function compileDeclarationBindingInstantiation0(ctx, code) {
 		var quote = ctx.quote(dn);
 		if (!envClass[dn]) {
 			envClass[dn] = true;
-			ctx.text("env.CreateMutableBinding(" + quote + ");");
-			ctx.text("env.SetMutableBinding(" + quote + ",undefined," + strict + ");");
+			ctx.compileCreateMutableBinding(staticEnv, dn);
+			ctx.compileSetMutableBinding(staticEnv, dn, COMPILER_UNDEFINED_VALUE, strict);
 		}
 	}
 }

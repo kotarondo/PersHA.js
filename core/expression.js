@@ -221,6 +221,9 @@ function FunctionCall(expression, args, strict) {
 		else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 			var thisValue = ctx.defineValue(ref.base.name + " .ImplicitThisValue()");
 		}
+		else if (ref.types === COMPILER_LOCAL_REFERENCE_TYPE) {
+			var thisValue = COMPILER_UNDEFINED_VALUE;
+		}
 		else {
 			assert(ref.types.isValue(), ref); // provided that all expressions have own compilers
 			var thisValue = COMPILER_UNDEFINED_VALUE;
@@ -270,6 +273,9 @@ function deleteOperator(expression) {
 			return ctx.defineBoolean("(" + base.name + " ===undefined)?true: " + //
 			base.name + " .DeleteBinding(" + ref.name + ")");
 		}
+		else if (ref.types === COMPILER_LOCAL_REFERENCE_TYPE) {
+			return COMPILER_FALSE_VALUE;
+		}
 		else {
 			assert(ref.types.isValue(), ref); // provided that all expressions have own compilers
 			return COMPILER_TRUE_VALUE;
@@ -296,6 +302,9 @@ function typeofOperator(expression) {
 			var val = ctx.compileGetValue(val);
 			ctx.text("}else");
 			ctx.merge(val, COMPILER_UNDEFINED_VALUE);
+		}
+		else if (val.types === COMPILER_LOCAL_REFERENCE_TYPE) {
+			var val = ctx.compileGetValue(val);
 		}
 		else {
 			assert(val.types.isValue(), val); // provided that all expressions have own compilers

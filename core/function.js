@@ -91,16 +91,28 @@ function CreateFunction(body, Scope) {
 
 function delayedFunctionBody(F, argumentsList) {
 	var ctx = new CompilerContext("F, argumentsList");
-	compileDeclarationBindingInstantiation0(ctx, F.Code);
-	if (F.Code.sourceElements !== undefined) {
-		ctx.compileStatement(F.Code.sourceElements);
-		F.Code.sourceElements = null;
+	try {
+		compileDeclarationBindingInstantiation0(ctx, F.Code);
+		if (F.Code.sourceElements !== undefined) {
+			ctx.compileStatement(F.Code.sourceElements);
+			F.Code.sourceElements = null;
+		}
+		ctx.compileReturn(COMPILER_UNDEFINED_VALUE);
+	} catch (e) {
+		console.error("CODEGEN ERROR:\n" + ctx.texts.join('\n'));
+		console.error(e);
+		process.reallyExit(1);
 	}
-	ctx.compileReturn(COMPILER_UNDEFINED_VALUE);
 	var evaluate = ctx.finish();
 	F.Code.evaluate = evaluate;
-	//console.log(ctx.texts.join('\n'));
-	return evaluate(F, argumentsList);
+	try {
+		return evaluate(F, argumentsList);
+	} catch (e) {
+		if (!isInternalError(e)) throw e;
+		console.error("FIRST EXEC ERROR:\n" + ctx.texts.join('\n'));
+		console.error(e);
+		process.reallyExit(1);
+	}
 }
 
 function Function_ClassCall(thisValue, argumentsList) {
