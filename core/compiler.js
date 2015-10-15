@@ -336,7 +336,12 @@ function analyzeStaticEnv(env) {
 		analyzeStaticEnv(inner);
 		env.existsDirectEval |= inner.existsDirectEval;
 		inner.refs.forEach(function(name) {
-			if (!isIncluded(name, inner.defs)) setIncluded(name, env.inboundRefs); //TODO env.code===inner.code
+			if (env.code === inner.code) {
+				if (!isIncluded(name, inner.defs)) setIncluded(name, env.refs);
+			}
+			else {
+				if (!isIncluded(name, inner.defs)) setIncluded(name, env.inboundRefs);
+			}
 		});
 		inner.inboundRefs.forEach(function(name) {
 			if (!isIncluded(name, inner.defs)) setIncluded(name, env.inboundRefs);
@@ -393,20 +398,21 @@ CompilerContext.prototype.compileInitializeImmutableBinding = function(staticEnv
 };
 
 CompilerContext.prototype.compileGetIdentifierReferece = function(staticEnv, name, strict) {
-	if (isIncluded(name, staticEnv.locals)) {
-		return {
-			name : name,
-			types : COMPILER_LOCAL_REFERENCE_TYPE,
-			base : staticEnv,
-			strict : strict,
-		};
-	}
 	var qname = this.quote(name);
 	var resolvable = false;
 	var ambiguous = false;
 	var skip = 0;
 	var env = staticEnv;
 	while (env) {
+		if (isIncluded(name, env.locals)) {
+			assert(env.code === staticEnv.code);
+			assert(!ambiguous);
+			return {
+				name : name,
+				types : COMPILER_LOCAL_REFERENCE_TYPE,
+				base : env,
+			};
+		}
 		if (isIncluded(name, env.defs)) {
 			resolvable = true;
 			break;
@@ -421,7 +427,8 @@ CompilerContext.prototype.compileGetIdentifierReferece = function(staticEnv, nam
 	}
 	if (resolvable && !ambiguous) {
 		if (skip === 0) var base = this.defineEnvRec("LexicalEnvironment");
-		if (skip === 1) var base = this.defineEnvRec("LexicalEnvironment.outer");
+		else if (skip === 1) var base = this.defineEnvRec("LexicalEnvironment.outer");
+		else if (skip === 2) var base = this.defineEnvRec("LexicalEnvironment.outer.outer");
 		else var base = this.defineEnvRec("SkipEnvironmentRecord(" + skip + ")");
 	}
 	else if (resolvable && ambiguous) {
