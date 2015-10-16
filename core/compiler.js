@@ -332,6 +332,7 @@ CompilerContext.prototype.compileReturn = function(val) {
 
 function analyzeStaticEnv(env) {
 	if (env.analyzed) return;
+	env.analyzed = true;
 	env.inners.forEach(function(inner) {
 		analyzeStaticEnv(inner);
 		env.existsDirectEval |= inner.existsDirectEval;
@@ -348,7 +349,7 @@ function analyzeStaticEnv(env) {
 		});
 	});
 	if (env.existsDirectEval || env.code.existsWithStatement) return;
-	if (env.type === "program" || env.type === "with") return;
+	if (!env.code.isFunctionCode || env.type === "with") return;
 	env.defs.forEach(function(name) {
 		if (env.code.existsArgumentsRef && !env.code.strict && isIncluded(name, env.code.parameters)) return;
 		if (!isIncluded(name, env.inboundRefs)) setIncluded(name, env.locals);
