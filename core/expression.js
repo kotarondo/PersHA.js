@@ -274,8 +274,16 @@ function deleteOperator(expression) {
 			return ctx.defineBoolean("ToObject(" + base.name + ").Delete(" + ref.name + "," + ref.strict + ");");
 		}
 		else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
-			return ctx.defineBoolean("(" + base.name + " ===undefined)?true: " + //
-			base.name + " .DeleteBinding(" + ref.name + ")");
+			if (base.types.isNotUndefined()) {
+				return ctx.defineBoolean(base.name + " .DeleteBinding(" + ref.name + ")");
+			}
+			else {
+				ctx.text("if(" + base.name + " !==undefined){");
+				var mval = ctx.defineBoolean(base.name + " .DeleteBinding(" + ref.name + ")");
+				ctx.text("}else");
+				ctx.merge(mval, COMPILER_TRUE_VALUE);
+				return mval;
+			}
 		}
 		else if (ref.types === COMPILER_LOCAL_REFERENCE_TYPE) {
 			return COMPILER_FALSE_VALUE;
@@ -302,10 +310,16 @@ function typeofOperator(expression) {
 			var val = ctx.compileGetValue(val);
 		}
 		else if (val.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
-			ctx.text("if(" + val.base.name + " !==undefined){");
-			var val = ctx.compileGetValue(val);
-			ctx.text("}else");
-			ctx.merge(val, COMPILER_UNDEFINED_VALUE);
+			var base = val.base;
+			if (base.types.isNotUndefined()) {
+				var val = ctx.compileGetValue(val);
+			}
+			else {
+				ctx.text("if(" + val.base.name + " !==undefined){");
+				var val = ctx.compileGetValue(val);
+				ctx.text("}else");
+				ctx.merge(val, COMPILER_UNDEFINED_VALUE);
+			}
 		}
 		else if (val.types === COMPILER_LOCAL_REFERENCE_TYPE) {
 			var val = ctx.compileGetValue(val);

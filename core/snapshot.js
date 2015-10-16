@@ -132,7 +132,7 @@ function writeSnapshot(l_ostream) {
 	var allObjs = [];
 	allObjs.length = OBJID_BASE;
 	var ostream = SnapshotOutputStream(l_ostream, allObjs);
-	ostream.writeString("v2.0");
+	ostream.writeString("v2.1");
 
 	function mark(obj) {
 		if (isSnapshotObject(obj) === false) {
@@ -227,7 +227,7 @@ function readSnapshot(l_istream) {
 	allObjs.length = OBJID_BASE;
 	var istream = SnapshotInputStream(l_istream, allObjs);
 	var version = istream.readString();
-	if (version !== "v2.0") {
+	if (version !== "v2.1") {
 		throw Error("unsupported format version: " + version);
 	}
 
@@ -638,21 +638,18 @@ function SourceObject_writeObject(ostream) {
 	ostream.writeString(this.source);
 	ostream.writeValue(this.strict);
 	ostream.writeString(this.filename);
-	ostream.writeValue(this.isFunctionBody);
+	ostream.writeValue(this.type);
+	ostream.writeString(this.params);
 }
 
 function SourceObject_readObject(istream) {
 	var source = istream.readString();
 	var strict = istream.readValue();
 	var filename = istream.readString();
-	var isFunctionBody = istream.readValue();
+	var type = istream.readValue();
+	var params = istream.readString();
 	var subcodes = [];
-	if (isFunctionBody) {
-		var code = theParser.readFunctionCode(source, [], subcodes, filename);
-	}
-	else {
-		var code = theParser.readProgram(source, strict, subcodes, filename);
-	}
+	var code = theParser.readCode(type, params, source, strict, subcodes, filename);
 	var sourceObject = code.sourceObject;
 	sourceObject.subcodes = subcodes;
 	return sourceObject;

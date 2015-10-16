@@ -41,7 +41,7 @@ function Global_eval(thisValue, argumentsList, direct, strict) {
 	var x = argumentsList[0];
 	if (Type(x) !== TYPE_String) return x;
 	try {
-		var prog = theParser.readProgram(x, strict, [], "<anonymous>");
+		var prog = theParser.readCode("eval", "", x, strict, [], "<anonymous>");
 	} catch (e) {
 		if (e instanceof theParser.SyntaxError) {
 			throw VMSyntaxError(e.message);
@@ -51,7 +51,6 @@ function Global_eval(thisValue, argumentsList, direct, strict) {
 		}
 		throw e;
 	}
-	prog.isEvalCode = true;
 	enterExecutionContextForEvalCode(prog, direct);
 	try {
 		var result = prog.evaluate();
@@ -73,7 +72,7 @@ function Global_evaluateProgram(thisValue, argumentsList) {
 	else {
 		x = ToString(x);
 		try {
-			var prog = theParser.readProgram(x, false, [], filename);
+			var prog = theParser.readCode("global", "", x, false, [], filename);
 		} catch (e) {
 			if (e instanceof theParser.SyntaxError) {
 				throw VMSyntaxError(e.message);
@@ -100,7 +99,7 @@ function Global_parseProgram(thisValue, argumentsList) {
 	var x = ToString(argumentsList[0]);
 	var filename = ToString(argumentsList[1]);
 	try {
-		var prog = theParser.readProgram(x, false, [], filename);
+		var prog = theParser.readCode("global", "", x, false, [], filename);
 	} catch (e) {
 		if (e instanceof theParser.SyntaxError) {
 			throw VMSyntaxError(e.message);

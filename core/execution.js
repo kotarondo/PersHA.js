@@ -302,7 +302,7 @@ function enterExecutionContextForEvalCode(code, direct) {
 
 function DeclarationBindingInstantiation(code) {
 	var env = VariableEnvironment;
-	if (code.isEvalCode) {
+	if (code.type === "eval") {
 		var configurableBindings = true;
 	}
 	else {

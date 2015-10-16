@@ -61,8 +61,7 @@ function Function_Construct(argumentsList) {
 	}
 	var body = ToString(body);
 	try {
-		var parameters = theParser.readFunctionParameters(P);
-		var body = theParser.readFunctionCode(body, parameters, [], "<anonymous>");
+		var code = theParser.readCode("function", P, body, false, [], "<anonymous>");
 	} catch (e) {
 		if (e instanceof theParser.SyntaxError) {
 			throw VMSyntaxError(e.message);
@@ -72,7 +71,7 @@ function Function_Construct(argumentsList) {
 		}
 		throw e;
 	}
-	return CreateFunction(body, vm.theGlobalEnvironment);
+	return CreateFunction(code, vm.theGlobalEnvironment);
 }
 
 function Function_prototype_toString(thisValue, argumentsList) {

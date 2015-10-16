@@ -35,9 +35,7 @@
 
 var theParser = function() {
 	return ({
-		readProgram : readProgram,
-		readFunctionParameters : readFunctionParameters,
-		readFunctionCode : readFunctionCode,
+		readCode : readCode,
 		locateDebugInfo : locateDebugInfo,
 		SyntaxError : SyntaxError,
 		ReferenceError : ReferenceError,
@@ -75,19 +73,23 @@ var theParser = function() {
 	var lastReference;
 	var lastIdentifierReference;
 	var lastIdentifier;
+	var varEnv;
+	var lexEnv;
 
-	function setup(text, strictMode, subc, filename) {
+	function setup(type, parameterText, codeText, strictMode, subc, filename) {
 		assert(strictMode !== undefined);
-		source = text;
+		source = codeText;
 		strict = strictMode;
 		subcodes = subc;
-		sourceObject = NewSourceObject(source, strict, filename);
+		sourceObject = NewSourceObject(type, parameterText, codeText, strictMode, filename);
 		code = undefined;
 		stack = undefined;
 		lastLeftHandSide = undefined;
 		lastReference = undefined;
 		lastIdentifierReference = undefined;
 		lastIdentifier = undefined;
+		varEnv = null;
+		lexEnv = null;
 		setPosition(0);
 		skipSpaces();
 		proceedToken();
@@ -96,8 +98,7 @@ var theParser = function() {
 	function Code() {
 		var code = ({
 			strict : strict,
-			isFunctionCode : false,
-			isEvalCode : false,
+			type : undefined,
 			functions : [],
 			variables : [],
 			existsDirectEval : false,
@@ -126,8 +127,12 @@ var theParser = function() {
 	}
 
 	function Env(type, outer) {
+		if (type === "function" || type === "catch" || type === "named-function") {
+			var isDeclarative = true;
+		}
 		var env = ({
 			type : type,
+			isDeclarative : isDeclarative,
 			outer : outer,
 			code : code,
 			inners : [],
@@ -138,7 +143,6 @@ var theParser = function() {
 			bindings : Object.create(null),
 			existsDirectEval : false,
 			collapsed : false,
-			analyzed : false,
 		});
 		if (outer) {
 			outer.inners.push(env);
@@ -146,49 +150,44 @@ var theParser = function() {
 		return env;
 	}
 
-	var varEnv;
-	var lexEnv;
-
-	function readProgram(programText, strictMode, subcodes, filename) {
-		setup(programText, strictMode, subcodes, filename);
-		code = Code();
-		stack = Stack();
-		varEnv = Env("program", null);
-		lexEnv = varEnv;
-		var sourceElements = readSourceElements();
-		if (token !== undefined) throw SyntaxError(tokenPos);
-		code.strict = strict;
-		code.evaluate = Program(sourceElements);
-		code.varEnv = varEnv;
-		analyzeStaticEnv(varEnv);
-		return code;
-	}
-
-	function readFunctionParameters(parameterText) {
-		setup(parameterText, false);
-		var parameters = [];
-		if (token !== undefined) {
-			while (true) {
-				parameters.push(expectingIdentifier());
-				if (token === undefined) {
-					break;
+	function readCode(type, parameterText, codeText, strictMode, subcodes, filename) {
+		if (type === "global" || type === "eval") {
+			setup(type, parameterText, codeText, strictMode, subcodes, filename);
+			code = Code();
+			stack = Stack();
+			varEnv = Env(type, null);
+			lexEnv = varEnv;
+			var sourceElements = readSourceElements();
+			if (token !== undefined) throw SyntaxError(tokenPos);
+			code.strict = strict;
+			code.evaluate = Program(sourceElements);
+			code.varEnv = varEnv;
+		}
+		else {
+			assert(type === "function", type);
+			source = parameterText;
+			setPosition(0);
+			skipSpaces();
+			proceedToken();
+			var parameters = [];
+			if (token !== undefined) {
+				while (true) {
+					parameters.push(expectingIdentifier());
+					if (token === undefined) {
+						break;
+					}
+					expectingToken(',');
 				}
-				expectingToken(',');
+			}
+			setup(type, parameterText, codeText, strictMode, subcodes, filename);
+			code = readFunctionBody(undefined, parameters, null);
+			if (code.strict) {
+				disallowDuplicated(parameters);
+				parameters.forEach(disallowEvalOrArguments);
 			}
 		}
-		return parameters;
-	}
-
-	function readFunctionCode(programText, parameters, subcodes, filename) {
-		setup(programText, false, subcodes, filename);
-		sourceObject.isFunctionBody = true;
-		var body = readFunctionBody(undefined, parameters, null);
-		if (body.strict) {
-			disallowDuplicated(parameters);
-			parameters.forEach(disallowEvalOrArguments);
-		}
-		analyzeStaticEnv(body.varEnv);
-		return body;
+		analyzeStaticEnv(code.varEnv);
+		return code;
 	}
 
 	function readFunctionBody(name, parameters, scope) {
@@ -204,7 +203,7 @@ var theParser = function() {
 		setIncluded(parameters, varEnv.defs);
 		setIncluded("arguments", varEnv.defs);
 		var body = code;
-		body.isFunctionCode = true;
+		body.type = "function";
 		body.functionName = name;
 		body.parameters = parameters;
 		body.sourceElements = readSourceElements();
@@ -536,7 +535,7 @@ var theParser = function() {
 
 	function readReturnStatement() {
 		proceedToken();
-		if (code.isFunctionCode === false) throw SyntaxError(prevTokenPos);
+		if (code.type !== "function") throw SyntaxError(prevTokenPos);
 		if (!(isLineSeparatedAhead || token === ';' || token === '}')) {
 			var pos = tokenPos;
 			var expression = readExpression();
@@ -1668,7 +1667,7 @@ var theParser = function() {
 		convertToLineColumn(source, pos, info);
 		info.filename = sourceObject.filename;
 		info.functionName = undefined;
-		if (code.isFunctionCode) {
+		if (code.type === "function") {
 			info.functionName = code.functionName;
 		}
 	}

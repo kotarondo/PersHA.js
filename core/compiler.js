@@ -53,11 +53,15 @@ var COMPILER_STRING_TYPE = new CompilerTypes("string");
 var COMPILER_PRIMITIVE_TYPE = new CompilerTypes("undefined", "null", COMPILER_BOOLEAN_TYPE, "number", "string");
 var COMPILER_OBJECT_TYPE = new CompilerTypes("object");
 var COMPILER_VALUE_TYPE = new CompilerTypes(COMPILER_PRIMITIVE_TYPE, COMPILER_OBJECT_TYPE);
+var COMPILER_GLOBAL_REFERENCE_TYPE = new CompilerTypes("gref");
 var COMPILER_LOCAL_REFERENCE_TYPE = new CompilerTypes("lref");
 var COMPILER_IDENTIFIER_REFERENCE_TYPE = new CompilerTypes("iref");
 var COMPILER_PROPERTY_REFERENCE_TYPE = new CompilerTypes("pref");
-var COMPILER_ENVREC_TYPE = new CompilerTypes("envRec");
-var COMPILER_ANY_TYPE = new CompilerTypes(COMPILER_VALUE_TYPE, "lref", "iref", "pref", "list", "envRec");
+var COMPILER_REF_TYPE = new CompilerTypes("lref", "gref", "iref", "pref");
+var COMPILER_DECL_ENV_TYPE = new CompilerTypes("denv");
+var COMPILER_GLOBAL_ENV_TYPE = new CompilerTypes("genv");
+var COMPILER_ENV_TYPE = new CompilerTypes("denv", "oenv", "genv");
+var COMPILER_ANY_TYPE = new CompilerTypes(COMPILER_VALUE_TYPE, COMPILER_REF_TYPE, COMPILER_ENV_TYPE, "list");
 
 var COMPILER_UNDEFINED_VALUE = {
 	name : "undefined",
@@ -266,10 +270,6 @@ CompilerContext.prototype.defineAny = function(str) {
 	return this.define(str, COMPILER_ANY_TYPE);
 };
 
-CompilerContext.prototype.defineEnvRec = function(str) {
-	return this.define(str, COMPILER_ENVREC_TYPE);
-};
-
 CompilerContext.prototype.defineObject = function(str) {
 	return this.define(str, COMPILER_OBJECT_TYPE);
 };
@@ -331,8 +331,6 @@ CompilerContext.prototype.compileReturn = function(val) {
 }
 
 function analyzeStaticEnv(env) {
-	if (env.analyzed) return;
-	env.analyzed = true;
 	env.inners.forEach(function(inner) {
 		analyzeStaticEnv(inner);
 		env.existsDirectEval |= inner.existsDirectEval;
@@ -349,7 +347,7 @@ function analyzeStaticEnv(env) {
 		});
 	});
 	if (env.existsDirectEval || env.code.existsWithStatement) return;
-	if (!env.code.isFunctionCode || env.type === "with") return;
+	if (env.code.type !== "function" || env.type === "with") return;
 	env.defs.forEach(function(name) {
 		if (env.code.existsArgumentsRef && !env.code.strict && isIncluded(name, env.code.parameters)) return;
 		if (!isIncluded(name, env.inboundRefs)) setIncluded(name, env.locals);
@@ -426,7 +424,7 @@ CompilerContext.prototype.compileGetIdentifierReferece = function(staticEnv, nam
 			resolvable = true;
 			break;
 		}
-		if (env.code.existsDirectEval || env.type === "with" || env.type === "program") {
+		if (env.existsDirectEval || !env.isDeclarative) {
 			ambiguous = true;
 		}
 		if (!ambiguous && !env.collapsed) {
@@ -434,17 +432,22 @@ CompilerContext.prototype.compileGetIdentifierReferece = function(staticEnv, nam
 		}
 		env = env.outer;
 	}
-	if (resolvable && !ambiguous) {
-		if (skip === 0) var base = this.defineEnvRec("LexicalEnvironment");
-		else if (skip === 1) var base = this.defineEnvRec("LexicalEnvironment.outer");
-		else if (skip === 2) var base = this.defineEnvRec("LexicalEnvironment.outer.outer");
-		else var base = this.defineEnvRec("SkipEnvironmentRecord(" + skip + ")");
+	var types = COMPILER_ANY_TYPE;
+	if (resolvable) {
+		var types = COMPILER_ENV_TYPE;
+		if (!ambiguous) {
+			if (env.isDeclarative) var types = COMPILER_DECL_ENV_TYPE;
+			if (env.type === "global") var types = COMPILER_GLOBAL_ENV_TYPE;
+		}
 	}
-	else if (resolvable && ambiguous) {
-		var base = this.defineEnvRec("GetIdentifierEnvironmentRecord(" + skip + "," + qname + ")");
+	if (resolvable && !ambiguous) {
+		if (skip === 0) var base = this.define("LexicalEnvironment", types);
+		else if (skip === 1) var base = this.define("LexicalEnvironment.outer", types);
+		else if (env.type === "global") var base = this.define("vm.theGlobalEnvironment", types);
+		else var base = this.define("SkipEnvironmentRecord(" + skip + ")", types);
 	}
 	else {
-		var base = this.defineAny("GetIdentifierEnvironmentRecord(" + skip + "," + qname + ")");
+		var base = this.define("GetIdentifierEnvironmentRecord(" + skip + "," + qname + ")", types);
 	}
 	return {
 		name : qname,
@@ -453,6 +456,32 @@ CompilerContext.prototype.compileGetIdentifierReferece = function(staticEnv, nam
 		strict : strict
 	};
 };
+
+function Global_FastGetBindingValue(N, S) {
+	var bindings = vm.theGlobalObject;
+	var desc = bindings.$properties[N];
+	if (desc === undefined) {
+		var proto = bindings.Prototype;
+		if (proto === null) {
+			if (S === false) return undefined;
+			throw VMReferenceError(N);
+		}
+		var desc = proto.GetProperty(P);
+		if (desc === undefined) {
+			if (S === false) return undefined;
+			throw VMReferenceError(N);
+		}
+	}
+	if (desc.Value !== absent) return desc.Value;
+	else {
+		assert(IsAccessorDescriptor(desc), desc);
+		var getter = desc.Get;
+		if (getter === undefined) {
+			return undefined;
+		}
+		return getter.Call(binding, []);
+	}
+}
 
 CompilerContext.prototype.compileGetValue = function(ref) {
 	if (ref.types.isValue()) return ref;
@@ -472,6 +501,12 @@ CompilerContext.prototype.compileGetValue = function(ref) {
 	}
 	else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 		var base = ref.base;
+		if (base.types === COMPILER_DECL_ENV_TYPE) {
+			return this.defineValue(base.name + " .$values[" + ref.name + "]");
+		}
+		if (base.types === COMPILER_GLOBAL_ENV_TYPE) {
+			return this.defineValue("Global_FastGetBindingValue(" + ref.name + ")");
+		}
 		if (!base.types.isNotUndefined()) {
 			this.text("if(" + base.name + " ===undefined)" + //
 			"throw VMReferenceError(" + ref.name + " +' is not defined');");
@@ -504,6 +539,14 @@ CompilerContext.prototype.compilePutValue = function(ref, val) {
 	}
 	else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 		var base = ref.base;
+		if (base.types === COMPILER_DECL_ENV_TYPE) {
+			this.text(base.name + " .$values[" + ref.name + "]= " + val.name + ";");
+			return;
+		}
+		if (base.types === COMPILER_GLOBAL_ENV_TYPE) {
+			this.text("vm.theGlobalObject.Put(" + ref.name + "," + val.name + "," + ref.strict + ");");
+			return;
+		}
 		if (!base.types.isNotUndefined()) {
 			this.text("if(" + base.name + " ===undefined)");
 			if (ref.strict) this.text("throw VMReferenceError(" + ref.name + " +' is not defined');");
@@ -557,7 +600,7 @@ CompilerContext.prototype.compileEvaluateArguments = function(args) {
 };
 
 CompilerContext.prototype.compileRunningPos = function(pos) {
-	this.text("runningSourcePos= " + pos + ";");
+	this.text("runningSourcePos= " + pos + ";"); // TODO delayed
 };
 
 CompilerContext.prototype.openLabel = function(identifier) {

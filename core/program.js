@@ -82,23 +82,24 @@ function SourceElements(statements) {
 	});
 }
 
-function NewSourceObject(source, strict, filename) {
+var Class_SourceObject = ({
+	ClassID : CLASSID_SourceObject,
+	writeObject : SourceObject_writeObject,
+	readObject : undefined,
+});
+
+function NewSourceObject(type, params, source, strict, filename) {
 	if (filename === undefined) {
 		filename = "<unknown>";
 	}
-	if (Class_SourceObject === undefined) {
-		Class_SourceObject = ({
-			ClassID : CLASSID_SourceObject,
-			writeObject : SourceObject_writeObject,
-			readObject : undefined,
-		});
-	}
+	assert(typeof (filename) === "string", filename);
 	var obj = Object.create(Class_SourceObject);
+	obj.type = type;
+	obj.params = params;
 	obj.source = source;
 	obj.strict = strict;
-	obj.filename = ToString(filename);
+	obj.filename = filename;
 	obj.subcodes = undefined;
-	obj.isFunctionBody = undefined;
 	obj.ID = 0;
 	return obj;
 }
