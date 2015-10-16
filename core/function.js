@@ -132,7 +132,7 @@ function Function_ClassConstruct(argumentsList) {
 		obj.Prototype = vm.Object_prototype;
 	}
 	var result = F.Call(obj, argumentsList);
-	if (Type(result) === TYPE_Object) return result;
+	if (typeof (result) === 'object' && result !== null) return result;
 	return obj;
 }
 

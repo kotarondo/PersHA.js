@@ -223,7 +223,13 @@ function FunctionCall(expression, args, strict) {
 			var thisValue = ref.base;
 		}
 		else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
-			var thisValue = ctx.defineValue(ref.base.name + " .ImplicitThisValue()");
+			var base = ref.base;
+			if (base.types === COMPILER_DECL_ENV_TYPE || base.types === COMPILER_GLOBAL_ENV_TYPE) {
+				var thisValue = COMPILER_UNDEFINED_VALUE;
+			}
+			else {
+				var thisValue = ctx.defineValue(ref.base.name + " .ImplicitThisValue()");
+			}
 		}
 		else if (ref.types === COMPILER_LOCAL_REFERENCE_TYPE) {
 			var thisValue = COMPILER_UNDEFINED_VALUE;
@@ -333,7 +339,7 @@ function typeofOperator(expression) {
 		if (val.types.isNotObject()) {
 			return ctx.defineString("typeof " + val.name);
 		}
-		ctx.text("if(Type(" + val.name + ")===TYPE_Object)");
+		ctx.text("if(typeof(" + val.name + ")==='object'&& " + val.name + " !==null)");
 		var mval = ctx.defineString(val.name + " ._Call?'function':'object'");
 		ctx.text("else");
 		ctx.mergeDefineString(mval, "typeof " + val.name);
@@ -537,8 +543,7 @@ function instanceofOperator(leftExpression, rightExpression) {
 			ctx.text("throw VMTypeError();");
 			return COMPILER_FALSE_VALUE;
 		}
-		ctx.text("if(Type(" + rval.name + ")!==TYPE_Object)throw VMTypeError();");
-		ctx.text("if(" + rval.name + " .HasInstance===undefined)throw VMTypeError();");
+		ctx.text("if(! " + rval.name + " || " + rval.name + " .HasInstance===undefined)throw VMTypeError();");
 		return ctx.defineBoolean(rval.name + " .HasInstance(" + lval.name + ")");
 	});
 }
@@ -553,7 +558,7 @@ function inOperator(leftExpression, rightExpression) {
 			ctx.text("throw VMTypeError();");
 			return COMPILER_FALSE_VALUE;
 		}
-		ctx.text("if(Type(" + rval.name + ")!==TYPE_Object)throw VMTypeError();");
+		ctx.text("if(typeof(" + rval.name + ")!=='object'|| " + rval.name + " ===null)throw VMTypeError();");
 		var lval = ctx.compileToString(lval);
 		return ctx.defineBoolean(rval.name + " .HasProperty(" + lval.name + ")");
 	});

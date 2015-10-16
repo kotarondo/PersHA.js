@@ -482,7 +482,7 @@ function specialGet(base, P) {
 	var O = ToObject(base);
 	var desc = O.GetProperty(P);
 	if (desc === undefined) return undefined;
-	if (IsDataDescriptor(desc) === true) return desc.Value;
+	if (desc.Value !== absent) return desc.Value;
 	else {
 		assert(IsAccessorDescriptor(desc), desc);
 		var getter = desc.Get;
@@ -682,7 +682,7 @@ function default_Get(P) {
 	var O = this;
 	var desc = O.GetProperty(P);
 	if (desc === undefined) return undefined;
-	if (IsDataDescriptor(desc) === true) return desc.Value;
+	if (desc.Value !== absent) return desc.Value;
 	else {
 		assert(IsAccessorDescriptor(desc), desc);
 		var getter = desc.Get;

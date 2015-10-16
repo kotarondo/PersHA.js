@@ -118,14 +118,18 @@ function Function_prototype_apply(thisValue, argumentsList) {
 	var argArray = argumentsList[1];
 	if (IsCallable(func) === false) throw VMTypeError();
 	if (argArray === null || argArray === undefined) return func.Call(thisArg, []);
-	if (Type(argArray) !== TYPE_Object) throw VMTypeError();
+	if (typeof (argArray) !== 'object') throw VMTypeError();
 	var len = argArray.Get("length");
-	var n = ToUint32(len);
+	if (typeof (len) === "number") {
+		var n = (len >>> 0);
+	}
+	else {
+		var n = ToUint32(len);
+	}
 	var argList = [];
 	var index = 0;
 	while (index < n) {
-		var indexName = ToString(index);
-		var nextArg = argArray.Get(indexName);
+		var nextArg = argArray.Get(index);
 		argList.push(nextArg);
 		index = index + 1;
 	}
@@ -203,16 +207,15 @@ function BindFunction_HasInstance(V) {
 function Function_Get(P) {
 	var F = this;
 	var v = default_Get.call(F, P);
-	if (P === "caller" && Type(v) === TYPE_Object && v.Class === "Function" && v.Code !== undefined && v.Code.strict)
-		throw VMTypeError();
+	if (P === "caller" && v && v.Class === "Function" && v.Code !== undefined && v.Code.strict) throw VMTypeError();
 	return v;
 }
 
 function Function_HasInstance(V) {
 	var F = this;
-	if (Type(V) !== TYPE_Object) return false;
+	if (typeof (V) !== 'object' || V === null) return false;
 	var O = F.Get("prototype");
-	if (Type(O) !== TYPE_Object) throw VMTypeError();
+	if (typeof (O) !== 'object' || O === null) throw VMTypeError();
 	while (true) {
 		var V = V.Prototype;
 		if (V === null) return false;
