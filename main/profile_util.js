@@ -36,16 +36,15 @@
 var profile = {};
 
 function profile_print() {
-	var threshold = 500000;
+	var lines = 20;
 	console.log("callee profile");
 	var results = Object.keys(profile);
 	results.sort(function(x, y) {
 		return profile[y] - profile[x];
 	});
 	results.every(function(x) {
-		if (profile[x] < threshold) return false;
 		console.log(profile[x] + " : " + x);
-		return true;
+		return (--lines > 0);
 	});
 	caller_profile_print();
 }
@@ -62,15 +61,14 @@ function caller_profiler_point(depth) {
 }
 
 function caller_profile_print() {
-	var threshold = 100000;
+	var lines = 10;
 	console.log("caller profile");
 	var results = Object.keys(caller_profile);
 	results.sort(function(x, y) {
 		return caller_profile[y] - caller_profile[x];
 	});
 	results.every(function(x) {
-		if (caller_profile[x] < threshold) return false;
 		console.log(caller_profile[x] + " : " + x);
-		return true;
+		return (--lines > 0);
 	});
 }
