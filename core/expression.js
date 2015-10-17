@@ -177,9 +177,7 @@ function PropertyAccessor(base, name, strict) {
 			"throwPropertyAccessorError(" + baseValue.name + "," + propertyNameValue.name + ");");
 		}
 		if (!propertyNameValue.types.isNotObject()) {
-			var n = propertyNameValue.name;
-			propertyNameValue = ctx.defineString("typeof " + n + " !=='object'|| " + n + " ===null?" + n + //
-			":String(" + n + " .DefaultValue(TYPE_String))");
+			propertyNameValue = ctx.defineValue("ToPropertyName(" + propertyNameValue.name + ")");
 		}
 		return {
 			name : propertyNameValue.name,

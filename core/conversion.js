@@ -247,7 +247,7 @@ function SameValue(x, y) {
 
 function ToArrayIndex(P) {
 	if (typeof P === "string") {
-		var x = Number(P);
+		var x = +(P);
 		if (0 <= x && x <= 0xfffffffe && floor(x) === x && String(x) === P) {
 			return x;
 		}
@@ -257,4 +257,53 @@ function ToArrayIndex(P) {
 		return P;
 	}
 	return -1;
+}
+
+function ToPropertyName(x) {
+	if (typeof x !== "object") return x;
+	if (x === null) return x;
+	return String(x.DefaultValue(TYPE_String));
+}
+
+function FastToNumber(input) {
+	switch (typeof input) {
+	case "object":
+		if (input === null) {
+			return 0;
+		}
+		input = input.DefaultValue(TYPE_Number);
+		return FastToNumber(input);
+	case "string":
+		return ToNumberFromString(input);
+	}
+	return +(input);
+}
+
+function FastToString(input) {
+	if (typeof input === "object" && input !== null) {
+		input = input.DefaultValue(TYPE_String);
+	}
+	return String(input);
+}
+
+function FastToPrimitive(input, hint) {
+	if (typeof input === "object" && input !== null) {
+		return input.DefaultValue(hint);
+	}
+	return input;
+}
+
+function FastToObject(input) {
+	switch (typeof input) {
+	case "undefined":
+		throw VMTypeError("undefined");
+	case "boolean":
+		return Boolean_Construct([ input ]);
+	case "number":
+		return Number_Construct([ input ]);
+	case "string":
+		return String_Construct([ input ]);
+	}
+	if (input === null) throw VMTypeError("null");
+	return input;
 }

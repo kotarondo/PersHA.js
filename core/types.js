@@ -1022,8 +1022,8 @@ function intrinsic_enumerator(O, ownOnly, enumerableOnly) {
 		var names = Object.keys(all);
 	}
 	names.sort(function(x, y) {
-		var nx = Number(x);
-		var ny = Number(y);
+		var nx = +(x);
+		var ny = +(y);
 		if (isFinite(nx)) {
 			if (!isFinite(ny)) {
 				return -1;

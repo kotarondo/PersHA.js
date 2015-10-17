@@ -36,7 +36,7 @@
 var profile = {};
 
 function profile_print() {
-	var lines = 20;
+	var lines = 30;
 	console.log("callee profile");
 	var results = Object.keys(profile);
 	results.sort(function(x, y) {
