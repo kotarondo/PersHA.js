@@ -422,6 +422,9 @@ function Global_setSystemProperty(thisValue, argumentsList) {
 	if (name === "INSPECT_MAX_BYTES") {
 		INSPECT_MAX_BYTES = ToInteger(value);
 	}
+	if (name === "scheduleCheckpoint") {
+		taskAccumulatedTime = Infinity;
+	}
 }
 
 function Global_getSystemProperty(thisValue, argumentsList) {
