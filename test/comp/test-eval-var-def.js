@@ -31,8 +31,9 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-var results="";
-var expected="";
+var results=[];
+var expected=[];
+
 var x1="a";
 var x2="b";
 var x3="c";
@@ -44,29 +45,38 @@ void function(){
 	var x3=3;
 	eval("var x4=4;");
 
-	results+= delete x1;
-	expected+= false;
-	results+= x1;
-	expected+= 1;
+	results.push(delete x1);
+	expected.push(false);
+	results.push(x1);
+	expected.push(1);
 
-	results+= delete x2;
-	expected+= true;
-	results+= x2;
-	expected+= "b";
+	results.push(delete x2);
+	expected.push(true);
+	results.push(x2);
+	expected.push("b");
 
-	results+= eval("delete x3");
-	expected+= false;
-	results+= x3;
-	expected+= 3;
+	results.push(eval("delete x3"));
+	expected.push(false);
+	results.push(x3);
+	expected.push(3);
 
-	results+= eval("delete x4");
-	expected+= true;
-	results+= x4;
-	expected+= "d";
+	results.push(eval("delete x4"));
+	expected.push(true);
+	results.push(x4);
+	expected.push("d");
 }();
+
+results.push(x1);
+expected.push("a");
+results.push(x2);
+expected.push("b");
+results.push(x3);
+expected.push("c");
+results.push(x4);
+expected.push("d");
 
 console.log("results= "+results);
 console.log("expected= "+expected);
-if(results!==expected) process.exit(1);
+if(results.join()!==expected.join()) process.exit(1);
 console.log("ok");
 process.exit(0);

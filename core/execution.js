@@ -276,15 +276,15 @@ function enterExecutionContextForGlobalCode(code) {
 
 function enterExecutionContextForEvalCode(code, direct, lexEnv, varEnv, thisB) {
 	saveExecutionContext();
-	if (direct !== true) {
-		LexicalEnvironment = vm.theGlobalEnvironment;
-		VariableEnvironment = vm.theGlobalEnvironment;
-		ThisBinding = vm.theGlobalObject;
-	}
-	else {
+	if (direct) {
 		LexicalEnvironment = lexEnv;
 		VariableEnvironment = varEnv;
 		ThisBinding = thisB;
+	}
+	else {
+		LexicalEnvironment = vm.theGlobalEnvironment;
+		VariableEnvironment = vm.theGlobalEnvironment;
+		ThisBinding = vm.theGlobalObject;
 	}
 	if (code.strict) {
 		var strictVarEnv = NewDeclarativeEnvironment(LexicalEnvironment);

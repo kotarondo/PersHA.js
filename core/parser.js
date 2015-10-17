@@ -95,10 +95,10 @@ var theParser = function() {
 		proceedToken();
 	}
 
-	function Code() {
+	function Code(type) {
 		var code = ({
 			strict : strict,
-			type : undefined,
+			type : type,
 			functions : [],
 			variables : [],
 			existsDirectEval : false,
@@ -153,7 +153,7 @@ var theParser = function() {
 	function readCode(type, parameterText, codeText, strictMode, subcodes, filename) {
 		if (type === "global" || type === "eval") {
 			setup(type, parameterText, codeText, strictMode, subcodes, filename);
-			code = Code();
+			code = Code(type);
 			stack = Stack();
 			varEnv = Env(type, null);
 			lexEnv = varEnv;
@@ -196,14 +196,13 @@ var theParser = function() {
 		var outerStack = stack;
 		var outerVarEnv = varEnv;
 		var outerLexEnv = lexEnv;
-		code = Code();
+		code = Code("function");
 		stack = Stack();
 		varEnv = Env("function", scope);
 		lexEnv = varEnv;
 		setIncluded(parameters, varEnv.defs);
 		setIncluded("arguments", varEnv.defs);
 		var body = code;
-		body.type = "function";
 		body.functionName = name;
 		body.parameters = parameters;
 		body.sourceElements = readSourceElements();
