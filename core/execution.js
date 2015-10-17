@@ -356,7 +356,7 @@ function compileDeclarationBindingInstantiation0(ctx, code) {
 			envClass[argName] = true;
 			ctx.compileCreateMutableBinding(staticEnv, argName);
 		}
-		var v = ctx.defineValue("argumentsList[" + i + "]");
+		var v = ctx.constantValue("argumentsList[" + i + "]");
 		ctx.compileSetMutableBinding(staticEnv, argName, v, strict);
 	}
 	var functions = code.functions;

@@ -40,7 +40,7 @@ function ThisExpression() {
 		return ThisBinding;
 	};
 	evaluate.compile = (function(ctx) {
-		return ctx.defineValue("ThisBinding");
+		return COMPILER_THIS_BINDING_VALUE;
 	});
 	return evaluate;
 }
@@ -146,17 +146,17 @@ function PropertyAssignment(name, expression) {
 
 function PropertyAssignmentGet(name, body) {
 	return function(ctx, obj) {
-		var closure = ctx.defineValue("CreateFunction(" + ctx.literal(body) + ",LexicalEnvironment)");
-		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + //
-		",AccessorPropertyDescriptor(" + closure.name + ",absent,true,true),false);");
+		var closure = ctx.constantValue("CreateFunction(" + ctx.literal(body) + ",LexicalEnvironment)");
+		var desc = ctx.constantAny("AccessorPropertyDescriptor(" + closure.name + ",absent,true,true)");
+		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + "," + desc.name + ",false);");
 	};
 }
 
 function PropertyAssignmentSet(name, body) {
 	return function(ctx, obj) {
-		var closure = ctx.defineValue("CreateFunction(" + ctx.literal(body) + ",LexicalEnvironment)");
-		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + //
-		",AccessorPropertyDescriptor(absent," + closure.name + ",true,true),false);");
+		var closure = ctx.constantValue("CreateFunction(" + ctx.literal(body) + ",LexicalEnvironment)");
+		var desc = ctx.constantAny("AccessorPropertyDescriptor(absent," + closure.name + ",true,true)");
+		ctx.text(obj.name + " .DefineOwnProperty(" + ctx.quote(name) + "," + desc.name + ",false);");
 	};
 }
 
@@ -167,13 +167,18 @@ function PropertyAccessor(base, name, strict) {
 		var propertyNameReference = ctx.compileExpression(name);
 		var propertyNameValue = ctx.compileGetValue(propertyNameReference);
 		if (!(baseValue.types.isNotUndefined() && baseValue.types.isNotNull())) {
+			propertyNameValue = ctx.unify(propertyNameValue);
+			baseValue = ctx.unify(baseValue);
 			ctx.text("if(" + baseValue.name + " ===undefined|| " + baseValue.name + " ===null)" + //
 			"throwPropertyAccessorError(" + baseValue.name + "," + propertyNameValue.name + ");");
 		}
 		if (!propertyNameValue.types.isNotObject()) {
-			ctx.text("if(typeof(" + propertyNameValue.name + ")==='object'){");
-			ctx.merge(propertyNameValue, ctx.compileToString(propertyNameValue));
+			var mval = ctx.mergeableVariable();
+			ctx.merge(mval, propertyNameValue);
+			ctx.text("if(typeof(" + mval.name + ")==='object'){");
+			ctx.merge(mval, ctx.compileToString(mval));
 			ctx.text("}");
+			propertyNameValue = mval;
 		}
 		return {
 			name : propertyNameValue.name,
@@ -200,9 +205,11 @@ function NewOperator(expression, args) {
 			ctx.text("throw VMTypeError();");
 			return COMPILER_UNDEFINED_VALUE;
 		}
+		cntr = ctx.unify(cntr);
 		ctx.text("if(! " + cntr.name + " ||! " + cntr.name + " ._Construct)throw VMTypeError();");
+		var mval = ctx.mergeableVariable();
 		ctx.text("if(" + cntr.name + " .vm===vm)");
-		var mval = ctx.defineValue(cntr.name + " ._Construct(" + argList.name + ")");
+		ctx.mergeValue(mval, cntr.name + " ._Construct(" + argList.name + ")");
 		ctx.text("else");
 		ctx.mergeValue(mval, cntr.name + " .Construct(" + argList.name + ")");
 		return mval;
@@ -218,6 +225,7 @@ function FunctionCall(expression, args, strict) {
 			ctx.text("throw VMTypeError();");
 			return COMPILER_UNDEFINED_VALUE;
 		}
+		func = ctx.unify(func);
 		ctx.text("if(! " + func.name + " ||! " + func.name + " ._Call)throw VMTypeError();");
 		if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
 			var thisValue = ref.base;
@@ -238,14 +246,15 @@ function FunctionCall(expression, args, strict) {
 			assert(ref.types.isValue(), ref); // provided that all expressions have own compilers
 			var thisValue = COMPILER_UNDEFINED_VALUE;
 		}
+		var mval = ctx.mergeableVariable();
 		if (ref.name === '"eval"' && ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 			ctx.text("if(" + func.name + " ===vm.theEvalFunction)");
-			var mval = ctx.defineValue("Global_eval(" + thisValue.name + "," + argList.name + ",true," + strict
+			ctx.mergeValue(mval, "Global_eval(" + thisValue.name + "," + argList.name + ",true," + strict
 					+ ",LexicalEnvironment,VariableEnvironment,ThisBinding)");
 		}
 		else {
 			ctx.text("if(" + func.name + " .vm===vm)");
-			var mval = ctx.defineValue(func.name + " ._Call(" + thisValue.name + "," + argList.name + ")");
+			ctx.mergeValue(mval, func.name + " ._Call(" + thisValue.name + "," + argList.name + ")");
 		}
 		ctx.text("else");
 		ctx.mergeValue(mval, func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
@@ -257,7 +266,7 @@ function PostfixIncrementOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var lhs = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(lhs));
-		var newValue = ctx.defineNumber(oldValue.name + " +1");
+		var newValue = ctx.constantNumber("(" + oldValue.name + " +1)");
 		ctx.compilePutValue(lhs, newValue);
 		return oldValue;
 	});
@@ -267,7 +276,7 @@ function PostfixDecrementOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var lhs = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(lhs));
-		var newValue = ctx.defineNumber(oldValue.name + " -1");
+		var newValue = ctx.constantNumber("(" + oldValue.name + " -1)");
 		ctx.compilePutValue(lhs, newValue);
 		return oldValue;
 	});
@@ -285,8 +294,9 @@ function deleteOperator(expression) {
 				return ctx.defineBoolean(base.name + " .DeleteBinding(" + ref.name + ")");
 			}
 			else {
+				var mval = ctx.mergeableVariable();
 				ctx.text("if(" + base.name + " !==undefined){");
-				var mval = ctx.defineBoolean(base.name + " .DeleteBinding(" + ref.name + ")");
+				ctx.mergeBoolean(mval, base.name + " .DeleteBinding(" + ref.name + ")");
 				ctx.text("}else");
 				ctx.merge(mval, COMPILER_TRUE_VALUE);
 				return mval;
@@ -322,10 +332,12 @@ function typeofOperator(expression) {
 				var val = ctx.compileGetValue(val);
 			}
 			else {
+				var mval = ctx.mergeableVariable();
 				ctx.text("if(" + val.base.name + " !==undefined){");
-				var val = ctx.compileGetValue(val);
+				ctx.merge(mval, ctx.compileGetValue(val));
 				ctx.text("}else");
-				ctx.merge(val, COMPILER_UNDEFINED_VALUE);
+				ctx.merge(mval, COMPILER_UNDEFINED_VALUE);
+				val = mval;
 			}
 		}
 		else if (val.types === COMPILER_LOCAL_REFERENCE_TYPE) {
@@ -335,13 +347,15 @@ function typeofOperator(expression) {
 			assert(val.types.isValue(), val); // provided that all expressions have own compilers
 		}
 		if (val.types.isObject()) {
-			return ctx.defineString(val.name + " ._Call?'function':'object'");
+			return ctx.constantString("(" + val.name + " ._Call?'function':'object')");
 		}
 		if (val.types.isNotObject()) {
-			return ctx.defineString("typeof " + val.name);
+			return ctx.constantString("(typeof " + val.name + ")");
 		}
+		val = ctx.unify(val);
+		var mval = ctx.mergeableVariable();
 		ctx.text("if(typeof(" + val.name + ")==='object'&& " + val.name + " !==null)");
-		var mval = ctx.defineString(val.name + " ._Call?'function':'object'");
+		ctx.mergeString(mval, val.name + " ._Call?'function':'object'");
 		ctx.text("else");
 		ctx.mergeString(mval, "typeof " + val.name);
 		return mval;
@@ -379,7 +393,7 @@ function MinusOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(expr));
-		return ctx.defineNumber("- " + oldValue.name);
+		return ctx.constantNumber("(- " + oldValue.name + ")");
 	});
 }
 
@@ -387,7 +401,7 @@ function BitwiseNOTOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
 		var oldValue = ctx.compileToNumber(ctx.compileGetValue(expr));
-		return ctx.defineNumber("~ " + oldValue.name);
+		return ctx.constantNumber("(~ " + oldValue.name + ")");
 	});
 }
 
@@ -395,7 +409,7 @@ function LogicalNOTOperator(expression) {
 	return CompilerContext.expression(function(ctx) {
 		var expr = ctx.compileExpression(expression);
 		var oldValue = ctx.compileGetValue(expr);
-		return ctx.defineBoolean("! " + oldValue.name);
+		return ctx.constantBoolean("(! " + oldValue.name + ")");
 	});
 }
 
@@ -409,11 +423,11 @@ function MultiplicativeOperator(operator, leftExpression, rightExpression) {
 		var rightNum = ctx.compileToNumber(rightValue);
 		switch (operator) {
 		case '*':
-			return ctx.defineNumber(leftNum.name + " * " + rightNum.name);
+			return ctx.constantNumber("(" + leftNum.name + " * " + rightNum.name + ")");
 		case '/':
-			return ctx.defineNumber(leftNum.name + " / " + rightNum.name);
+			return ctx.constantNumber("(" + leftNum.name + " / " + rightNum.name + ")");
 		case '%':
-			return ctx.defineNumber(leftNum.name + " % " + rightNum.name);
+			return ctx.constantNumber("(" + leftNum.name + " % " + rightNum.name + ")");
 		}
 	});
 }
@@ -427,13 +441,13 @@ function AdditionOperator(leftExpression, rightExpression) {
 		var lprim = ctx.compileToPrimitive(lval);
 		var rprim = ctx.compileToPrimitive(rval);
 		if (lprim.types.isString() || rprim.types.isString()) {
-			return ctx.defineString(lprim.name + " + " + rprim.name);
+			return ctx.constantString("(" + lprim.name + " + " + rprim.name + ")");
 		}
 		else if (lprim.types.isNotString() && rprim.types.isNotString()) {
-			return ctx.defineNumber(lprim.name + " + " + rprim.name);
+			return ctx.constantNumber("(" + lprim.name + " + " + rprim.name + ")");
 		}
 		else {
-			return ctx.defineValue(lprim.name + " + " + rprim.name);
+			return ctx.constantValue("(" + lprim.name + " + " + rprim.name + ")");
 		}
 	});
 }
@@ -446,7 +460,7 @@ function SubtractionOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var lnum = ctx.compileToNumber(lval);
 		var rnum = ctx.compileToNumber(rval);
-		return ctx.defineNumber(lnum.name + " - " + rnum.name);
+		return ctx.constantNumber("(" + lnum.name + " - " + rnum.name + ")");
 	});
 }
 
@@ -458,7 +472,7 @@ function LeftShiftOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var lnum = ctx.compileToNumber(lval);
 		var rnum = ctx.compileToNumber(rval);
-		return ctx.defineNumber(lnum.name + " << " + rnum.name);
+		return ctx.constantNumber("(" + lnum.name + " << " + rnum.name + ")");
 	});
 }
 
@@ -470,7 +484,7 @@ function SignedRightShiftOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var lnum = ctx.compileToNumber(lval);
 		var rnum = ctx.compileToNumber(rval);
-		return ctx.defineNumber(lnum.name + " >> " + rnum.name);
+		return ctx.constantNumber("(" + lnum.name + " >> " + rnum.name + ")");
 	});
 }
 
@@ -482,7 +496,7 @@ function UnsignedRightShiftOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var lnum = ctx.compileToNumber(lval);
 		var rnum = ctx.compileToNumber(rval);
-		return ctx.defineNumber(lnum.name + " >>> " + rnum.name);
+		return ctx.constantNumber("(" + lnum.name + " >>> " + rnum.name + ")");
 	});
 }
 
@@ -494,7 +508,7 @@ function LessThanOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var px = ctx.compileToPrimitive(lval, TYPE_Number);
 		var py = ctx.compileToPrimitive(rval, TYPE_Number);
-		return ctx.defineBoolean(px.name + " < " + py.name);
+		return ctx.constantBoolean("(" + px.name + " < " + py.name + ")");
 	});
 }
 
@@ -506,7 +520,7 @@ function GreaterThanOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var px = ctx.compileToPrimitive(lval, TYPE_Number);
 		var py = ctx.compileToPrimitive(rval, TYPE_Number);
-		return ctx.defineBoolean(px.name + " > " + py.name);
+		return ctx.constantBoolean("(" + px.name + " > " + py.name + ")");
 	});
 }
 
@@ -518,7 +532,7 @@ function LessThanOrEqualOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var px = ctx.compileToPrimitive(lval, TYPE_Number);
 		var py = ctx.compileToPrimitive(rval, TYPE_Number);
-		return ctx.defineBoolean(px.name + " <= " + py.name);
+		return ctx.constantBoolean("(" + px.name + " <= " + py.name + ")");
 	});
 }
 
@@ -530,7 +544,7 @@ function GreaterThanOrEqualOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		var px = ctx.compileToPrimitive(lval, TYPE_Number);
 		var py = ctx.compileToPrimitive(rval, TYPE_Number);
-		return ctx.defineBoolean(px.name + " >= " + py.name);
+		return ctx.constantBoolean("(" + px.name + " >= " + py.name + ")");
 	});
 }
 
@@ -544,6 +558,7 @@ function instanceofOperator(leftExpression, rightExpression) {
 			ctx.text("throw VMTypeError();");
 			return COMPILER_FALSE_VALUE;
 		}
+		rval = ctx.unify(rval);
 		ctx.text("if(! " + rval.name + " || " + rval.name + " .HasInstance===undefined)throw VMTypeError();");
 		return ctx.defineBoolean(rval.name + " .HasInstance(" + lval.name + ")");
 	});
@@ -559,6 +574,7 @@ function inOperator(leftExpression, rightExpression) {
 			ctx.text("throw VMTypeError();");
 			return COMPILER_FALSE_VALUE;
 		}
+		rval = ctx.unify(rval);
 		ctx.text("if(typeof(" + rval.name + ")!=='object'|| " + rval.name + " ===null)throw VMTypeError();");
 		var lval = ctx.compileToString(lval);
 		return ctx.defineBoolean(rval.name + " .HasProperty(" + lval.name + ")");
@@ -573,13 +589,13 @@ function EqualsOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		if (rval.types.isString() || rval.types.isNumber() || rval.types.isBoolean()) {
 			var lval = ctx.compileToPrimitive(lval);
-			return ctx.defineBoolean(lval.name + " == " + rval.name);
+			return ctx.constantBoolean("(" + lval.name + " == " + rval.name + ")");
 		}
 		if (lval.types.isString() || lval.types.isNumber() || lval.types.isBoolean()) {
 			var rval = ctx.compileToPrimitive(rval);
-			return ctx.defineBoolean(lval.name + " == " + rval.name);
+			return ctx.constantBoolean("(" + lval.name + " == " + rval.name + ")");
 		}
-		return ctx.defineBoolean("abstractEqualityComparison(" + lval.name + " , " + rval.name + ")");
+		return ctx.constantBoolean("abstractEqualityComparison(" + lval.name + " , " + rval.name + ")");
 	});
 }
 
@@ -591,13 +607,13 @@ function DoesNotEqualOperator(leftExpression, rightExpression) {
 		var rval = ctx.compileGetValue(rref);
 		if (rval.types.isString() || rval.types.isNumber() || rval.types.isBoolean()) {
 			var lval = ctx.compileToPrimitive(lval);
-			return ctx.defineBoolean(lval.name + " != " + rval.name);
+			return ctx.constantBoolean("(" + lval.name + " != " + rval.name + ")");
 		}
 		if (lval.types.isString() || lval.types.isNumber() || lval.types.isBoolean()) {
 			var rval = ctx.compileToPrimitive(rval);
-			return ctx.defineBoolean(lval.name + " != " + rval.name);
+			return ctx.constantBoolean("(" + lval.name + " != " + rval.name + ")");
 		}
-		return ctx.defineBoolean("!abstractEqualityComparison(" + lval.name + " , " + rval.name + ")");
+		return ctx.constantBoolean("(!abstractEqualityComparison(" + lval.name + " , " + rval.name + "))");
 	});
 }
 
@@ -626,7 +642,7 @@ function StrictEqualsOperator(leftExpression, rightExpression) {
 		var lval = ctx.compileGetValue(lref);
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
-		return ctx.defineBoolean(lval.name + " === " + rval.name);
+		return ctx.constantBoolean("(" + lval.name + " === " + rval.name + ")");
 	});
 }
 
@@ -636,7 +652,7 @@ function StrictDoesNotEqualOperator(leftExpression, rightExpression) {
 		var lval = ctx.compileGetValue(lref);
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
-		return ctx.defineBoolean(lval.name + " !== " + rval.name);
+		return ctx.constantBoolean("(" + lval.name + " !== " + rval.name + ")");
 	});
 }
 
@@ -650,11 +666,11 @@ function BinaryBitwiseOperator(operator, leftExpression, rightExpression) {
 		var rnum = ctx.compileToNumber(rval);
 		switch (operator) {
 		case '&':
-			return ctx.defineNumber(lnum.name + " & " + rnum.name);
+			return ctx.constantNumber("(" + lnum.name + " & " + rnum.name + ")");
 		case '^':
-			return ctx.defineNumber(lnum.name + " ^ " + rnum.name);
+			return ctx.constantNumber("(" + lnum.name + " ^ " + rnum.name + ")");
 		case '|':
-			return ctx.defineNumber(lnum.name + " | " + rnum.name);
+			return ctx.constantNumber("(" + lnum.name + " | " + rnum.name + ")");
 		}
 	});
 }
@@ -670,12 +686,14 @@ function LogicalAndOperator(leftExpression, rightExpression) {
 			var rref = ctx.compileExpression(rightExpression);
 			return ctx.compileGetValue(rref);
 		}
-		ctx.text("if(" + lval.name + "){");
+		var mval = ctx.mergeableVariable();
+		ctx.merge(mval, lval);
+		ctx.text("if(" + mval.name + "){");
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
-		ctx.merge(lval, rval);
+		ctx.merge(mval, rval);
 		ctx.text("}");
-		return lval;
+		return mval;
 	});
 }
 
@@ -690,12 +708,14 @@ function LogicalOrOperator(leftExpression, rightExpression) {
 			var rref = ctx.compileExpression(rightExpression);
 			return ctx.compileGetValue(rref);
 		}
-		ctx.text("if(! " + lval.name + "){");
+		var mval = ctx.mergeableVariable();
+		ctx.merge(mval, lval);
+		ctx.text("if(! " + mval.name + "){");
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
-		ctx.merge(lval, rval);
+		ctx.merge(mval, rval);
 		ctx.text("}");
-		return lval;
+		return mval;
 	});
 }
 
@@ -703,7 +723,7 @@ function ConditionalOperator(condition, firstExpression, secondExpression) {
 	return CompilerContext.expression(function(ctx) {
 		var lref = ctx.compileExpression(condition);
 		var lval = ctx.compileGetValue(lref);
-		var mval = ctx.defineNone();
+		var mval = ctx.mergeableVariable();
 		ctx.text("if(" + lval.name + "){");
 		var trueRef = ctx.compileExpression(firstExpression);
 		ctx.merge(mval, ctx.compileGetValue(trueRef));
@@ -720,6 +740,7 @@ function SimpleAssignment(leftExpression, rightExpression) {
 		var lref = ctx.compileExpression(leftExpression);
 		var rref = ctx.compileExpression(rightExpression);
 		var rval = ctx.compileGetValue(rref);
+		rval = ctx.unify(rval);
 		ctx.compilePutValue(lref, rval);
 		return rval;
 	});

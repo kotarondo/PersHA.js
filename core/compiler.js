@@ -84,6 +84,18 @@ var COMPILER_FALSE_VALUE = {
 	value : false
 };
 
+var COMPILER_LEXICAL_ENVIRONMENT_VALUE = {
+	name : "LexicalEnvironment",
+	types : COMPILER_ENV_TYPE,
+	isVariable : true,
+};
+
+var COMPILER_THIS_BINDING_VALUE = {
+	name : "ThisBinding",
+	types : COMPILER_VALUE_TYPE,
+	isVariable : true,
+};
+
 CompilerTypes.prototype.isPrimitive = function() {
 	return this.types.every(function(type) {
 		return (COMPILER_PRIMITIVE_TYPE.types.indexOf(type) >= 0);
@@ -241,7 +253,10 @@ CompilerContext.prototype.quote = function(x) {
 		}
 		return '"' + x + '"';
 	case "number":
-		if (floor(x) === x && abs(x) < 1000000000) return String(x);
+		if (floor(x) === x && abs(x) < 1000000000){
+			if(x >= 0) return String(x);
+			else return "("+String(x)+")";
+		}
 		return this.literal(x);
 	case "boolean":
 		return String(x);
@@ -250,11 +265,46 @@ CompilerContext.prototype.quote = function(x) {
 	return "null";
 };
 
+CompilerContext.prototype.constant = function(str, types) {
+	return {
+		name : str,
+		types : types,
+	};
+};
+
+CompilerContext.prototype.constantValue = function(str) {
+	return this.constant(str, COMPILER_VALUE_TYPE);
+};
+
+CompilerContext.prototype.constantAny = function(str) {
+	return this.constant(str, COMPILER_ANY_TYPE);
+};
+
+CompilerContext.prototype.constantObject = function(str) {
+	return this.constant(str, COMPILER_OBJECT_TYPE);
+};
+
+CompilerContext.prototype.constantString = function(str) {
+	return this.constant(str, COMPILER_STRING_TYPE);
+};
+
+CompilerContext.prototype.constantNumber = function(str) {
+	return this.constant(str, COMPILER_NUMBER_TYPE);
+};
+
+CompilerContext.prototype.constantBoolean = function(str) {
+	return this.constant(str, COMPILER_BOOLEAN_TYPE);
+};
+
+CompilerContext.prototype.constantPrimitive = function(str) {
+	return this.constant(str, COMPILER_PRIMITIVE_TYPE);
+};
+
 CompilerContext.prototype.define = function(str, types) {
 	assert(types);
+	assert(str);
 	var name = "tmp" + (this.variables++);
-	if (str) this.text("var " + name + "= " + str + ";");
-	else this.text("var " + name + ";");
+	this.text("var " + name + "= " + str + ";");
 	return {
 		name : name,
 		types : types,
@@ -290,19 +340,29 @@ CompilerContext.prototype.definePrimitive = function(str) {
 	return this.define(str, COMPILER_PRIMITIVE_TYPE);
 };
 
-CompilerContext.prototype.defineNone = function(str) {
-	return this.define(str, COMPILER_NONE_TYPE);
-};
-
-CompilerContext.prototype.toVariable = function(val) {
-	if (val.isVariable) return val;
+CompilerContext.prototype.unify = function(val) {
+	if (val.isVariable || val.isLiteral) return val;
+	assert(val.types.isValue());
 	return this.define(val.name, val.types);
 };
 
+CompilerContext.prototype.mergeableVariable = function() {
+	var name = "mrg" + (this.variables++);
+	return {
+		name : name,
+		types : COMPILER_NONE_TYPE,
+		isMergeable : true,
+	};
+};
+
 CompilerContext.prototype.mergeDefine = function(mval, str, types) {
-	assert(mval.isVariable, mval);
+	assert(mval.isMergeable, mval);
 	this.text("var " + mval.name + "= " + str + ";");
 	mval.types = new CompilerTypes(mval.types, types);
+};
+
+CompilerContext.prototype.mergeBoolean = function(mval, str) {
+	this.mergeDefine(mval, str, COMPILER_BOOLEAN_TYPE);
 };
 
 CompilerContext.prototype.mergeString = function(mval, str) {
@@ -363,7 +423,7 @@ function analyzeStaticEnv(env) {
 CompilerContext.prototype.compileNewDeclarativeEnvironment = function(staticEnv) {
 	if (staticEnv.collapsed) return null;
 	var oldEnv = this.defineAny("LexicalEnvironment");
-	this.text("LexicalEnvironment=NewDeclarativeEnvironment(" + oldEnv.name + ");");
+	this.text("LexicalEnvironment=NewDeclarativeEnvironment(LexicalEnvironment);");
 	return oldEnv;
 };
 
@@ -498,8 +558,9 @@ CompilerContext.prototype.compileGetValue = function(ref) {
 		if (base.types.isNotObject()) {
 			return this.defineValue("specialGet(" + base.name + "," + ref.name + ")");
 		}
+		var mval = this.mergeableVariable();
 		this.text("if(typeof(" + base.name + ")==='object')");
-		var mval = this.defineValue(base.name + " .Get(" + ref.name + ")");
+		this.mergeValue(mval, base.name + " .Get(" + ref.name + ")");
 		this.text("else");
 		this.mergeValue(mval, "specialGet(" + base.name + "," + ref.name + ")");
 		return mval;
