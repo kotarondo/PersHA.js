@@ -40,7 +40,11 @@ function ThisExpression() {
 		return ThisBinding;
 	};
 	evaluate.compile = (function(ctx) {
-		return COMPILER_THIS_BINDING_VALUE;
+		return {
+			name : "ThisBinding",
+			types : COMPILER_VALUE_TYPE,
+			isSpecial : true,
+		};
 	});
 	return evaluate;
 }
@@ -173,12 +177,9 @@ function PropertyAccessor(base, name, strict) {
 			"throwPropertyAccessorError(" + baseValue.name + "," + propertyNameValue.name + ");");
 		}
 		if (!propertyNameValue.types.isNotObject()) {
-			var mval = ctx.mergeableVariable();
-			ctx.merge(mval, propertyNameValue);
-			ctx.text("if(typeof(" + mval.name + ")==='object'){");
-			ctx.merge(mval, ctx.compileToString(mval));
-			ctx.text("}");
-			propertyNameValue = mval;
+			var n = propertyNameValue.name;
+			propertyNameValue = ctx.defineString("typeof " + n + " !=='object'|| " + n + " ===null?" + n + //
+			":String(" + n + " .DefaultValue(TYPE_String))");
 		}
 		return {
 			name : propertyNameValue.name,
@@ -207,9 +208,9 @@ function NewOperator(expression, args) {
 		}
 		cntr = ctx.unify(cntr);
 		ctx.text("if(! " + cntr.name + " ||! " + cntr.name + " ._Construct)throw VMTypeError();");
-		var mval = ctx.mergeableVariable();
 		ctx.text("if(" + cntr.name + " .vm===vm)");
-		ctx.mergeValue(mval, cntr.name + " ._Construct(" + argList.name + ")");
+		var mval = ctx.defineValue(cntr.name + " ._Construct(" + argList.name + ")");
+		mval = ctx.toMergeable(mval);
 		ctx.text("else");
 		ctx.mergeValue(mval, cntr.name + " .Construct(" + argList.name + ")");
 		return mval;
@@ -246,16 +247,16 @@ function FunctionCall(expression, args, strict) {
 			assert(ref.types.isValue(), ref); // provided that all expressions have own compilers
 			var thisValue = COMPILER_UNDEFINED_VALUE;
 		}
-		var mval = ctx.mergeableVariable();
 		if (ref.name === '"eval"' && ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 			ctx.text("if(" + func.name + " ===vm.theEvalFunction)");
-			ctx.mergeValue(mval, "Global_eval(" + thisValue.name + "," + argList.name + ",true," + strict
+			var mval = ctx.defineValue("Global_eval(" + thisValue.name + "," + argList.name + ",true," + strict
 					+ ",LexicalEnvironment,VariableEnvironment,ThisBinding)");
 		}
 		else {
 			ctx.text("if(" + func.name + " .vm===vm)");
-			ctx.mergeValue(mval, func.name + " ._Call(" + thisValue.name + "," + argList.name + ")");
+			var mval = ctx.defineValue(func.name + " ._Call(" + thisValue.name + "," + argList.name + ")");
 		}
+		mval = ctx.toMergeable(mval);
 		ctx.text("else");
 		ctx.mergeValue(mval, func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
 		return mval;
@@ -294,9 +295,9 @@ function deleteOperator(expression) {
 				return ctx.defineBoolean(base.name + " .DeleteBinding(" + ref.name + ")");
 			}
 			else {
-				var mval = ctx.mergeableVariable();
 				ctx.text("if(" + base.name + " !==undefined){");
-				ctx.mergeBoolean(mval, base.name + " .DeleteBinding(" + ref.name + ")");
+				var mval = ctx.defineBoolean(base.name + " .DeleteBinding(" + ref.name + ")");
+				mval = ctx.toMergeable(mval);
 				ctx.text("}else");
 				ctx.merge(mval, COMPILER_TRUE_VALUE);
 				return mval;
@@ -332,12 +333,11 @@ function typeofOperator(expression) {
 				var val = ctx.compileGetValue(val);
 			}
 			else {
-				var mval = ctx.mergeableVariable();
 				ctx.text("if(" + val.base.name + " !==undefined){");
-				ctx.merge(mval, ctx.compileGetValue(val));
+				var val = ctx.compileGetValue(val);
+				val = ctx.toMergeable(val);
 				ctx.text("}else");
-				ctx.merge(mval, COMPILER_UNDEFINED_VALUE);
-				val = mval;
+				ctx.merge(val, COMPILER_UNDEFINED_VALUE);
 			}
 		}
 		else if (val.types === COMPILER_LOCAL_REFERENCE_TYPE) {
@@ -353,9 +353,9 @@ function typeofOperator(expression) {
 			return ctx.constantString("(typeof " + val.name + ")");
 		}
 		val = ctx.unify(val);
-		var mval = ctx.mergeableVariable();
 		ctx.text("if(typeof(" + val.name + ")==='object'&& " + val.name + " !==null)");
-		ctx.mergeString(mval, val.name + " ._Call?'function':'object'");
+		var mval = ctx.defineString(val.name + " ._Call?'function':'object'");
+		mval = ctx.toMergeable(mval);
 		ctx.text("else");
 		ctx.mergeString(mval, "typeof " + val.name);
 		return mval;
@@ -686,14 +686,12 @@ function LogicalAndOperator(leftExpression, rightExpression) {
 			var rref = ctx.compileExpression(rightExpression);
 			return ctx.compileGetValue(rref);
 		}
-		var mval = ctx.mergeableVariable();
-		ctx.merge(mval, lval);
-		ctx.text("if(" + mval.name + "){");
+		lval = ctx.toMergeable(lval);
+		ctx.text("if(" + lval.name + "){");
 		var rref = ctx.compileExpression(rightExpression);
-		var rval = ctx.compileGetValue(rref);
-		ctx.merge(mval, rval);
+		ctx.compileGetValue(rref, lval); // merge to lval
 		ctx.text("}");
-		return mval;
+		return lval;
 	});
 }
 
@@ -708,14 +706,12 @@ function LogicalOrOperator(leftExpression, rightExpression) {
 			var rref = ctx.compileExpression(rightExpression);
 			return ctx.compileGetValue(rref);
 		}
-		var mval = ctx.mergeableVariable();
-		ctx.merge(mval, lval);
-		ctx.text("if(! " + mval.name + "){");
+		lval = ctx.toMergeable(lval);
+		ctx.text("if(! " + lval.name + "){");
 		var rref = ctx.compileExpression(rightExpression);
-		var rval = ctx.compileGetValue(rref);
-		ctx.merge(mval, rval);
+		ctx.compileGetValue(rref, lval); // merge to lval
 		ctx.text("}");
-		return mval;
+		return lval;
 	});
 }
 
@@ -723,13 +719,13 @@ function ConditionalOperator(condition, firstExpression, secondExpression) {
 	return CompilerContext.expression(function(ctx) {
 		var lref = ctx.compileExpression(condition);
 		var lval = ctx.compileGetValue(lref);
-		var mval = ctx.mergeableVariable();
 		ctx.text("if(" + lval.name + "){");
 		var trueRef = ctx.compileExpression(firstExpression);
-		ctx.merge(mval, ctx.compileGetValue(trueRef));
+		var mval = ctx.compileGetValue(trueRef);
+		mval = ctx.toMergeable(mval);
 		ctx.text("}else{");
 		var falseRef = ctx.compileExpression(secondExpression);
-		ctx.merge(mval, ctx.compileGetValue(falseRef));
+		ctx.compileGetValue(falseRef, mval); // merge to mval
 		ctx.text("}");
 		return mval;
 	});

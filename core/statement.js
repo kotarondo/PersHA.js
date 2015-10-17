@@ -407,6 +407,7 @@ function ForInStatement(leftHandSideExpression, expression, statement, labelset,
 		ctx.compileRunningPos(pos2);
 		var exprRef = ctx.compileExpression(expression);
 		var experValue = ctx.compileGetValue(exprRef);
+		experValue = ctx.unify(experValue);
 		ctx.text("if(!(" + experValue.name + " ===null|| " + experValue.name + " ===undefined)){");
 		var obj = ctx.compileToObject(experValue);
 		var next = ctx.defineAny(obj.name + " .enumerator(false,true)");
@@ -459,6 +460,7 @@ function ForVarInStatement(variableDeclarationNoIn, expression, statement, label
 		ctx.compileRunningPos(pos2);
 		var exprRef = ctx.compileExpression(expression);
 		var experValue = ctx.compileGetValue(exprRef);
+		experValue = ctx.unify(experValue);
 		ctx.text("if(!(" + experValue.name + " ===null|| " + experValue.name + " ===undefined)){");
 		var obj = ctx.compileToObject(experValue);
 		var next = ctx.defineAny(obj.name + " .enumerator(false,true)");
@@ -667,6 +669,7 @@ function CaseBlock(A, defaultClause, B) {
 	};
 
 	return CompilerContext.statement(evaluate, function(ctx, input) {
+		input = ctx.unify(input);
 		var mark = ctx.texts.length;
 		var selectors = [];
 		var direct = true;

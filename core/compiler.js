@@ -84,18 +84,6 @@ var COMPILER_FALSE_VALUE = {
 	value : false
 };
 
-var COMPILER_LEXICAL_ENVIRONMENT_VALUE = {
-	name : "LexicalEnvironment",
-	types : COMPILER_ENV_TYPE,
-	isVariable : true,
-};
-
-var COMPILER_THIS_BINDING_VALUE = {
-	name : "ThisBinding",
-	types : COMPILER_VALUE_TYPE,
-	isVariable : true,
-};
-
 CompilerTypes.prototype.isPrimitive = function() {
 	return this.types.every(function(type) {
 		return (COMPILER_PRIMITIVE_TYPE.types.indexOf(type) >= 0);
@@ -253,9 +241,9 @@ CompilerContext.prototype.quote = function(x) {
 		}
 		return '"' + x + '"';
 	case "number":
-		if (floor(x) === x && abs(x) < 1000000000){
-			if(x >= 0) return String(x);
-			else return "("+String(x)+")";
+		if (floor(x) === x && abs(x) < 1000000000) {
+			if (x >= 0) return String(x);
+			else return "(" + String(x) + ")";
 		}
 		return this.literal(x);
 	case "boolean":
@@ -302,9 +290,8 @@ CompilerContext.prototype.constantPrimitive = function(str) {
 
 CompilerContext.prototype.define = function(str, types) {
 	assert(types);
-	assert(str);
 	var name = "tmp" + (this.variables++);
-	this.text("var " + name + "= " + str + ";");
+	if (str) this.text("var " + name + "= " + str + ";");
 	return {
 		name : name,
 		types : types,
@@ -341,40 +328,33 @@ CompilerContext.prototype.definePrimitive = function(str) {
 };
 
 CompilerContext.prototype.unify = function(val) {
-	if (val.isVariable || val.isLiteral) return val;
+	if (val.isVariable || val.isLiteral || val.isSpecial) return val;
 	assert(val.types.isValue());
 	return this.define(val.name, val.types);
 };
 
-CompilerContext.prototype.mergeableVariable = function() {
-	var name = "mrg" + (this.variables++);
-	return {
-		name : name,
-		types : COMPILER_NONE_TYPE,
-		isMergeable : true,
-	};
+CompilerContext.prototype.toMergeable = function(val) {
+	if (val.isVariable) return val;
+	return this.define(val.name, val.types);
 };
 
 CompilerContext.prototype.mergeDefine = function(mval, str, types) {
-	assert(mval.isMergeable, mval);
+	assert(mval.isVariable, mval);
 	this.text("var " + mval.name + "= " + str + ";");
 	mval.types = new CompilerTypes(mval.types, types);
-};
-
-CompilerContext.prototype.mergeBoolean = function(mval, str) {
-	this.mergeDefine(mval, str, COMPILER_BOOLEAN_TYPE);
+	return mval;
 };
 
 CompilerContext.prototype.mergeString = function(mval, str) {
-	this.mergeDefine(mval, str, COMPILER_STRING_TYPE);
+	return this.mergeDefine(mval, str, COMPILER_STRING_TYPE);
 };
 
 CompilerContext.prototype.mergeValue = function(mval, str) {
-	this.mergeDefine(mval, str, COMPILER_VALUE_TYPE);
+	return this.mergeDefine(mval, str, COMPILER_VALUE_TYPE);
 };
 
 CompilerContext.prototype.merge = function(mval, rval) {
-	this.mergeDefine(mval, rval.name, rval.types);
+	return this.mergeDefine(mval, rval.name, rval.types);
 };
 
 CompilerContext.prototype.finish = function() {
@@ -506,9 +486,13 @@ CompilerContext.prototype.compileGetIdentifierReferece = function(staticEnv, nam
 		}
 	}
 	if (resolvable && !ambiguous) {
-		if (skip === 0) var base = this.define("LexicalEnvironment", types);
-		else if (skip === 1) var base = this.define("LexicalEnvironment.outer", types);
-		else if (env.type === "global") var base = this.define("vm.theGlobalEnvironment", types);
+		if (skip === 0) var base = {
+			name : "LexicalEnvironment",
+			types : types,
+			isSpecial : true,
+		};
+		else if (skip === 1) var base = this.constant("LexicalEnvironment.outer", types);
+		else if (env.type === "global") var base = this.constant("vm.theGlobalEnvironment", types);
 		else var base = this.define("SkipEnvironmentRecord(LexicalEnvironment," + skip + ")", types);
 	}
 	else {
@@ -548,17 +532,22 @@ function Global_FastGetBindingValue(N, S) {
 	}
 }
 
-CompilerContext.prototype.compileGetValue = function(ref) {
-	if (ref.types.isValue()) return ref;
+CompilerContext.prototype.compileGetValue = function(ref, mval) {
+	assert(!mval || mval.isVariable, mval);
+	if (ref.types.isValue()) {
+		if (!mval) return ref;
+		this.merge(mval, ref);
+		return;
+	}
+	if (!mval) mval = this.define("", COMPILER_NONE_TYPE);
 	if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
 		var base = ref.base;
 		if (base.types.isObject()) {
-			return this.defineValue(base.name + " .Get(" + ref.name + ")");
+			return this.mergeValue(mval, base.name + " .Get(" + ref.name + ")");
 		}
 		if (base.types.isNotObject()) {
-			return this.defineValue("specialGet(" + base.name + "," + ref.name + ")");
+			return this.mergeValue(mval, "specialGet(" + base.name + "," + ref.name + ")");
 		}
-		var mval = this.mergeableVariable();
 		this.text("if(typeof(" + base.name + ")==='object')");
 		this.mergeValue(mval, base.name + " .Get(" + ref.name + ")");
 		this.text("else");
@@ -568,22 +557,21 @@ CompilerContext.prototype.compileGetValue = function(ref) {
 	else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 		var base = ref.base;
 		if (base.types === COMPILER_DECL_ENV_TYPE) {
-			return this.defineValue(base.name + " .$values[" + ref.name + "]");
+			return this.mergeValue(mval, base.name + " .$values[" + ref.name + "]");
 		}
 		if (base.types === COMPILER_GLOBAL_ENV_TYPE) {
-			return this.defineValue("Global_FastGetBindingValue(" + ref.name + ")");
+			return this.mergeValue(mval, "Global_FastGetBindingValue(" + ref.name + ")");
 		}
 		if (!base.types.isNotUndefined()) {
-			this.text("if(" + base.name + " ===undefined)" + //
-			"throw VMReferenceError(" + ref.name + " +' is not defined');");
+			this.text("if(" + base.name + " ===undefined)throw VMReferenceError(" + ref.name + " +' is not defined');");
 		}
-		return this.defineValue(base.name + " .GetBindingValue(" + ref.name + "," + ref.strict + ")");
+		return this.mergeValue(mval, base.name + " .GetBindingValue(" + ref.name + "," + ref.strict + ")");
 	}
 	else if (ref.types === COMPILER_LOCAL_REFERENCE_TYPE) {
-		return this.defineValue(ref.base.bindings[ref.name]);
+		return this.mergeValue(mval, ref.base.bindings[ref.name]);
 	}
 	else {
-		return this.defineValue("GetValue(" + ref.name + ")");
+		return this.mergeValue(mval, "GetValue(" + ref.name + ")");
 	}
 };
 
@@ -631,28 +619,32 @@ CompilerContext.prototype.compilePutValue = function(ref, val) {
 
 CompilerContext.prototype.compileToNumber = function(val) {
 	if (val.types.isNumber()) return val;
-	if (val.types.isPrimitive()) return this.defineNumber("Number(" + val.name + ")");
-	return this.defineNumber("Number(typeof " + val.name + "!=='object'||" + val.name + "===null?" + val.name + //
-	":" + val.name + ".DefaultValue(TYPE_Number))");
+	if (val.types.isPrimitive()) return this.constantNumber("Number(" + val.name + ")");
+	if (val.types.isObject()) return this.defineNumber("Number(" + val.name + " .DefaultValue(TYPE_Number))");
+	return this.defineNumber("Number(typeof " + val.name + " !=='object'|| " + val.name + " ===null?" + val.name + //
+	":" + val.name + " .DefaultValue(TYPE_Number))");
 };
 
 CompilerContext.prototype.compileToString = function(val) {
 	if (val.types.isString()) return val;
-	if (val.types.isPrimitive()) return this.defineString("String(" + val.name + ")");
-	return this.defineString("String(typeof " + val.name + "!=='object'||" + val.name + "===null?" + //
-	val.name + ":" + val.name + ".DefaultValue(TYPE_String))");
+	if (val.types.isPrimitive()) return this.constantString("String(" + val.name + ")");
+	if (val.types.isObject()) return this.defineNumber("String(" + val.name + " .DefaultValue(TYPE_String))");
+	return this.defineString("String(typeof " + val.name + " !=='object'|| " + val.name + " ===null?" + //
+	val.name + ":" + val.name + " .DefaultValue(TYPE_String))");
 };
 
 CompilerContext.prototype.compileToObject = function(val) {
 	if (val.types.isObject()) return val;
-	return this.defineObject("typeof " + val.name + "!=='object'||" + val.name + "===null?" + //
+	return this.defineObject("typeof " + val.name + " !=='object'|| " + val.name + " ===null?" + //
 	"ToObject(" + val.name + "):" + val.name);
 };
 
 CompilerContext.prototype.compileToPrimitive = function(val, hint) {
+	if (hint === undefined) hint = "";
 	if (val.types.isPrimitive()) return val;
-	return this.definePrimitive("typeof " + val.name + "!=='object'||" + val.name + "===null?" + //
-	val.name + ":" + val.name + ".DefaultValue(" + hint + ")");
+	if (val.types.isObject()) return this.defineNumber(val.name + " .DefaultValue(" + hint + ")");
+	return this.definePrimitive("typeof " + val.name + " !=='object'|| " + val.name + " ===null?" + //
+	val.name + ":" + val.name + " .DefaultValue(" + hint + ")");
 };
 
 CompilerContext.prototype.compileEvaluateArguments = function(args) {
