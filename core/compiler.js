@@ -444,10 +444,10 @@ CompilerContext.prototype.compileGetIdentifierReferece = function(staticEnv, nam
 		if (skip === 0) var base = this.define("LexicalEnvironment", types);
 		else if (skip === 1) var base = this.define("LexicalEnvironment.outer", types);
 		else if (env.type === "global") var base = this.define("vm.theGlobalEnvironment", types);
-		else var base = this.define("SkipEnvironmentRecord(" + skip + ")", types);
+		else var base = this.define("SkipEnvironmentRecord(LexicalEnvironment," + skip + ")", types);
 	}
 	else {
-		var base = this.define("GetIdentifierEnvironmentRecord(" + skip + "," + qname + ")", types);
+		var base = this.define("GetIdentifierEnvironmentRecord(LexicalEnvironment," + skip + "," + qname + ")", types);
 	}
 	return {
 		name : qname,

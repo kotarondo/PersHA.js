@@ -240,7 +240,8 @@ function FunctionCall(expression, args, strict) {
 		}
 		if (ref.name === '"eval"' && ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 			ctx.text("if(" + func.name + " ===vm.theEvalFunction)");
-			var mval = ctx.defineValue("Global_eval(" + thisValue.name + "," + argList.name + ",true," + strict + ")");
+			var mval = ctx.defineValue("Global_eval(" + thisValue.name + "," + argList.name + ",true," + strict
+					+ ",LexicalEnvironment,VariableEnvironment,ThisBinding)");
 		}
 		else {
 			ctx.text("if(" + func.name + " .vm===vm)");

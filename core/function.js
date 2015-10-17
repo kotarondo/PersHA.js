@@ -84,8 +84,8 @@ function CreateFunction(body, Scope) {
 	return F;
 }
 
-function delayedFunctionBody(F, argumentsList) {
-	var ctx = new CompilerContext("F, argumentsList");
+function delayedFunctionBody(F, ThisBinding, argumentsList) {
+	var ctx = new CompilerContext("F, ThisBinding, argumentsList");
 	try {
 		compileDeclarationBindingInstantiation0(ctx, F.Code);
 		if (F.Code.sourceElements !== undefined) {
@@ -101,7 +101,7 @@ function delayedFunctionBody(F, argumentsList) {
 	var evaluate = ctx.finish();
 	F.Code.evaluate = evaluate;
 	try {
-		return evaluate(F, argumentsList);
+		return evaluate(F, ThisBinding, argumentsList);
 	} catch (e) {
 		if (!isInternalError(e)) throw e;
 		console.error("FIRST EXEC ERROR:\n" + ctx.texts.join('\n'));
@@ -112,9 +112,25 @@ function delayedFunctionBody(F, argumentsList) {
 
 function Function_ClassCall(thisValue, argumentsList) {
 	var F = this;
-	enterExecutionContextForFunctionCode0(F, thisValue);
+	saveExecutionContext();
+	var code = F.Code;
+	if (code.strict) {
+		var ThisBinding = thisValue;
+	}
+	else if (thisValue === null || thisValue === undefined) {
+		var ThisBinding = vm.theGlobalObject;
+	}
+	else if (typeof (thisValue) !== 'object') {
+		var ThisBinding = ToObject(thisValue);
+	}
+	else {
+		var ThisBinding = thisValue;
+	}
+	runningFunction = F;
+	runningCode = code;
+	runningSourcePos = 0;
 	try {
-		return F.Code.evaluate(F, argumentsList);
+		return F.Code.evaluate(F, ThisBinding, argumentsList);
 	} finally {
 		exitExecutionContext();
 	}

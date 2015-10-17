@@ -163,16 +163,14 @@ function GetIdentifierReference(lex, name, strict) {
 	}
 }
 
-function SkipEnvironmentRecord(skip) {
-	var lex = LexicalEnvironment;
+function SkipEnvironmentRecord(lex, skip) {
 	while (skip--) {
 		lex = lex.outer;
 	}
 	return lex;
 }
 
-function GetIdentifierEnvironmentRecord(skip, name) {
-	var lex = LexicalEnvironment;
+function GetIdentifierEnvironmentRecord(lex, skip, name) {
 	while (skip--) {
 		lex = lex.outer;
 	}
@@ -218,9 +216,6 @@ function saveExecutionContext() {
 	}
 	stackDepth++;
 	outerExecutionContext = ({
-		LexicalEnvironment : LexicalEnvironment,
-		VariableEnvironment : VariableEnvironment,
-		ThisBinding : ThisBinding,
 		runningFunction : runningFunction,
 		runningCode : runningCode,
 		runningSourcePos : runningSourcePos,
@@ -231,9 +226,6 @@ function saveExecutionContext() {
 function exitExecutionContext() {
 	var ctx = outerExecutionContext;
 	stackDepth--;
-	LexicalEnvironment = ctx.LexicalEnvironment;
-	VariableEnvironment = ctx.VariableEnvironment;
-	ThisBinding = ctx.ThisBinding;
 	runningFunction = ctx.runningFunction;
 	runningCode = ctx.runningCode;
 	runningSourcePos = ctx.runningSourcePos;
@@ -282,12 +274,17 @@ function enterExecutionContextForGlobalCode(code) {
 	DeclarationBindingInstantiation(code);
 }
 
-function enterExecutionContextForEvalCode(code, direct) {
+function enterExecutionContextForEvalCode(code, direct, lexEnv, varEnv, thisB) {
 	saveExecutionContext();
 	if (direct !== true) {
 		LexicalEnvironment = vm.theGlobalEnvironment;
 		VariableEnvironment = vm.theGlobalEnvironment;
 		ThisBinding = vm.theGlobalObject;
+	}
+	else {
+		LexicalEnvironment = lexEnv;
+		VariableEnvironment = varEnv;
+		ThisBinding = thisB;
 	}
 	if (code.strict) {
 		var strictVarEnv = NewDeclarativeEnvironment(LexicalEnvironment);
@@ -345,34 +342,14 @@ function DeclarationBindingInstantiation(code) {
 	}
 }
 
-function enterExecutionContextForFunctionCode0(F, thisValue) {
-	saveExecutionContext();
-	var code = F.Code;
-	if (code.strict) {
-		ThisBinding = thisValue;
-	}
-	else if (thisValue === null || thisValue === undefined) {
-		ThisBinding = vm.theGlobalObject;
-	}
-	else if (typeof (thisValue) !== 'object') {
-		ThisBinding = ToObject(thisValue);
-	}
-	else {
-		ThisBinding = thisValue;
-	}
-	LexicalEnvironment = F.Scope;
-	runningFunction = F;
-	runningCode = code;
-	runningSourcePos = 0;
-}
-
 function compileDeclarationBindingInstantiation0(ctx, code) {
 	var names = code.parameters;
 	var strict = code.strict;
 	var envClass = Object.create(null);
 	var staticEnv = code.varEnv;
+	ctx.text("var LexicalEnvironment=F.Scope;");
 	ctx.compileNewDeclarativeEnvironment(staticEnv);
-	ctx.text("VariableEnvironment = LexicalEnvironment;");
+	ctx.text("var VariableEnvironment=LexicalEnvironment;");
 	for (var i = 0; i < names.length; i++) {
 		var argName = names[i];
 		if (!envClass[argName]) {
@@ -395,7 +372,7 @@ function compileDeclarationBindingInstantiation0(ctx, code) {
 	}
 	if (!envClass["arguments"] && (code.existsDirectEval || code.existsArgumentsRef)) {
 		envClass["arguments"] = true;
-		var argsObj = ctx.defineObject("CreateArgumentsObject(F,argumentsList)");
+		var argsObj = ctx.defineObject("CreateArgumentsObject(VariableEnvironment,F,argumentsList)");
 		if (strict) {
 			ctx.compileCreateImmutableBinding(staticEnv, 'arguments');
 			ctx.compileInitializeImmutableBinding(staticEnv, 'arguments', argsObj);
@@ -416,8 +393,7 @@ function compileDeclarationBindingInstantiation0(ctx, code) {
 	}
 }
 
-function CreateArgumentsObject(func, args) {
-	var env = VariableEnvironment;
+function CreateArgumentsObject(env, func, args) {
 	var code = func.Code;
 	var names = code.parameters;
 	var strict = code.strict;

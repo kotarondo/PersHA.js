@@ -35,7 +35,7 @@
 
 // ECMAScript 5.1: 15.1 The Global Object
 
-function Global_eval(thisValue, argumentsList, direct, strict) {
+function Global_eval(thisValue, argumentsList, direct, strict, lexEnv, varEnv, thisB) {
 	if (direct === undefined) direct = false;
 	if (strict === undefined) strict = false;
 	var x = argumentsList[0];
@@ -51,11 +51,17 @@ function Global_eval(thisValue, argumentsList, direct, strict) {
 		}
 		throw e;
 	}
-	enterExecutionContextForEvalCode(prog, direct);
+	var savedLexicalEnvironment = LexicalEnvironment;
+	var savedVariableEnvironment = VariableEnvironment;
+	var savedThisBinding = ThisBinding;
+	enterExecutionContextForEvalCode(prog, direct, lexEnv, varEnv, thisB);
 	try {
 		var result = prog.evaluate();
 	} finally {
 		exitExecutionContext();
+		LexicalEnvironment = savedLexicalEnvironment;
+		VariableEnvironment = savedVariableEnvironment;
+		ThisBinding = savedThisBinding;
 	}
 	if (result.type === "normal" && result.value === empty) return undefined;
 	if (result.type === "normal") return result.value;
