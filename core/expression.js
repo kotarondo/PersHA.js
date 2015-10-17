@@ -204,7 +204,7 @@ function NewOperator(expression, args) {
 		ctx.text("if(" + cntr.name + " .vm===vm)");
 		var mval = ctx.defineValue(cntr.name + " ._Construct(" + argList.name + ")");
 		ctx.text("else");
-		ctx.mergeDefineValue(mval, cntr.name + " .Construct(" + argList.name + ")");
+		ctx.mergeValue(mval, cntr.name + " .Construct(" + argList.name + ")");
 		return mval;
 	});
 }
@@ -248,7 +248,7 @@ function FunctionCall(expression, args, strict) {
 			var mval = ctx.defineValue(func.name + " ._Call(" + thisValue.name + "," + argList.name + ")");
 		}
 		ctx.text("else");
-		ctx.mergeDefineValue(mval, func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
+		ctx.mergeValue(mval, func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
 		return mval;
 	});
 }
@@ -343,7 +343,7 @@ function typeofOperator(expression) {
 		ctx.text("if(typeof(" + val.name + ")==='object'&& " + val.name + " !==null)");
 		var mval = ctx.defineString(val.name + " ._Call?'function':'object'");
 		ctx.text("else");
-		ctx.mergeDefineString(mval, "typeof " + val.name);
+		ctx.mergeString(mval, "typeof " + val.name);
 		return mval;
 	});
 }

@@ -47,17 +47,17 @@ function CompilerTypes() {
 var COMPILER_NONE_TYPE = new CompilerTypes();
 var COMPILER_UNDEFINED_TYPE = new CompilerTypes("undefined");
 var COMPILER_NULL_TYPE = new CompilerTypes("null");
-var COMPILER_BOOLEAN_TYPE = new CompilerTypes("boolean", "true", "false");
+var COMPILER_BOOLEAN_TYPE = new CompilerTypes("boolean");
 var COMPILER_NUMBER_TYPE = new CompilerTypes("number");
 var COMPILER_STRING_TYPE = new CompilerTypes("string");
-var COMPILER_PRIMITIVE_TYPE = new CompilerTypes("undefined", "null", COMPILER_BOOLEAN_TYPE, "number", "string");
 var COMPILER_OBJECT_TYPE = new CompilerTypes("object");
-var COMPILER_VALUE_TYPE = new CompilerTypes(COMPILER_PRIMITIVE_TYPE, COMPILER_OBJECT_TYPE);
+var COMPILER_PRIMITIVE_TYPE = new CompilerTypes("undefined", "null", "boolean", "number", "string");
+var COMPILER_VALUE_TYPE = new CompilerTypes(COMPILER_PRIMITIVE_TYPE, "object");
 var COMPILER_GLOBAL_REFERENCE_TYPE = new CompilerTypes("gref");
 var COMPILER_LOCAL_REFERENCE_TYPE = new CompilerTypes("lref");
 var COMPILER_IDENTIFIER_REFERENCE_TYPE = new CompilerTypes("iref");
 var COMPILER_PROPERTY_REFERENCE_TYPE = new CompilerTypes("pref");
-var COMPILER_REF_TYPE = new CompilerTypes("lref", "gref", "iref", "pref");
+var COMPILER_REF_TYPE = new CompilerTypes("gref", "lref", "iref", "pref");
 var COMPILER_DECL_ENV_TYPE = new CompilerTypes("denv");
 var COMPILER_GLOBAL_ENV_TYPE = new CompilerTypes("genv");
 var COMPILER_ENV_TYPE = new CompilerTypes("denv", "oenv", "genv");
@@ -98,37 +98,37 @@ CompilerTypes.prototype.isValue = function() {
 
 CompilerTypes.prototype.isObject = function() {
 	return this.types.every(function(type) {
-		if (COMPILER_OBJECT_TYPE.types.indexOf(type) >= 0) return true;
+		return type === "object";
 	});
 };
 
 CompilerTypes.prototype.isNotObject = function() {
 	return this.types.every(function(type) {
-		if (COMPILER_OBJECT_TYPE.types.indexOf(type) < 0) return true;
+		return type !== "object";
 	});
 };
 
 CompilerTypes.prototype.isString = function() {
 	return this.types.every(function(type) {
-		return (COMPILER_STRING_TYPE.types.indexOf(type) >= 0);
+		return type === "string";
 	});
 };
 
 CompilerTypes.prototype.isNotString = function() {
 	return this.types.every(function(type) {
-		return (COMPILER_STRING_TYPE.types.indexOf(type) < 0);
+		return type !== "string";
 	});
 };
 
 CompilerTypes.prototype.isNumber = function() {
 	return this.types.every(function(type) {
-		if (COMPILER_NUMBER_TYPE.types.indexOf(type) >= 0) return true;
+		return type === "number";
 	});
 };
 
 CompilerTypes.prototype.isBoolean = function() {
 	return this.types.every(function(type) {
-		return (COMPILER_BOOLEAN_TYPE.types.indexOf(type) >= 0);
+		return type === "boolean";
 	});
 };
 
@@ -294,17 +294,22 @@ CompilerContext.prototype.defineNone = function(str) {
 	return this.define(str, COMPILER_NONE_TYPE);
 };
 
+CompilerContext.prototype.toVariable = function(val) {
+	if (val.isVariable) return val;
+	return this.define(val.name, val.types);
+};
+
 CompilerContext.prototype.mergeDefine = function(mval, str, types) {
 	assert(mval.isVariable, mval);
 	this.text("var " + mval.name + "= " + str + ";");
 	mval.types = new CompilerTypes(mval.types, types);
 };
 
-CompilerContext.prototype.mergeDefineString = function(mval, str) {
+CompilerContext.prototype.mergeString = function(mval, str) {
 	this.mergeDefine(mval, str, COMPILER_STRING_TYPE);
 };
 
-CompilerContext.prototype.mergeDefineValue = function(mval, str) {
+CompilerContext.prototype.mergeValue = function(mval, str) {
 	this.mergeDefine(mval, str, COMPILER_VALUE_TYPE);
 };
 
@@ -496,7 +501,7 @@ CompilerContext.prototype.compileGetValue = function(ref) {
 		this.text("if(typeof(" + base.name + ")==='object')");
 		var mval = this.defineValue(base.name + " .Get(" + ref.name + ")");
 		this.text("else");
-		this.mergeDefineValue(mval, "specialGet(" + base.name + "," + ref.name + ")");
+		this.mergeValue(mval, "specialGet(" + base.name + "," + ref.name + ")");
 		return mval;
 	}
 	else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
