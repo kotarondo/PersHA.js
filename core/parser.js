@@ -142,6 +142,7 @@ var theParser = function() {
 			locals : [],
 			bindings : Object.create(null),
 			existsDirectEval : false,
+			existsOuterFunction : false,
 			collapsed : false,
 		});
 		if (outer) {

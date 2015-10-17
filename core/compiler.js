@@ -384,8 +384,10 @@ function analyzeStaticEnv(env) {
 				if (!isIncluded(name, inner.defs)) setIncluded(name, env.refs);
 			}
 			else {
+				env.existsOuterFunction |= true;
 				if (!isIncluded(name, inner.defs)) setIncluded(name, env.inboundRefs);
 			}
+			env.existsOuterFunction |= inner.existsOuterFunction;
 		});
 		inner.inboundRefs.forEach(function(name) {
 			if (!isIncluded(name, inner.defs)) setIncluded(name, env.inboundRefs);
@@ -397,7 +399,8 @@ function analyzeStaticEnv(env) {
 		if (env.code.existsArgumentsRef && !env.code.strict && isIncluded(name, env.code.parameters)) return;
 		if (!isIncluded(name, env.inboundRefs)) setIncluded(name, env.locals);
 	});
-	if (env.defs.length === env.locals.length) env.collapsed = true;
+
+	if (!env.existsOuterFunction && env.defs.length === env.locals.length) env.collapsed = true;
 }
 
 CompilerContext.prototype.compileNewDeclarativeEnvironment = function(staticEnv) {
