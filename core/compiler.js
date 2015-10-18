@@ -539,24 +539,18 @@ function Global_FastGetBindingValue(N, S) {
 	}
 }
 
-CompilerContext.prototype.compileGetValue = function(ref, mval) {
-	assert(!mval || mval.isVariable, mval);
-	if (ref.types.isValue()) {
-		if (!mval) return ref;
-		this.merge(mval, ref);
-		return;
-	}
-	if (!mval) mval = this.define("", COMPILER_NONE_TYPE);
+CompilerContext.prototype.compileGetValue = function(ref) {
+	if (ref.types.isValue()) return ref;
 	if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
 		var base = ref.base;
 		if (base.types.isObject()) {
-			return this.mergeValue(mval, base.name + " .Get(" + ref.name + ")");
+			return this.defineValue(base.name + " .Get(" + ref.name + ")");
 		}
 		if (base.types.isNotObject()) {
-			return this.mergeValue(mval, "specialGet(" + base.name + "," + ref.name + ")");
+			return this.defineValue("specialGet(" + base.name + "," + ref.name + ")");
 		}
 		this.text("if(typeof " + base.name + " ==='object')");
-		this.mergeValue(mval, base.name + " .Get(" + ref.name + ")");
+		var mval = this.defineValue(base.name + " .Get(" + ref.name + ")");
 		this.text("else");
 		this.mergeValue(mval, "specialGet(" + base.name + "," + ref.name + ")");
 		return mval;
@@ -565,21 +559,21 @@ CompilerContext.prototype.compileGetValue = function(ref, mval) {
 		var base = ref.base;
 		if (base.types === COMPILER_FUNCTION_ENV_TYPE || base.types === COMPILER_CATCH_ENV_TYPE
 				|| base.types === COMPILER_NAMED_FUNCTION_ENV_TYPE) {
-			return this.mergeValue(mval, base.name + " .$values[" + ref.name + "]");
+			return this.defineValue(base.name + " .$values[" + ref.name + "]");
 		}
 		else if (base.types === COMPILER_GLOBAL_ENV_TYPE) {
-			return this.mergeValue(mval, "Global_FastGetBindingValue(" + ref.name + ")");
+			return this.defineValue("Global_FastGetBindingValue(" + ref.name + ")");
 		}
 		if (!base.types.isNotUndefined()) {
 			this.text("if(" + base.name + " ===undefined)throw VMReferenceError(" + ref.name + " +' is not defined');");
 		}
-		return this.mergeValue(mval, base.name + " .GetBindingValue(" + ref.name + "," + ref.strict + ")");
+		return this.defineValue(base.name + " .GetBindingValue(" + ref.name + "," + ref.strict + ")");
 	}
 	else if (ref.types === COMPILER_LOCAL_REFERENCE_TYPE) {
-		return this.mergeValue(mval, ref.base.bindings[ref.name]);
+		return this.defineValue(ref.base.bindings[ref.name]);
 	}
 	else {
-		return this.mergeValue(mval, "GetValue(" + ref.name + ")");
+		return this.defineValue("GetValue(" + ref.name + ")");
 	}
 };
 

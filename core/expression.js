@@ -208,7 +208,6 @@ function NewOperator(expression, args) {
 		ctx.text("if(! " + cntr.name + " ||! " + cntr.name + " ._Construct)throwNotAFunctionError(" + cntr.name + ");");
 		ctx.text("if(" + cntr.name + " .vm===vm)");
 		var mval = ctx.defineValue(cntr.name + " ._Construct(" + argList.name + ")");
-		mval = ctx.toMergeable(mval);
 		ctx.text("else");
 		ctx.mergeValue(mval, cntr.name + " .Construct(" + argList.name + ")");
 		return mval;
@@ -255,7 +254,6 @@ function FunctionCall(expression, args, strict) {
 			ctx.text("if(" + func.name + " .vm===vm)");
 			var mval = ctx.defineValue(func.name + " ._Call(" + thisValue.name + "," + argList.name + ")");
 		}
-		mval = ctx.toMergeable(mval);
 		ctx.text("else");
 		ctx.mergeValue(mval, func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
 		return mval;
@@ -300,7 +298,6 @@ function deleteOperator(expression) {
 			else {
 				ctx.text("if(" + base.name + " !==undefined){");
 				var mval = ctx.defineBoolean(base.name + " .DeleteBinding(" + ref.name + ")");
-				mval = ctx.toMergeable(mval);
 				ctx.text("}else");
 				ctx.merge(mval, COMPILER_TRUE_VALUE);
 				return mval;
@@ -358,7 +355,6 @@ function typeofOperator(expression) {
 		val = ctx.unify(val);
 		ctx.text("if(typeof(" + val.name + ")==='object'&& " + val.name + " !==null)");
 		var mval = ctx.defineString(val.name + " ._Call?'function':'object'");
-		mval = ctx.toMergeable(mval);
 		ctx.text("else");
 		ctx.mergeString(mval, "typeof " + val.name);
 		return mval;
@@ -692,7 +688,7 @@ function LogicalAndOperator(leftExpression, rightExpression) {
 		lval = ctx.toMergeable(lval);
 		ctx.text("if(" + lval.name + "){");
 		var rref = ctx.compileExpression(rightExpression);
-		ctx.compileGetValue(rref, lval); // merge to lval
+		ctx.merge(lval, ctx.compileGetValue(rref));
 		ctx.text("}");
 		return lval;
 	});
@@ -712,7 +708,7 @@ function LogicalOrOperator(leftExpression, rightExpression) {
 		lval = ctx.toMergeable(lval);
 		ctx.text("if(! " + lval.name + "){");
 		var rref = ctx.compileExpression(rightExpression);
-		ctx.compileGetValue(rref, lval); // merge to lval
+		ctx.merge(lval, ctx.compileGetValue(rref));
 		ctx.text("}");
 		return lval;
 	});
@@ -728,7 +724,7 @@ function ConditionalOperator(condition, firstExpression, secondExpression) {
 		mval = ctx.toMergeable(mval);
 		ctx.text("}else{");
 		var falseRef = ctx.compileExpression(secondExpression);
-		ctx.compileGetValue(falseRef, mval); // merge to mval
+		ctx.merge(mval, ctx.compileGetValue(falseRef));
 		ctx.text("}");
 		return mval;
 	});
