@@ -127,12 +127,8 @@ var theParser = function() {
 	}
 
 	function Env(type, outer) {
-		if (type === "function" || type === "catch" || type === "named-function") {
-			var isDeclarative = true;
-		}
 		var env = ({
 			type : type,
-			isDeclarative : isDeclarative,
 			outer : outer,
 			code : code,
 			inners : [],

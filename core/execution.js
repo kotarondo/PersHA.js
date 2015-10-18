@@ -67,7 +67,7 @@ var Class_DeclarativeEnvironment = ({
 		if (this.$attributes[N] <= 1) {
 			this.$values[N] = V;
 		}
-		else throw VMTypeError(N);
+		else if (S === true) throw VMTypeError();
 	},
 
 	GetBindingValue : function(N, S) {

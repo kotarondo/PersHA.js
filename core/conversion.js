@@ -193,9 +193,9 @@ function ToString(input) {
 function ToObject(input) {
 	switch (Type(input)) {
 	case TYPE_Undefined:
-		throw VMTypeError("undefined");
+		throw VMTypeError();
 	case TYPE_Null:
-		throw VMTypeError("null");
+		throw VMTypeError();
 	case TYPE_Boolean:
 		return Boolean_Construct([ input ]);
 	case TYPE_Number:
@@ -211,9 +211,9 @@ function ToObject(input) {
 function CheckObjectCoercible(input) {
 	switch (Type(input)) {
 	case TYPE_Undefined:
-		throw VMTypeError("undefined");
+		throw VMTypeError();
 	case TYPE_Null:
-		throw VMTypeError("null");
+		throw VMTypeError();
 	}
 }
 
@@ -295,8 +295,6 @@ function FastToPrimitive(input, hint) {
 
 function FastToObject(input) {
 	switch (typeof input) {
-	case "undefined":
-		throw VMTypeError("undefined");
 	case "boolean":
 		return Boolean_Construct([ input ]);
 	case "number":
@@ -304,6 +302,6 @@ function FastToObject(input) {
 	case "string":
 		return String_Construct([ input ]);
 	}
-	if (input === null) throw VMTypeError("null");
+	if (!input) throw VMTypeError();
 	return input;
 }

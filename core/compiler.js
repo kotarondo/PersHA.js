@@ -58,9 +58,11 @@ var COMPILER_LOCAL_REFERENCE_TYPE = new CompilerTypes("lref");
 var COMPILER_IDENTIFIER_REFERENCE_TYPE = new CompilerTypes("iref");
 var COMPILER_PROPERTY_REFERENCE_TYPE = new CompilerTypes("pref");
 var COMPILER_REF_TYPE = new CompilerTypes("gref", "lref", "iref", "pref");
-var COMPILER_DECL_ENV_TYPE = new CompilerTypes("denv");
+var COMPILER_FUNCTION_ENV_TYPE = new CompilerTypes("fenv");
+var COMPILER_CATCH_ENV_TYPE = new CompilerTypes("cenv");
+var COMPILER_NAMED_FUNCTION_ENV_TYPE = new CompilerTypes("nenv");
 var COMPILER_GLOBAL_ENV_TYPE = new CompilerTypes("genv");
-var COMPILER_ENV_TYPE = new CompilerTypes("denv", "oenv", "genv");
+var COMPILER_ENV_TYPE = new CompilerTypes("fenv", "cenv", "nenv", "genv", "oenv");
 var COMPILER_ANY_TYPE = new CompilerTypes(COMPILER_VALUE_TYPE, COMPILER_REF_TYPE, COMPILER_ENV_TYPE, "list");
 
 var COMPILER_UNDEFINED_VALUE = {
@@ -472,7 +474,7 @@ CompilerContext.prototype.compileGetIdentifierReferece = function(staticEnv, nam
 			resolvable = true;
 			break;
 		}
-		if (env.existsDirectEval || !env.isDeclarative) {
+		if (env.existsDirectEval || !(env.type === "function" || env.type === "catch" || env.type === "named-function")) {
 			ambiguous = true;
 		}
 		if (!ambiguous && !env.collapsed) {
@@ -484,8 +486,10 @@ CompilerContext.prototype.compileGetIdentifierReferece = function(staticEnv, nam
 	if (resolvable) {
 		var types = COMPILER_ENV_TYPE;
 		if (!ambiguous) {
-			if (env.isDeclarative) var types = COMPILER_DECL_ENV_TYPE;
-			if (env.type === "global") var types = COMPILER_GLOBAL_ENV_TYPE;
+			if (env.type === "function") var types = COMPILER_FUNCTION_ENV_TYPE;
+			else if (env.type === "global") var types = COMPILER_GLOBAL_ENV_TYPE;
+			else if (env.type === "catch") var types = COMPILER_CATCH_ENV_TYPE;
+			else if (env.type === "named-function") var types = COMPILER_NAMED_FUNCTION_ENV_TYPE;
 		}
 	}
 	if (resolvable && !ambiguous) {
@@ -559,10 +563,11 @@ CompilerContext.prototype.compileGetValue = function(ref, mval) {
 	}
 	else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 		var base = ref.base;
-		if (base.types === COMPILER_DECL_ENV_TYPE) {
+		if (base.types === COMPILER_FUNCTION_ENV_TYPE || base.types === COMPILER_CATCH_ENV_TYPE
+				|| base.types === COMPILER_NAMED_FUNCTION_ENV_TYPE) {
 			return this.mergeValue(mval, base.name + " .$values[" + ref.name + "]");
 		}
-		if (base.types === COMPILER_GLOBAL_ENV_TYPE) {
+		else if (base.types === COMPILER_GLOBAL_ENV_TYPE) {
 			return this.mergeValue(mval, "Global_FastGetBindingValue(" + ref.name + ")");
 		}
 		if (!base.types.isNotUndefined()) {
@@ -596,11 +601,11 @@ CompilerContext.prototype.compilePutValue = function(ref, val) {
 	}
 	else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 		var base = ref.base;
-		if (base.types === COMPILER_DECL_ENV_TYPE) {
+		if (base.types === COMPILER_FUNCTION_ENV_TYPE || base.types === COMPILER_CATCH_ENV_TYPE) {
 			this.text(base.name + " .$values[" + ref.name + "]= " + val.name + ";");
 			return;
 		}
-		if (base.types === COMPILER_GLOBAL_ENV_TYPE) {
+		else if (base.types === COMPILER_GLOBAL_ENV_TYPE) {
 			this.text("vm.theGlobalObject.Put(" + ref.name + "," + val.name + "," + ref.strict + ");");
 			return;
 		}

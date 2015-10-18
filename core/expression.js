@@ -201,11 +201,11 @@ function NewOperator(expression, args) {
 		var cntr = ctx.compileGetValue(ref);
 		var argList = ctx.compileEvaluateArguments(args);
 		if (cntr.types.isNotObject()) {
-			ctx.text("throw VMTypeError();");
+			ctx.text("throwNotAFunctionError(" + cntr.name + ");");
 			return COMPILER_UNDEFINED_VALUE;
 		}
 		cntr = ctx.unify(cntr);
-		ctx.text("if(! " + cntr.name + " ||! " + cntr.name + " ._Construct)throw VMTypeError();");
+		ctx.text("if(! " + cntr.name + " ||! " + cntr.name + " ._Construct)throwNotAFunctionError(" + cntr.name + ");");
 		ctx.text("if(" + cntr.name + " .vm===vm)");
 		var mval = ctx.defineValue(cntr.name + " ._Construct(" + argList.name + ")");
 		mval = ctx.toMergeable(mval);
@@ -221,17 +221,18 @@ function FunctionCall(expression, args, strict) {
 		var func = ctx.compileGetValue(ref);
 		var argList = ctx.compileEvaluateArguments(args);
 		if (func.types.isNotObject()) {
-			ctx.text("throw VMTypeError();");
+			ctx.text("throwNotAFunctionError(" + func.name + ");");
 			return COMPILER_UNDEFINED_VALUE;
 		}
 		func = ctx.unify(func);
-		ctx.text("if(! " + func.name + " ||! " + func.name + " ._Call)throw VMTypeError();");
+		ctx.text("if(! " + func.name + " ||! " + func.name + " ._Call)throwNotAFunctionError(" + func.name + ");");
 		if (ref.types === COMPILER_PROPERTY_REFERENCE_TYPE) {
 			var thisValue = ref.base;
 		}
 		else if (ref.types === COMPILER_IDENTIFIER_REFERENCE_TYPE) {
 			var base = ref.base;
-			if (base.types === COMPILER_DECL_ENV_TYPE || base.types === COMPILER_GLOBAL_ENV_TYPE) {
+			if (base.types === COMPILER_FUNCTION_ENV_TYPE || base.types === COMPILER_GLOBAL_ENV_TYPE
+					|| base.types === COMPILER_CATCH_ENV_TYPE || base.types === COMPILER_NAMED_FUNCTION_ENV_TYPE) {
 				var thisValue = COMPILER_UNDEFINED_VALUE;
 			}
 			else {
@@ -259,6 +260,10 @@ function FunctionCall(expression, args, strict) {
 		ctx.mergeValue(mval, func.name + " .Call(" + thisValue.name + "," + argList.name + ")");
 		return mval;
 	});
+}
+
+function throwNotAFunctionError(name) {
+	throw VMTypeError(typeof name + " is not a function");
 }
 
 function PostfixIncrementOperator(expression) {
