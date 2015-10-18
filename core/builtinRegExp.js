@@ -152,6 +152,52 @@ function State(endIndex, captures) {
 
 var theRegExpFactory = RegExpFactory();
 
+// temporarily moved here under compiler development
+var IgnoreCase;
+var Multiline;
+var Input;
+var InputLength;
+
+function noContinuation(x) {
+	return x;
+}
+
+function defaultMatcher(x, c) {
+	return pending(c, x);
+}
+
+defaultMatcher.compile = function(ctx, r, x, c) {
+	ctx.compileContinuation(r, c, x);
+};
+
+function pending(c, x) {
+	assert(x.pendingContinuation === undefined, x);
+	if (c !== noContinuation) {
+		x.pendingContinuation = c;
+	}
+	return x;
+}
+
+function unpending(x) {
+	while (true) {
+		var c = x.pendingContinuation;
+		if (c === undefined) {
+			return x;
+		}
+		x.pendingContinuation = undefined;
+		x = c(x);
+	}
+}
+
+function Canonicalize(ch) {
+	if (IgnoreCase === false) return ch;
+	var u = ch.toUpperCase();
+	if (u.length !== 1) return ch;
+	var cu = u;
+	if ((toCharCode(ch) >= 128) && (toCharCode(cu) < 128)) return ch;
+	return cu;
+}
+
 function RegExpFactory() {
 	return ({
 		compile : compile,
@@ -198,53 +244,32 @@ function RegExpFactory() {
 	var oneCharacterOfCharSet;
 	var NCapturingParens;
 
-	var IgnoreCase;
-	var Multiline;
-	var Input;
-	var InputLength;
-
 	function evaluatePattern(regexp) {
+		IgnoreCase = regexp.ignoreCase; // compile time
+		Multiline = regexp.multiline; // compile time
+		NCapturingParens = regexp.NCapturingParens;
+
 		setPattern(regexp.source);
 		leftCapturingParentheses = 0;
-		NCapturingParens = regexp.NCapturingParens;
 		var m = evaluateDisjunction();
 		if (current !== undefined) throw SyntaxError();
 		assert(NCapturingParens === leftCapturingParentheses);
 
-		var ignoreCase = regexp.ignoreCase;
-		var multiline = regexp.multiline;
-		return function(str, index) {
+		var ctx = new RegExpCompilerContext("x");
+		var r = ctx.define();
+		ctx.compileMatcher(r, m, ctx.constant("x"), noContinuation);
+		ctx.compileReturn(r);
+		var compiled = ctx.finish();
+		//ctx.texts.length > 20 && console.log(ctx.texts.join('\n'));
+
+		regexp.Match = function(str, index) {
 			Input = str;
 			InputLength = Input.length;
-			IgnoreCase = ignoreCase;
-			Multiline = multiline;
-			var cap = [];
+			IgnoreCase = regexp.ignoreCase; // executing time
+			Multiline = regexp.multiline; // executing time
 			var x = State(index, []);
-			return unpending(m(x, noContinuation));
+			return compiled(x);
 		};
-	}
-
-	function noContinuation(x) {
-		return x;
-	}
-
-	function pending(c, x) {
-		assert(x.pendingContinuation === undefined, x);
-		if (c !== noContinuation) {
-			x.pendingContinuation = c;
-		}
-		return x;
-	}
-
-	function unpending(x) {
-		while (true) {
-			var c = x.pendingContinuation;
-			if (c === undefined) {
-				return x;
-			}
-			x.pendingContinuation = undefined;
-			x = c(x);
-		}
 	}
 
 	function evaluateDisjunction() {
@@ -252,30 +277,44 @@ function RegExpFactory() {
 		if (current !== '|') return m1;
 		proceed();
 		var m2 = evaluateDisjunction();
-		return function(x, c) {
+		var evaluate = function(x, c) {
 			var r = unpending(m1(x, c));
 			if (r !== failure) return r;
 			return m2(x, c);
 		};
+
+		return RegExpCompilerContext.matcher(evaluate, function(ctx, r, x, c) {
+			ctx.compileMatcher(r, m1, x, c);
+			ctx.text("if (" + r.name + " ===failure){");
+			ctx.compileMatcher(r, m2, x, c);
+			ctx.text("}");
+		});
+	}
+
+	function concat(m1, m2) {
+		var evaluate = function(x, c) {
+			var d = function(y) {
+				return m2(y, c);
+			};
+			return m1(x, d);
+		};
+
+		return RegExpCompilerContext.matcher(evaluate, function(ctx, r, x, c) {
+			var d = RegExpCompilerContext.continuation(function(ctx, r, y) {
+				ctx.compileMatcher(r, m2, y, c);
+			});
+			ctx.compileMatcher(r, m1, x, d);
+		});
 	}
 
 	function evaluateAlternative() {
-		var m1 = function(x, c) {
-			return pending(c, x);
-		};
+		var m1 = defaultMatcher;
 		while (true) {
 			var m2 = evaluateTerm();
-			if (m2 === undefined) return m1;
+			if (m2 === undefined) break;
 			var m1 = concat(m1, m2);
 		}
-		function concat(m1, m2) {
-			return function(x, c) {
-				var d = function(y) {
-					return m2(y, c);
-				};
-				return m1(x, d);
-			};
-		}
+		return m1;
 	}
 
 	function evaluateTerm() {
@@ -555,14 +594,14 @@ function RegExpFactory() {
 
 	function oneElementCharSet(ch) {
 		oneCharacterOfCharSet = ch;
-		return function(cc) {
-			if (Canonicalize(ch) === cc) return true;
-			return false;
-		};
+		var cch = Canonicalize(ch);
+		return RegExpCompilerContext.charset(function(ctx, cc) {
+			return ctx.define("(" + ctx.quote(cch) + " === " + cc.name + ")");
+		});
 	}
 
 	function CharacterSetMatcher(A, invert) {
-		return function(x, c) {
+		var evaluate = function(x, c) {
 			var e = x.endIndex;
 			if (e === InputLength) return failure;
 			var ch = Input[e];
@@ -575,15 +614,26 @@ function RegExpFactory() {
 			var y = State(e + 1, cap);
 			return pending(c, y);
 		};
-	}
 
-	function Canonicalize(ch) {
-		if (IgnoreCase === false) return ch;
-		var u = ch.toUpperCase();
-		if (u.length !== 1) return ch;
-		var cu = u;
-		if ((toCharCode(ch) >= 128) && (toCharCode(cu) < 128)) return ch;
-		return cu;
+		return RegExpCompilerContext.matcher(evaluate, function(ctx, r, x, c) {
+			var label = ctx.openBlock();
+			var e = ctx.define(x.name + ".endIndex");
+			ctx.text("if (" + e.name + " === InputLength) {" + r.name + "=failure;break " + label + ";}");
+			ctx.text("var ch = Input[" + e.name + "];");
+			ctx.text("var cc = Canonicalize(ch);");
+			if (invert === false) {
+				var f = ctx.compileCharSet(A, ctx.constant("cc"));
+				ctx.text("if (" + f.name + " === false) {" + r.name + "=failure;break " + label + ";}");
+			}
+			else {
+				var f = ctx.compileCharSet(A, ctx.constant("cc"));
+				ctx.text("if (" + f.name + " === true) {" + r.name + "=failure;break " + label + ";}");
+			}
+			ctx.text("var cap = " + x.name + ".captures;");
+			var y = ctx.define("State(" + e.name + " + 1, cap)");
+			ctx.compileContinuation(r, c, y);
+			ctx.text("}");
+		});
 	}
 
 	function evaluateAtomEscape() {
@@ -949,7 +999,7 @@ function RegExpFactory() {
 			multiline : multiline,
 		});
 		regexp.NCapturingParens = countNCapturingParens(regexp.source);
-		regexp.Match = evaluatePattern(regexp);
+		evaluatePattern(regexp);
 		return regexp;
 	}
 
@@ -961,8 +1011,9 @@ function RegExpFactory() {
 			multiline : obj.Get("multiline"),
 		});
 		regexp.NCapturingParens = countNCapturingParens(regexp.source);
+		evaluatePattern(regexp);
 		obj.NCapturingParens = regexp.NCapturingParens;
-		obj.Match = evaluatePattern(regexp);
+		obj.Match = regexp.Match;
 	}
 
 	function createRegExpObject(regexp) {
@@ -986,4 +1037,5 @@ function RegExpFactory() {
 		this.message = "at " + currentPos;
 		this.pos = currentPos;
 	}
+
 }

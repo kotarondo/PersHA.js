@@ -100,14 +100,7 @@ function delayedFunctionBody(F, ThisBinding, argumentsList) {
 	}
 	var evaluate = ctx.finish();
 	F.Code.evaluate = evaluate;
-	try {
-		return evaluate(F, ThisBinding, argumentsList);
-	} catch (e) {
-		if (!isInternalError(e)) throw e;
-		console.error("FIRST EXEC ERROR:\n" + ctx.texts.join('\n'));
-		console.error(e.stack);
-		process.reallyExit(1);
-	}
+	return evaluate(F, ThisBinding, argumentsList);
 }
 
 function Function_ClassCall(thisValue, argumentsList) {
