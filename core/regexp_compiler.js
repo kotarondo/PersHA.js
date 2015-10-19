@@ -38,41 +38,61 @@ function RegExpCompilerContext(params) {
 	this.params = params;
 	this.texts = [ "'use strict';" ];
 	this.literals = [];
-	this.variables = 0;
-	this.labels = 0;
+	this.entries = 3;
 }
 
-RegExpCompilerContext.prototype.compileMatcher = function(r, match, x, c) {
-	//assert(match.compile, match.toString()); // check if all matchers have own compilers
-	if (match.compile) {
-		return match.compile(this, r, x, c);
-	}
-	// compiler doesn't exit (under development)
-	return this.merge(r, "unpending(" + this.literal(match) + "(" + x.name + "," + this.literal(c) + "))");
+RegExpCompilerContext.prototype.compileMatcher = function(match, c) {
+	return match.compile(this, c);
 };
 
-RegExpCompilerContext.matcher = function(evaluate, compile) {
+RegExpCompilerContext.matcher = function(compile) {
+	var delayed;
+	function evaluate(x, c) {
+		if (!delayed) {
+			var ctx = new RegExpCompilerContext("x", "lastContinuation");
+			ctx.text("var stack=[];");
+			ctx.text("var swidx=1;");
+			ctx.text("while(true){");
+			ctx.text("switch(swidx){");
+			ctx.text("case 1:");
+			compile(ctx, "2");
+			ctx.text("case 2:");
+			ctx.text("var x=unpending(lastContinuation(x));");
+			ctx.text("break;");
+			ctx.text("}");
+			ctx.text("while(true){");
+			ctx.text("if(stack.length===0)return x;");
+			ctx.text("var f=stack.pop()");
+			ctx.text("if(f.ReturnEntry){swidx=f.ReturnEntry;break;}");
+			ctx.text("if(x===failure&&f.FailureEntry){swidx=f.FailureEntry;break;}");
+			ctx.text("}");
+			ctx.text("}");
+			ctx.compileReturn("x");
+			delayed = ctx.finish();
+			//ctx.texts.length > 100 && console.log(ctx.texts.join('\n'));
+		}
+		return delayed(x, c);
+	}
 	evaluate.compile = compile;
 	return evaluate;
 };
 
-RegExpCompilerContext.prototype.compileContinuation = function(r, c, x) {
-	//assert(c.compile, c.toString()); // check if all continuations have own compilers
-	if (c.compile) {
-		return c.compile(this, r, x);
+RegExpCompilerContext.prototype.compileTester = function(tester) {
+	//assert(tester.compile, tester.toString()); // check if all testers have own compilers
+	if (tester.compile) {
+		return tester.compile(this);
 	}
 	// compiler doesn't exit (under development)
-	return this.merge(r, "unpending(" + this.literal(c) + "(" + x.name + "))");
+	return this.text("var r = " + this.literal(tester) + "(x)");
 };
 
-RegExpCompilerContext.continuation = function(compile) {
+RegExpCompilerContext.tester = function(compile) {
 	var delayed;
 	function evaluate(x) {
 		if (!delayed) {
 			var ctx = new RegExpCompilerContext("x");
-			var r = ctx.define();
-			compile(ctx, r, ctx.constant("x"));
-			ctx.compileReturn(r);
+			compile(ctx);
+			ctx.compileReturn("r");
 			delayed = ctx.finish();
 		}
 		return delayed(x);
@@ -81,14 +101,13 @@ RegExpCompilerContext.continuation = function(compile) {
 	return evaluate;
 };
 
-RegExpCompilerContext.prototype.compileCharSet = function(charset, cc) {
+RegExpCompilerContext.prototype.compileCharSet = function(charset) {
 	//assert(charset.compile, charset.toString()); // check if all charsets have own compilers
 	if (charset.compile) {
-		return charset.compile(this, cc);
+		return charset.compile(this);
 	}
 	// compiler doesn't exit (under development)
-	var name = this.literal(charset);
-	return this.define(name + "(" + cc.name + ")");
+	return this.text("var r = " + this.literal(charset) + "(cc)");
 };
 
 RegExpCompilerContext.charset = function(compile) {
@@ -96,8 +115,8 @@ RegExpCompilerContext.charset = function(compile) {
 	function evaluate(cc) {
 		if (!delayed) {
 			var ctx = new RegExpCompilerContext("cc");
-			var v = compile(ctx, ctx.constant("cc"));
-			ctx.compileReturn(v);
+			compile(ctx);
+			ctx.compileReturn("r");
 			delayed = ctx.finish();
 		}
 		return delayed(cc);
@@ -138,38 +157,6 @@ RegExpCompilerContext.prototype.quote = function(x) {
 	return "null";
 };
 
-RegExpCompilerContext.prototype.constant = function(str) {
-	return {
-		name : str,
-		isConstant : true,
-	};
-};
-
-RegExpCompilerContext.prototype.define = function(str) {
-	var name = "tmp" + (this.variables++);
-	if (str) this.text("var " + name + "= " + str + ";");
-	return {
-		name : name,
-		isVariable : true,
-	};
-};
-
-RegExpCompilerContext.prototype.unify = function(val) {
-	if (val.isVariable || val.isLiteral || val.isSpecial) return val;
-	return this.define(val.name);
-};
-
-RegExpCompilerContext.prototype.toMergeable = function(val) {
-	if (val.isVariable) return val;
-	return this.define(val.name);
-};
-
-RegExpCompilerContext.prototype.merge = function(mval, str) {
-	assert(mval.isVariable, mval);
-	this.text("var " + mval.name + "= " + str + ";");
-	return mval;
-};
-
 RegExpCompilerContext.prototype.finish = function() {
 	var code = this.texts.join('\n');
 	try {
@@ -188,8 +175,10 @@ RegExpCompilerContext.prototype.compileReturn = function(val) {
 	this.text("return " + val.name + ";");
 }
 
-RegExpCompilerContext.prototype.openBlock = function() {
-	var label = "L" + (this.labels++);
-	this.text(label + ":{");
-	return label;
-};
+RegExpCompilerContext.prototype.entry = function(label) {
+	this.text("case " + label + ": ");
+	if (arguments.length > 1) {
+		this.text("var i=stack.length;");
+		this.text("while(stack[--i].label !== " + label + ");");
+	}
+}

@@ -166,8 +166,8 @@ function defaultMatcher(x, c) {
 	return pending(c, x);
 }
 
-defaultMatcher.compile = function(ctx, r, x, c) {
-	ctx.compileContinuation(r, c, x);
+defaultMatcher.compile = function(ctx, c) {
+	ctx.jump(c);
 };
 
 function pending(c, x) {
@@ -255,20 +255,13 @@ function RegExpFactory() {
 		if (current !== undefined) throw SyntaxError();
 		assert(NCapturingParens === leftCapturingParentheses);
 
-		var ctx = new RegExpCompilerContext("x");
-		var r = ctx.define();
-		ctx.compileMatcher(r, m, ctx.constant("x"), noContinuation);
-		ctx.compileReturn(r);
-		var compiled = ctx.finish();
-		//ctx.texts.length > 20 && console.log(ctx.texts.join('\n'));
-
 		regexp.Match = function(str, index) {
 			Input = str;
 			InputLength = Input.length;
 			IgnoreCase = regexp.ignoreCase; // executing time
 			Multiline = regexp.multiline; // executing time
 			var x = State(index, []);
-			return compiled(x);
+			return unpending(m(x, noContinuation));
 		};
 	}
 
@@ -277,33 +270,34 @@ function RegExpFactory() {
 		if (current !== '|') return m1;
 		proceed();
 		var m2 = evaluateDisjunction();
-		var evaluate = function(x, c) {
+		return function(x, c) {
 			var r = unpending(m1(x, c));
 			if (r !== failure) return r;
 			return m2(x, c);
 		};
 
-		return RegExpCompilerContext.matcher(evaluate, function(ctx, r, x, c) {
-			ctx.compileMatcher(r, m1, x, c);
-			ctx.text("if (" + r.name + " ===failure){");
-			ctx.compileMatcher(r, m2, x, c);
-			ctx.text("}");
+		return RegExpCompilerContext.matcher(function(ctx, c) {
+			var L = ctx.newEntry("x");
+			ctx.pushFailureEntry(L);
+			ctx.compileMatcher(m1, c);
+			ctx.entry(L, "x");
+			ctx.compileMatcher(m2, c);
 		});
 	}
 
 	function concat(m1, m2) {
-		var evaluate = function(x, c) {
+		return function(x, c) {
 			var d = function(y) {
 				return m2(y, c);
 			};
 			return m1(x, d);
 		};
 
-		return RegExpCompilerContext.matcher(evaluate, function(ctx, r, x, c) {
-			var d = RegExpCompilerContext.continuation(function(ctx, r, y) {
-				ctx.compileMatcher(r, m2, y, c);
-			});
-			ctx.compileMatcher(r, m1, x, d);
+		return RegExpCompilerContext.matcher(function(ctx, c) {
+			var L = ctx.newEntry();
+			ctx.compileMatcher(m1, L);
+			ctx.entry(L);
+			ctx.compileMatcher(m2, c);
 		});
 	}
 
@@ -320,11 +314,19 @@ function RegExpFactory() {
 	function evaluateTerm() {
 		var parenIndex = leftCapturingParentheses;
 		var t = evaluateAssertionTester();
-		if (t !== undefined) return function(x, c) {
-			var r = t(x);
-			if (r === false) return failure;
-			return pending(c, x);
-		};
+		if (t !== undefined) {
+			return function(x, c) {
+				var r = t(x);
+				if (r === false) return failure;
+				return pending(c, x);
+			};
+
+			return RegExpCompilerContext.matcher(function(ctx, c) {
+				ctx.compileTester(t);
+				ctx.failure_if("r === false");
+				ctx.jump(c);
+			});
+		}
 		var m = evaluateAssertion();
 		if (m !== undefined) return m;
 		var m = evaluateAtom();
@@ -531,6 +533,42 @@ function RegExpFactory() {
 		return function(x, c) {
 			return RepeatMatcher(m, min, max, greedy, x, c, parenIndex, parenCount);
 		};
+
+		return RegExpCompilerContext.matcher(function(ctx, c) {
+			ctx.text("var min=" + min + ";");
+			ctx.text("var max=" + max + ";");
+			var loop = ctx.loop();
+			ctx.if_jump("max <= 0", c);
+			var d = ctx.newEntry("x", "min", "max");
+			ctx.text("var cap = arraycopy(x.captures);");
+			ctx.text("for (var k =" + (parenIndex + 1) + "; k <=" + (parenIndex + parenCount) + "; k++) {");
+			ctx.text("cap[k] = undefined;");
+			ctx.text("}");
+			ctx.text("var e = x.endIndex;");
+			ctx.text("x = State(e, cap);");
+			if (greedy === false) {
+				var L = ctx.newEntry("x");
+				ctx.if_jump("min > 0", L);
+				ctx.pushFailureEntry(L);
+				ctx.jump(c);
+				ctx.entry(L, "x");
+				ctx.compileMatcher(m, d);
+			}
+			else {
+				ctx.text("if (min <= 0) {");
+				var L = ctx.newEntry("x");
+				ctx.pushFailureEntry(L);
+				ctx.text("}");
+				ctx.compileMatcher(m, d);
+				ctx.entry(L, "x");
+				ctx.jump(c);
+			}
+			ctx.entry(d, "y", "min", "max");
+			ctx.failure_if("min === 0 && x.endIndex === y.endIndex");
+			ctx.text("var min= min-1;");
+			ctx.text("var max= max-1;");
+			ctx.jump(loop);
+		});
 	}
 
 	function evaluateDecimalDigits() {
@@ -595,13 +633,17 @@ function RegExpFactory() {
 	function oneElementCharSet(ch) {
 		oneCharacterOfCharSet = ch;
 		var cch = Canonicalize(ch);
-		return RegExpCompilerContext.charset(function(ctx, cc) {
-			return ctx.define("(" + ctx.quote(cch) + " === " + cc.name + ")");
+		return function(cc) {
+			return cch === cc;
+		};
+
+		return RegExpCompilerContext.charset(function(ctx) {
+			ctx.text("var r = " + ctx.quote(cch) + " === cc;");
 		});
 	}
 
 	function CharacterSetMatcher(A, invert) {
-		var evaluate = function(x, c) {
+		return function(x, c) {
 			var e = x.endIndex;
 			if (e === InputLength) return failure;
 			var ch = Input[e];
@@ -615,24 +657,17 @@ function RegExpFactory() {
 			return pending(c, y);
 		};
 
-		return RegExpCompilerContext.matcher(evaluate, function(ctx, r, x, c) {
-			var label = ctx.openBlock();
-			var e = ctx.define(x.name + ".endIndex");
-			ctx.text("if (" + e.name + " === InputLength) {" + r.name + "=failure;break " + label + ";}");
-			ctx.text("var ch = Input[" + e.name + "];");
+		return RegExpCompilerContext.matcher(function(ctx, c) {
+			ctx.text("var e = x.endIndex;");
+			ctx.failure_if("e === InputLength");
+			ctx.text("var ch = Input[e];");
 			ctx.text("var cc = Canonicalize(ch);");
-			if (invert === false) {
-				var f = ctx.compileCharSet(A, ctx.constant("cc"));
-				ctx.text("if (" + f.name + " === false) {" + r.name + "=failure;break " + label + ";}");
-			}
-			else {
-				var f = ctx.compileCharSet(A, ctx.constant("cc"));
-				ctx.text("if (" + f.name + " === true) {" + r.name + "=failure;break " + label + ";}");
-			}
-			ctx.text("var cap = " + x.name + ".captures;");
-			var y = ctx.define("State(" + e.name + " + 1, cap)");
-			ctx.compileContinuation(r, c, y);
-			ctx.text("}");
+			ctx.compileCharSet(A);
+			if (invert === false) ctx.failure_if("r === false");
+			else ctx.failure_if("r === true");
+			ctx.text("var cap = x.captures;");
+			ctx.text("x = State(e + 1, cap);");
+			ctx.jump(c);
 		});
 	}
 
