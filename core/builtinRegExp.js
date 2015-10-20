@@ -357,12 +357,23 @@ function RegExpFactory() {
 			var loop = ctx.loop();
 			ctx.jump_if("max <= 0", c);
 			var d = ctx.newEntry("x", "min", "max");
-			ctx.text("var cap = arraycopy(x.captures);");
-			ctx.text("for (var k =" + (parenIndex + 1) + "; k <=" + (parenIndex + parenCount) + "; k++) {");
-			ctx.text("cap[k] = undefined;");
-			ctx.text("}");
-			ctx.text("var e = x.endIndex;");
-			ctx.text("var xr = State(e, cap);");
+			if (parenCount === 0) {
+				ctx.text("var xr = x;");
+			}
+			else if (parenCount === 1) {
+				ctx.text("var cap = arraycopy(x.captures);");
+				ctx.text("cap[" + (parenIndex + 1) + "] = undefined;");
+				ctx.text("var e = x.endIndex;");
+				ctx.text("var xr = State(e, cap);");
+			}
+			else {
+				ctx.text("var cap = arraycopy(x.captures);");
+				ctx.text("for (var k =" + (parenIndex + 1) + "; k <=" + (parenIndex + parenCount) + "; k++) {");
+				ctx.text("cap[k] = undefined;");
+				ctx.text("}");
+				ctx.text("var e = x.endIndex;");
+				ctx.text("var xr = State(e, cap);");
+			}
 			if (q.greedy === false) {
 				var L = ctx.newEntry("xr");
 				ctx.jump_if("min > 0", L);
@@ -760,8 +771,8 @@ function RegExpFactory() {
 			ctx.text("var e = x.endIndex;");
 			ctx.failure_if("e === InputLength");
 			ctx.text("var ch = Input[e];");
-			if(IgnoreCase)ctx.text("var cc = Canonicalize(ch);");
-			if(!IgnoreCase)ctx.text("var cc = ch;");
+			if (IgnoreCase) ctx.text("var cc = Canonicalize(ch);");
+			if (!IgnoreCase) ctx.text("var cc = ch;");
 			ctx.compileCharSet(A);
 			if (invert === false) ctx.failure_if("r === false");
 			else ctx.failure_if("r === true");
@@ -817,8 +828,8 @@ function RegExpFactory() {
 				ctx.text("var f = e + len;");
 				ctx.failure_if("f > InputLength");
 				ctx.text("for (var i = 0; i < len; i++) {");
-				if(IgnoreCase) ctx.failure_if("Canonicalize(s[i]) !== Canonicalize(Input[e + i])");
-				if(!IgnoreCase) ctx.failure_if("s[i] !== Input[e + i]");
+				if (IgnoreCase) ctx.failure_if("Canonicalize(s[i]) !== Canonicalize(Input[e + i])");
+				if (!IgnoreCase) ctx.failure_if("s[i] !== Input[e + i]");
 				ctx.text("}");
 				ctx.text("var x = State(f, cap);");
 				ctx.jump(c);

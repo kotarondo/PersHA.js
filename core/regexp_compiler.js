@@ -39,6 +39,7 @@ function RegExpCompilerContext(params) {
 	this.texts = [];
 	this.literals = [];
 	this.entries = 3;
+	this.entryRef = [];
 }
 
 RegExpCompilerContext.prototype.compileMatcher = function(match, c) {
@@ -71,6 +72,7 @@ RegExpCompilerContext.matcher = function(compile) {
 			ctx.text("var x=unpending(lastContinuation(x));");
 			ctx.text("case 0:");
 			ctx.text("break Lsw;");
+			ctx.text("default:assert(false,'must not reach here');");
 			ctx.text("}");
 			ctx.text("while(true){");
 			ctx.text("var f=stack.pop()");
@@ -80,7 +82,6 @@ RegExpCompilerContext.matcher = function(compile) {
 			ctx.text("}");
 			ctx.text("}");
 			delayed = ctx.finish();
-			//ctx.texts.length > 30 && console.log(ctx.texts.join('\n'));
 		}
 		return delayed([], 2, x, c);
 	}
@@ -140,6 +141,7 @@ RegExpCompilerContext.charset = function(compile) {
 
 RegExpCompilerContext.prototype.text = function(text) {
 	this.texts.push(text);
+	this.lastJump = undefined;
 };
 
 RegExpCompilerContext.prototype.literal = function(value) {
@@ -192,6 +194,7 @@ RegExpCompilerContext.prototype.loop = function() {
 
 RegExpCompilerContext.prototype.newEntry = function() {
 	var entry = this.entries++;
+	this.entryRef[entry] = 0;
 	if (arguments.length > 0) {
 		var args = Array.prototype.slice.call(arguments).join(",");
 		this.text("stack.push({entry:" + entry + ",args:[" + args + "]});");
@@ -200,7 +203,14 @@ RegExpCompilerContext.prototype.newEntry = function() {
 };
 
 RegExpCompilerContext.prototype.entry = function(entry) {
-	this.text("case " + entry + ": ");
+	if (this.lastJump === entry) {
+		var texts = this.texts;
+		texts[texts.length - 1] = "// " + texts[texts.length - 1];
+		this.entryRef[entry]--;
+	}
+	if (this.entryRef[entry] > 0) {
+		this.text("case " + entry + ": ");
+	}
 	if (arguments.length > 1) {
 		this.text("var i=stack.length;");
 		this.text("while(stack[--i].entry !== " + entry + ");");
@@ -211,7 +221,9 @@ RegExpCompilerContext.prototype.entry = function(entry) {
 };
 
 RegExpCompilerContext.prototype.jump = function(entry) {
+	this.entryRef[entry]++;
 	this.text("swidx=" + entry + ";continue Lwh;");
+	this.lastJump = entry;
 };
 
 RegExpCompilerContext.prototype.failure_if = function(condition) {
@@ -219,13 +231,17 @@ RegExpCompilerContext.prototype.failure_if = function(condition) {
 };
 
 RegExpCompilerContext.prototype.jump_if = function(condition, entry) {
+	this.entryRef[entry]++;
 	this.text("if(" + condition + "){swidx=" + entry + ";continue Lwh;}");
+	this.lastJump = entry;
 };
 
 RegExpCompilerContext.prototype.setFailureHandler = function(entry) {
+	this.entryRef[entry]++;
 	this.text("stack.push({FailureEntry:" + entry + "});");
 };
 
 RegExpCompilerContext.prototype.setReturnHandler = function(entry) {
+	this.entryRef[entry]++;
 	this.text("stack.push({ReturnEntry:" + entry + "});");
 };
