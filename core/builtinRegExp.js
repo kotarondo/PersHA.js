@@ -150,6 +150,25 @@ function State(endIndex, captures) {
 	});
 }
 
+function pending(c, x) {
+	assert(x.pendingContinuation === undefined, x);
+	if (c !== noContinuation) {
+		x.pendingContinuation = c;
+	}
+	return x;
+}
+
+function unpending(x) {
+	while (true) {
+		var c = x.pendingContinuation;
+		if (c === undefined) {
+			return x;
+		}
+		x.pendingContinuation = undefined;
+		x = c(x);
+	}
+}
+
 var theRegExpFactory = RegExpFactory();
 
 // temporarily moved here under compiler development
@@ -170,25 +189,6 @@ defaultMatcher.compile = function(ctx, c) {
 	ctx.jump(c);
 };
 
-function pending(c, x) {
-	assert(x.pendingContinuation === undefined, x);
-	if (c !== noContinuation) {
-		x.pendingContinuation = c;
-	}
-	return x;
-}
-
-function unpending(x) {
-	while (true) {
-		var c = x.pendingContinuation;
-		if (c === undefined) {
-			return x;
-		}
-		x.pendingContinuation = undefined;
-		x = c(x);
-	}
-}
-
 function Canonicalize(ch) {
 	if (IgnoreCase === false) return ch;
 	var u = ch.toUpperCase();
@@ -196,6 +196,13 @@ function Canonicalize(ch) {
 	var cu = u;
 	if ((toCharCode(ch) >= 128) && (toCharCode(cu) < 128)) return ch;
 	return cu;
+}
+
+function IsWordChar(e) {
+	if (e === -1 || e === InputLength) return false;
+	var c = Input[e];
+	if (c === '_' || isDigitChar(c)) return true;
+	return false;
 }
 
 function RegExpFactory() {
@@ -456,6 +463,7 @@ function RegExpFactory() {
 	function evaluateAssertionTester() {
 		if (current === '^') {
 			proceed();
+			/* original code
 			return function(x) {
 				var e = x.endIndex;
 				if (e === 0) return true;
@@ -463,9 +471,18 @@ function RegExpFactory() {
 				if (isLineTerminator(Input[e - 1])) return true;
 				return false;
 			};
+			*/
+			return RegExpCompilerContext.tester(function(ctx) {
+				ctx.text("var e = x.endIndex;");
+				ctx.text("if (e === 0) var r = true;");
+				ctx.text("else if (Multiline === false) var r = false;");
+				ctx.text("else if (isLineTerminator(Input[e - 1])) var r= true;");
+				ctx.text("else var r= false;");
+			});
 		}
 		if (current === '$') {
 			proceed();
+			/* original code
 			return function(x) {
 				var e = x.endIndex;
 				if (e === InputLength) return true;
@@ -473,9 +490,18 @@ function RegExpFactory() {
 				if (isLineTerminator(Input[e])) return true;
 				return false;
 			};
+			*/
+			return RegExpCompilerContext.tester(function(ctx) {
+				ctx.text("var e = x.endIndex;");
+				ctx.text("if (e === InputLength) var r = true;");
+				ctx.text("else if (Multiline === false) var r = false;");
+				ctx.text("else if (isLineTerminator(Input[e])) var r= true;");
+				ctx.text("else var r= false;");
+			});
 		}
 		if (current === '\\' && lookahead === 'b') {
 			proceed(2);
+			/* original code
 			return function(x) {
 				var e = x.endIndex;
 				var a = IsWordChar(e - 1);
@@ -484,9 +510,19 @@ function RegExpFactory() {
 				if (a === false && b === true) return true;
 				return false;
 			};
+			*/
+			return RegExpCompilerContext.tester(function(ctx) {
+				ctx.text("var e = x.endIndex;");
+				ctx.text("var a = IsWordChar(e - 1);");
+				ctx.text("var b = IsWordChar(e);");
+				ctx.text("if (a === true && b === false) var r= true;");
+				ctx.text("else if (a === false && b === true) var r= true;");
+				ctx.text("else var r= false;");
+			});
 		}
 		if (current === '\\' && lookahead === 'B') {
 			proceed(2);
+			/* original code
 			return function(x) {
 				var e = x.endIndex;
 				var a = IsWordChar(e - 1);
@@ -495,6 +531,15 @@ function RegExpFactory() {
 				if (a === false && b === true) return false;
 				return true;
 			};
+			*/
+			return RegExpCompilerContext.tester(function(ctx) {
+				ctx.text("var e = x.endIndex;");
+				ctx.text("var a = IsWordChar(e - 1);");
+				ctx.text("var b = IsWordChar(e);");
+				ctx.text("if (a === true && b === false) var r= false;");
+				ctx.text("else if (a === false && b === true) var r= false;");
+				ctx.text("else var r= true;");
+			});
 		}
 		return undefined;
 	}
@@ -549,13 +594,6 @@ function RegExpFactory() {
 			});
 		}
 		return undefined;
-	}
-
-	function IsWordChar(e) {
-		if (e === -1 || e === InputLength) return false;
-		var c = Input[e];
-		if (c === '_' || isDigitChar(c)) return true;
-		return false;
 	}
 
 	function evaluateQuantifier() {
@@ -622,10 +660,16 @@ function RegExpFactory() {
 		if (current === undefined) return undefined;
 		if (current === '.') {
 			proceed();
-			return CharacterSetMatcher(function(cc) {
+			/* original code
+			var A = function(cc) {
 				if (isLineTerminator(cc)) return false;
 				return true;
-			}, false);
+			};
+			*/
+			var A = RegExpCompilerContext.charset(function(ctx) {
+				ctx.text("var r = !isLineTerminator(cc);");
+			});
+			return CharacterSetMatcher(A, false);
 		}
 		if (current === '\\') {
 			proceed();
@@ -887,35 +931,65 @@ function RegExpFactory() {
 	function evaluateCharacterClassEscape() {
 		switch (proceed()) {
 		case 'd':
+			/* original code
 			return function(cc) {
 				if (isDecimalDigitChar(cc)) return true;
 				return false;
 			};
+			*/
+			return RegExpCompilerContext.charset(function(ctx) {
+				ctx.text("var r = isDecimalDigitChar(cc);");
+			});
 		case 'D':
+			/* original code
 			return function(cc) {
 				if (isDecimalDigitChar(cc)) return false;
 				return true;
 			};
+			*/
+			return RegExpCompilerContext.charset(function(ctx) {
+				ctx.text("var r = !isDecimalDigitChar(cc);");
+			});
 		case 's':
+			/* original code
 			return function(cc) {
 				if (isWhiteSpace(cc) || isLineTerminator(cc)) return true;
 				return false;
 			};
+			*/
+			return RegExpCompilerContext.charset(function(ctx) {
+				ctx.text("var r = (isWhiteSpace(cc) || isLineTerminator(cc));");
+			});
 		case 'S':
+			/* original code
 			return function(cc) {
 				if (isWhiteSpace(cc) || isLineTerminator(cc)) return false;
 				return true;
 			};
+			*/
+			return RegExpCompilerContext.charset(function(ctx) {
+				ctx.text("var r = !(isWhiteSpace(cc) || isLineTerminator(cc));");
+			});
 		case 'w':
+			/* original code
 			return function(cc) {
 				if (cc === '_' || isDigitChar(cc)) return true;
 				return false;
 			};
+			*/
+			return RegExpCompilerContext.charset(function(ctx) {
+				ctx.text("var r = (cc === '_' || isDigitChar(cc));");
+			});
 		case 'W':
+			/* original code
 			return function(cc) {
 				if (cc === '_' || isDigitChar(cc)) return false;
 				return true;
 			};
+			*/
+			return RegExpCompilerContext.charset(function(ctx) {
+				ctx.text("var r = !(cc === '_' || isDigitChar(cc));");
+			});
 		}
 		return false;
 	}
@@ -968,6 +1042,7 @@ function RegExpFactory() {
 	}
 
 	function rangeCharSet(i, j) {
+		/* original code
 		return function(cc) {
 			if (IgnoreCase === false) {
 				var k = toCharCode(cc);
@@ -982,9 +1057,25 @@ function RegExpFactory() {
 				return false;
 			}
 		};
+		*/
+		return RegExpCompilerContext.charset(function(ctx) {
+			if (IgnoreCase === false) {
+				ctx.text("var k = toCharCode(cc);");
+				ctx.text("if ((" + i + " <= k) && (k <= " + j + ")) var r= true;");
+				ctx.text("else var r= false;");
+			}
+			else {
+				ctx.text("var r= false;");
+				ctx.text("for (var k = " + i + "; k <= " + j + "; k++) {");
+				ctx.text("var ch = fromCharCode(k);");
+				ctx.text("if (Canonicalize(ch) === cc) var r= true;");
+				ctx.text("}");
+			}
+		});
 	}
 
 	function unionCharSet(charSets) {
+		/* original code
 		return function(cc) {
 			for (var i = 0; i < charSets.length; i++) {
 				var A = charSets[i];
@@ -992,6 +1083,17 @@ function RegExpFactory() {
 			}
 			return false;
 		};
+		*/
+		return RegExpCompilerContext.charset(function(ctx) {
+			ctx.text("Lu:{");
+			for (var i = 0; i < charSets.length; i++) {
+				var A = charSets[i];
+				ctx.compileCharSet(A);
+				ctx.text("if(r)break Lu;");
+			}
+			ctx.text("var r= false;");
+			ctx.text("}");
+		});
 	}
 
 	function evaluateClassAtom() {
@@ -1014,9 +1116,16 @@ function RegExpFactory() {
 			if (current === 'B') throw SyntaxError();
 			if (isIncluded(current, "dDsSwW")) return evaluateCharacterClassEscape();
 			var ch = evaluateCharacterEscape();
-			if (ch === undefined) return function(cc) {
-				return false;
-			};
+			if (ch === undefined) {
+				/* original code
+				return function(cc) {
+					return false;
+				};
+				*/
+				return RegExpCompilerContext.charset(function(ctx) {
+					ctx.text("var r=false;");
+				});
+			}
 			var A = oneElementCharSet(ch);
 			return A;
 		}

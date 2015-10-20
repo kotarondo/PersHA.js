@@ -89,7 +89,7 @@ RegExpCompilerContext.matcher = function(compile) {
 };
 
 RegExpCompilerContext.prototype.compileTester = function(tester) {
-	//assert(tester.compile, tester.toString()); // check if all testers have own compilers
+	assert(tester.compile, tester.toString()); // check if all testers have own compilers
 	if (tester.compile) {
 		tester.compile(this);
 		return;
@@ -114,7 +114,7 @@ RegExpCompilerContext.tester = function(compile) {
 };
 
 RegExpCompilerContext.prototype.compileCharSet = function(charset) {
-	//assert(charset.compile, charset.toString()); // check if all charsets have own compilers
+	assert(charset.compile, charset.toString()); // check if all charsets have own compilers
 	if (charset.compile) {
 		charset.compile(this);
 		return;
