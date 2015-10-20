@@ -760,7 +760,8 @@ function RegExpFactory() {
 			ctx.text("var e = x.endIndex;");
 			ctx.failure_if("e === InputLength");
 			ctx.text("var ch = Input[e];");
-			ctx.text("var cc = Canonicalize(ch);");
+			if(IgnoreCase)ctx.text("var cc = Canonicalize(ch);");
+			if(!IgnoreCase)ctx.text("var cc = ch;");
 			ctx.compileCharSet(A);
 			if (invert === false) ctx.failure_if("r === false");
 			else ctx.failure_if("r === true");
@@ -816,7 +817,8 @@ function RegExpFactory() {
 				ctx.text("var f = e + len;");
 				ctx.failure_if("f > InputLength");
 				ctx.text("for (var i = 0; i < len; i++) {");
-				ctx.failure_if("Canonicalize(s[i]) !== Canonicalize(Input[e + i])");
+				if(IgnoreCase) ctx.failure_if("Canonicalize(s[i]) !== Canonicalize(Input[e + i])");
+				if(!IgnoreCase) ctx.failure_if("s[i] !== Input[e + i]");
 				ctx.text("}");
 				ctx.text("var x = State(f, cap);");
 				ctx.jump(c);
