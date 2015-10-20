@@ -270,15 +270,16 @@ function RegExpFactory() {
 		if (current !== '|') return m1;
 		proceed();
 		var m2 = evaluateDisjunction();
+		/* original code
 		return function(x, c) {
 			var r = unpending(m1(x, c));
 			if (r !== failure) return r;
 			return m2(x, c);
 		};
-
+		*/
 		return RegExpCompilerContext.matcher(function(ctx, c) {
 			var L = ctx.newEntry("x");
-			ctx.pushFailureEntry(L);
+			ctx.setFailureHandler(L);
 			ctx.compileMatcher(m1, c);
 			ctx.entry(L, "x");
 			ctx.compileMatcher(m2, c);
@@ -286,13 +287,14 @@ function RegExpFactory() {
 	}
 
 	function concat(m1, m2) {
+		/* original code
 		return function(x, c) {
 			var d = function(y) {
 				return m2(y, c);
 			};
 			return m1(x, d);
 		};
-
+		*/
 		return RegExpCompilerContext.matcher(function(ctx, c) {
 			var L = ctx.newEntry();
 			ctx.compileMatcher(m1, L);
@@ -315,12 +317,13 @@ function RegExpFactory() {
 		var parenIndex = leftCapturingParentheses;
 		var t = evaluateAssertionTester();
 		if (t !== undefined) {
+			/* original code
 			return function(x, c) {
 				var r = t(x);
 				if (r === false) return failure;
 				return pending(c, x);
 			};
-
+			*/
 			return RegExpCompilerContext.matcher(function(ctx, c) {
 				ctx.compileTester(t);
 				ctx.failure_if("r === false");
@@ -331,7 +334,52 @@ function RegExpFactory() {
 		if (m !== undefined) return m;
 		var m = evaluateAtom();
 		if (m === undefined) return undefined;
-		return evaluateQuantifierWithAtom(m, parenIndex);
+		var q = evaluateQuantifier();
+		if (q === undefined) {
+			return m;
+		}
+		var parenCount = leftCapturingParentheses - parenIndex;
+		/* original code
+		return function(x, c) {
+			return RepeatMatcher(m, q.min, q.max, q.greedy, x, c, parenIndex, parenCount);
+		};
+		*/
+		return RegExpCompilerContext.matcher(function(ctx, c) {
+			ctx.text("var min=" + q.min + ";");
+			ctx.text("var max=" + q.max + ";");
+			var loop = ctx.loop();
+			ctx.jump_if("max <= 0", c);
+			var d = ctx.newEntry("x", "min", "max");
+			ctx.text("var cap = arraycopy(x.captures);");
+			ctx.text("for (var k =" + (parenIndex + 1) + "; k <=" + (parenIndex + parenCount) + "; k++) {");
+			ctx.text("cap[k] = undefined;");
+			ctx.text("}");
+			ctx.text("var e = x.endIndex;");
+			ctx.text("var xr = State(e, cap);");
+			if (q.greedy === false) {
+				var L = ctx.newEntry("xr");
+				ctx.jump_if("min > 0", L);
+				ctx.setFailureHandler(L);
+				ctx.jump(c);
+				ctx.entry(L, "x");
+				ctx.compileMatcher(m, d);
+			}
+			else {
+				ctx.text("if (min <= 0) {");
+				var L = ctx.newEntry("x");
+				ctx.setFailureHandler(L);
+				ctx.text("}");
+				ctx.text("var x = xr;");
+				ctx.compileMatcher(m, d);
+				ctx.entry(L, "x");
+				ctx.jump(c);
+			}
+			ctx.entry(d, "y", "min", "max");
+			ctx.failure_if("min === 0 && x.endIndex === y.endIndex");
+			ctx.text("var min= min-1;");
+			ctx.text("var max= max-1;");
+			ctx.jump(loop);
+		});
 	}
 
 	function RepeatMatcher(m, min, max, greedy, x, c, parenIndex, parenCount) {
@@ -456,6 +504,7 @@ function RegExpFactory() {
 			proceed(3);
 			var m = evaluateDisjunction();
 			expecting(')');
+			/* original code
 			return function(x, c) {
 				var r = unpending(m(x, noContinuation));
 				if (r === failure) return failure;
@@ -465,16 +514,39 @@ function RegExpFactory() {
 				var z = State(xe, cap);
 				return pending(c, z);
 			};
+			*/
+			return RegExpCompilerContext.matcher(function(ctx, c) {
+				var L = ctx.newEntry("x");
+				ctx.setReturnHandler(L);
+				ctx.compileMatcher(m, 0);
+				ctx.entry(L, "y");
+				ctx.failure_if("x === failure");
+				ctx.text("var cap = x.captures;");
+				ctx.text("var xe = y.endIndex;");
+				ctx.text("var x = State(xe, cap);");
+				ctx.jump(c);
+			});
 		}
 		if (current === '(' && lookahead === '?' && lookahead2 === '!') {
 			proceed(3);
 			var m = evaluateDisjunction();
 			expecting(')');
+			/* original code
 			return function(x, c) {
 				var r = unpending(m(x, noContinuation));
 				if (r !== failure) return failure;
 				return pending(c, x);
 			};
+			*/
+			return RegExpCompilerContext.matcher(function(ctx, c) {
+				var L = ctx.newEntry("x");
+				ctx.setReturnHandler(L);
+				ctx.compileMatcher(m, 0);
+				ctx.entry(L, "y");
+				ctx.failure_if("x !== failure");
+				ctx.text("var x = y;");
+				ctx.jump(c);
+			});
 		}
 		return undefined;
 	}
@@ -486,8 +558,7 @@ function RegExpFactory() {
 		return false;
 	}
 
-	function evaluateQuantifierWithAtom(m, parenIndex) {
-		var parenCount = leftCapturingParentheses - parenIndex;
+	function evaluateQuantifier() {
 		var min, max, greedy;
 		if (current === '*') {
 			proceed();
@@ -522,7 +593,7 @@ function RegExpFactory() {
 			}
 			else throw SyntaxError();
 		}
-		else return m;
+		else return undefined;
 		var greedy = true;
 		if (current === '?') {
 			proceed();
@@ -530,45 +601,11 @@ function RegExpFactory() {
 		}
 		if (isFinite(max) && (max < min)) throw SyntaxError();
 		if (isIncluded(current, "{}")) throw SyntaxError();
-		return function(x, c) {
-			return RepeatMatcher(m, min, max, greedy, x, c, parenIndex, parenCount);
+		return {
+			min : min,
+			max : max,
+			greedy : greedy
 		};
-
-		return RegExpCompilerContext.matcher(function(ctx, c) {
-			ctx.text("var min=" + min + ";");
-			ctx.text("var max=" + max + ";");
-			var loop = ctx.loop();
-			ctx.if_jump("max <= 0", c);
-			var d = ctx.newEntry("x", "min", "max");
-			ctx.text("var cap = arraycopy(x.captures);");
-			ctx.text("for (var k =" + (parenIndex + 1) + "; k <=" + (parenIndex + parenCount) + "; k++) {");
-			ctx.text("cap[k] = undefined;");
-			ctx.text("}");
-			ctx.text("var e = x.endIndex;");
-			ctx.text("x = State(e, cap);");
-			if (greedy === false) {
-				var L = ctx.newEntry("x");
-				ctx.if_jump("min > 0", L);
-				ctx.pushFailureEntry(L);
-				ctx.jump(c);
-				ctx.entry(L, "x");
-				ctx.compileMatcher(m, d);
-			}
-			else {
-				ctx.text("if (min <= 0) {");
-				var L = ctx.newEntry("x");
-				ctx.pushFailureEntry(L);
-				ctx.text("}");
-				ctx.compileMatcher(m, d);
-				ctx.entry(L, "x");
-				ctx.jump(c);
-			}
-			ctx.entry(d, "y", "min", "max");
-			ctx.failure_if("min === 0 && x.endIndex === y.endIndex");
-			ctx.text("var min= min-1;");
-			ctx.text("var max= max-1;");
-			ctx.jump(loop);
-		});
 	}
 
 	function evaluateDecimalDigits() {
@@ -609,6 +646,7 @@ function RegExpFactory() {
 			var parenIndex = leftCapturingParentheses++;
 			var m = evaluateDisjunction();
 			expecting(')');
+			/* original code
 			return function(x, c) {
 				var d = function(y) {
 					var cap = arraycopy(y.captures);
@@ -621,6 +659,21 @@ function RegExpFactory() {
 				};
 				return m(x, d);
 			};
+			*/
+			return RegExpCompilerContext.matcher(function(ctx, c) {
+				var d = ctx.newEntry("x");
+				ctx.compileMatcher(m, d);
+				ctx.entry(d, "x1");
+				ctx.text("var y = x;");
+				ctx.text("var x = x1;");
+				ctx.text("var cap = arraycopy(y.captures);");
+				ctx.text("var xe = x.endIndex;");
+				ctx.text("var ye = y.endIndex;");
+				ctx.text("var s = Input.substring(xe, ye);");
+				ctx.text("cap[" + (parenIndex + 1) + "] = s;");
+				ctx.text("var x = State(ye, cap);");
+				ctx.jump(c);
+			});
 		}
 		if (STRICT_CONFORMANCE) {
 			if (isIncluded(current, "*+?)]{}|")) return undefined;
@@ -633,16 +686,18 @@ function RegExpFactory() {
 	function oneElementCharSet(ch) {
 		oneCharacterOfCharSet = ch;
 		var cch = Canonicalize(ch);
+		/* original code
 		return function(cc) {
 			return cch === cc;
 		};
-
+		*/
 		return RegExpCompilerContext.charset(function(ctx) {
 			ctx.text("var r = " + ctx.quote(cch) + " === cc;");
 		});
 	}
 
 	function CharacterSetMatcher(A, invert) {
+		/* original code
 		return function(x, c) {
 			var e = x.endIndex;
 			if (e === InputLength) return failure;
@@ -656,7 +711,7 @@ function RegExpFactory() {
 			var y = State(e + 1, cap);
 			return pending(c, y);
 		};
-
+		*/
 		return RegExpCompilerContext.matcher(function(ctx, c) {
 			ctx.text("var e = x.endIndex;");
 			ctx.failure_if("e === InputLength");
@@ -682,11 +737,17 @@ function RegExpFactory() {
 			var n = E;
 			if (n > NCapturingParens) {
 				if (STRICT_CONFORMANCE) throw SyntaxError();
+				/* original code
 				return function(x, c) {
 					return failure;
 				};
+				*/
+				return RegExpCompilerContext.matcher(function(ctx, c) {
+					ctx.text("x=failure;break;");
+				});
 			}
 
+			/* original code
 			return function(x, c) {
 				var cap = x.captures;
 				var s = cap[n];
@@ -701,15 +762,37 @@ function RegExpFactory() {
 				var y = State(f, cap);
 				return pending(c, y);
 			};
+			*/
+			return RegExpCompilerContext.matcher(function(ctx, c) {
+				ctx.text("var cap = x.captures;");
+				ctx.text("var s = cap[" + n + "];");
+				ctx.jump_if("s === undefined", c);
+				ctx.text("var e = x.endIndex;");
+				ctx.text("var len = s.length;");
+				ctx.text("var f = e + len;");
+				ctx.failure_if("f > InputLength");
+				ctx.text("for (var i = 0; i < len; i++) {");
+				ctx.failure_if("Canonicalize(s[i]) !== Canonicalize(Input[e + i])");
+				ctx.text("}");
+				ctx.text("var x = State(f, cap);");
+				ctx.jump(c);
+			});
 		}
 		if (isIncluded(current, "dDsSwW")) {
 			var A = evaluateCharacterClassEscape();
 			return CharacterSetMatcher(A, false);
 		}
 		var ch = evaluateCharacterEscape();
-		if (ch === undefined) return function(x, c) {
-			return failure;
-		};
+		if (ch === undefined) {
+			/* original code
+			return function(x, c) {
+				return failure;
+			};
+			*/
+			return RegExpCompilerContext.matcher(function(ctx, c) {
+				ctx.text("x=failure;break;");
+			});
+		}
 		var A = oneElementCharSet(ch);
 		return CharacterSetMatcher(A, false);
 	}

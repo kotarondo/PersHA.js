@@ -36,42 +36,53 @@
 // constructor
 function RegExpCompilerContext(params) {
 	this.params = params;
-	this.texts = [ "'use strict';" ];
+	this.texts = [];
 	this.literals = [];
 	this.entries = 3;
 }
 
 RegExpCompilerContext.prototype.compileMatcher = function(match, c) {
-	return match.compile(this, c);
+	assert(match.compile, match.toString()); // check if all matchers have own compilers
+	if (match.compile) {
+		match.compile(this, c);
+		return;
+	}
+	// compiler doesn't exit (under development)
+	this.text("var self=arguments.callee;");
+	this.text("var d=function(x){");
+	this.text("return self(literals,stack," + c + ",x,lastContinuation);}");
+	this.text("x=" + this.literal(match) + "(x,d);");
+	this.text("x=unpending(x);");
+	this.text("break Lsw;");
 };
 
 RegExpCompilerContext.matcher = function(compile) {
 	var delayed;
 	function evaluate(x, c) {
 		if (!delayed) {
-			var ctx = new RegExpCompilerContext("x", "lastContinuation");
-			ctx.text("var stack=[];");
-			ctx.text("var swidx=1;");
-			ctx.text("while(true){");
-			ctx.text("switch(swidx){");
-			ctx.text("case 1:");
-			compile(ctx, "2");
+			var ctx = new RegExpCompilerContext("stack, swidx, x, lastContinuation");
+			ctx.text("x=unpending(x);");
+			ctx.text("stack.push({Exit:true});");
+			ctx.text("Lwh:while(true){");
+			ctx.text("Lsw:switch(swidx){");
 			ctx.text("case 2:");
+			compile(ctx, "1");
+			ctx.text("case 1:");
 			ctx.text("var x=unpending(lastContinuation(x));");
-			ctx.text("break;");
+			ctx.text("case 0:");
+			ctx.text("break Lsw;");
 			ctx.text("}");
 			ctx.text("while(true){");
-			ctx.text("if(stack.length===0)return x;");
 			ctx.text("var f=stack.pop()");
+			ctx.text("if(f.Exit){return x;}");
 			ctx.text("if(f.ReturnEntry){swidx=f.ReturnEntry;break;}");
-			ctx.text("if(x===failure&&f.FailureEntry){swidx=f.FailureEntry;break;}");
+			ctx.text("if(f.FailureEntry&&x===failure){swidx=f.FailureEntry;break;}");
 			ctx.text("}");
 			ctx.text("}");
-			ctx.compileReturn("x");
 			delayed = ctx.finish();
-			//ctx.texts.length > 100 && console.log(ctx.texts.join('\n'));
+			//ctx.texts.length > 30 && console.log(ctx.texts.join('\n'));
 		}
-		return delayed(x, c);
+		return delayed([], 2, x, c);
 	}
 	evaluate.compile = compile;
 	return evaluate;
@@ -80,10 +91,11 @@ RegExpCompilerContext.matcher = function(compile) {
 RegExpCompilerContext.prototype.compileTester = function(tester) {
 	//assert(tester.compile, tester.toString()); // check if all testers have own compilers
 	if (tester.compile) {
-		return tester.compile(this);
+		tester.compile(this);
+		return;
 	}
 	// compiler doesn't exit (under development)
-	return this.text("var r = " + this.literal(tester) + "(x)");
+	this.text("var r = " + this.literal(tester) + "(x);");
 };
 
 RegExpCompilerContext.tester = function(compile) {
@@ -92,7 +104,7 @@ RegExpCompilerContext.tester = function(compile) {
 		if (!delayed) {
 			var ctx = new RegExpCompilerContext("x");
 			compile(ctx);
-			ctx.compileReturn("r");
+			ctx.text("return r;");
 			delayed = ctx.finish();
 		}
 		return delayed(x);
@@ -104,10 +116,11 @@ RegExpCompilerContext.tester = function(compile) {
 RegExpCompilerContext.prototype.compileCharSet = function(charset) {
 	//assert(charset.compile, charset.toString()); // check if all charsets have own compilers
 	if (charset.compile) {
-		return charset.compile(this);
+		charset.compile(this);
+		return;
 	}
 	// compiler doesn't exit (under development)
-	return this.text("var r = " + this.literal(charset) + "(cc)");
+	this.text("var r = " + this.literal(charset) + "(cc);");
 };
 
 RegExpCompilerContext.charset = function(compile) {
@@ -116,7 +129,7 @@ RegExpCompilerContext.charset = function(compile) {
 		if (!delayed) {
 			var ctx = new RegExpCompilerContext("cc");
 			compile(ctx);
-			ctx.compileReturn("r");
+			ctx.text("return r;");
 			delayed = ctx.finish();
 		}
 		return delayed(cc);
@@ -171,14 +184,48 @@ RegExpCompilerContext.prototype.finish = function() {
 	}
 };
 
-RegExpCompilerContext.prototype.compileReturn = function(val) {
-	this.text("return " + val.name + ";");
-}
+RegExpCompilerContext.prototype.loop = function() {
+	var entry = this.entries++;
+	this.text("case " + entry + ": ");
+	return entry;
+};
 
-RegExpCompilerContext.prototype.entry = function(label) {
-	this.text("case " + label + ": ");
+RegExpCompilerContext.prototype.newEntry = function() {
+	var entry = this.entries++;
+	if (arguments.length > 0) {
+		var args = Array.prototype.slice.call(arguments).join(",");
+		this.text("stack.push({entry:" + entry + ",args:[" + args + "]});");
+	}
+	return entry;
+};
+
+RegExpCompilerContext.prototype.entry = function(entry) {
+	this.text("case " + entry + ": ");
 	if (arguments.length > 1) {
 		this.text("var i=stack.length;");
-		this.text("while(stack[--i].label !== " + label + ");");
+		this.text("while(stack[--i].entry !== " + entry + ");");
+		for (var j = 1; j < arguments.length; j++) {
+			this.text("var " + arguments[j] + "=stack[i].args[" + (j - 1) + "];");
+		}
 	}
-}
+};
+
+RegExpCompilerContext.prototype.jump = function(entry) {
+	this.text("swidx=" + entry + ";continue Lwh;");
+};
+
+RegExpCompilerContext.prototype.failure_if = function(condition) {
+	this.text("if(" + condition + "){x=failure;break Lsw;}");
+};
+
+RegExpCompilerContext.prototype.jump_if = function(condition, entry) {
+	this.text("if(" + condition + "){swidx=" + entry + ";continue Lwh;}");
+};
+
+RegExpCompilerContext.prototype.setFailureHandler = function(entry) {
+	this.text("stack.push({FailureEntry:" + entry + "});");
+};
+
+RegExpCompilerContext.prototype.setReturnHandler = function(entry) {
+	this.text("stack.push({ReturnEntry:" + entry + "});");
+};
