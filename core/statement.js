@@ -806,6 +806,7 @@ function TryStatement(block, catchBlock, finallyBlock) {
 		ctx.compileStatement(block);
 		if (catchBlock) {
 			ctx.text("}catch(err){");
+			ctx.text("if(isInternalError(err))throw err;");
 			catchBlock.compile(ctx);
 		}
 		if (finallyBlock) {
