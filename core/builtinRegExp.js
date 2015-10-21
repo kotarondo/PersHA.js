@@ -74,7 +74,7 @@ function RegExp_Construct(argumentsList) {
 		var F = ToString(flags);
 	}
 	try {
-		var regexp = theRegExpFactory.compile(P, F);
+		var regexp = theRegExpFactory.compile(P, F, true);
 	} catch (e) {
 		if (e instanceof theRegExpFactory.SyntaxError) {
 			throw VMSyntaxError(e.message);
@@ -117,14 +117,14 @@ function RegExp_prototype_exec(thisValue, argumentsList) {
 	var n = R.NCapturingParens;
 	var A = Array_Construct([]);
 	var matchIndex = i;
-	A.DefineOwnProperty("index", DataPropertyDescriptor(matchIndex, true, true, true), true);
-	A.DefineOwnProperty("input", DataPropertyDescriptor(S, true, true, true), true);
-	A.DefineOwnProperty("length", DataPropertyDescriptor(n + 1, absent, absent, absent), true);
+	defineFree(A, "index", matchIndex);
+	defineFree(A, "input", S);
+	intrinsic_set_value(A, "length", n + 1);
 	var matchedSubstr = S.substring(i, e);
-	A.DefineOwnProperty("0", DataPropertyDescriptor(matchedSubstr, true, true, true), true);
+	defineFree(A, "0", matchedSubstr);
 	for (var i = 1; i <= n; i++) {
 		var captureI = r.captures[i];
-		A.DefineOwnProperty(ToString(i), DataPropertyDescriptor(captureI, true, true, true), true);
+		defineFree(A, i, captureI);
 	}
 	return A;
 }
@@ -150,10 +150,6 @@ function State(endIndex, captures) {
 }
 
 var theRegExpFactory = RegExpFactory();
-
-function noContinuation(x) {
-	return x;
-}
 
 function Canonicalize(ch) {
 	var u = ch.toUpperCase();
@@ -211,7 +207,7 @@ function RegExpFactory() {
 	var IgnoreCase;
 	var Multiline;
 
-	function evaluatePattern(regexp) {
+	function evaluatePattern(regexp, dynamic) {
 		IgnoreCase = regexp.ignoreCase;
 		Multiline = regexp.multiline;
 		NCapturingParens = regexp.NCapturingParens;
@@ -234,9 +230,8 @@ function RegExpFactory() {
 		var ctx = new RegExpCompilerContext("Input, index");
 		ctx.text("var InputLength = Input.length;");
 		ctx.text("var x = State(index, []);");
-		ctx.text("var stack=[];");
+		ctx.text("var stack=[['Exit']];");
 		ctx.text("var swidx=2;");
-		ctx.text("stack.push({Exit:true});");
 		ctx.text("Lwh:while(true){");
 		ctx.text("Lsw:switch(swidx){");
 		ctx.text("case 2:");
@@ -245,12 +240,13 @@ function RegExpFactory() {
 		ctx.text("}");
 		ctx.text("while(true){");
 		ctx.text("var f=stack.pop()");
-		ctx.text("if(f.Exit){return x;}");
-		ctx.text("if(f.ReturnEntry){swidx=f.ReturnEntry;break;}");
-		ctx.text("if(f.FailureEntry&&x===failure){swidx=f.FailureEntry;break;}");
+		ctx.text("if(f[0]==='Failure'&&x===failure){swidx=f[1];break;}");
+		ctx.text("if(f[0]==='Exit'){return x;}");
+		ctx.text("if(f[0]==='Return'){swidx=f[1];break;}");
 		ctx.text("}");
 		ctx.text("}");
 		regexp.Match = ctx.finish();
+		//if(!dynamic) console.log(ctx.texts.join('\n'));
 	}
 
 	function evaluateDisjunction() {
@@ -362,19 +358,12 @@ function RegExpFactory() {
 			if (parenCount === 0) {
 				ctx.text("var xr = x;");
 			}
-			else if (parenCount === 1) {
-				ctx.text("var cap = arraycopy(x.captures);");
-				ctx.text("cap[" + (parenIndex + 1) + "] = undefined;");
-				ctx.text("var e = x.endIndex;");
-				ctx.text("var xr = State(e, cap);");
-			}
 			else {
 				ctx.text("var cap = arraycopy(x.captures);");
-				ctx.text("for (var k =" + (parenIndex + 1) + "; k <=" + (parenIndex + parenCount) + "; k++) {");
-				ctx.text("cap[k] = undefined;");
-				ctx.text("}");
-				ctx.text("var e = x.endIndex;");
-				ctx.text("var xr = State(e, cap);");
+				for (var k = parenIndex + 1; k <= parenIndex + parenCount; k++) {
+					ctx.text("cap[" + k + "] = undefined;");
+				}
+				ctx.text("var xr = State(x.endIndex, cap);");
 			}
 			if (q.greedy === false) {
 				var L = ctx.newEntry("xr");
@@ -389,7 +378,7 @@ function RegExpFactory() {
 				var L = ctx.newEntry("x");
 				ctx.setFailureHandler(L);
 				ctx.text("}");
-				ctx.text("var x = xr;");
+				ctx.text("x = xr;");
 				ctx.compileMatcher(m, d);
 				ctx.entry(L, "x");
 				ctx.jump(c);
@@ -588,9 +577,7 @@ function RegExpFactory() {
 				ctx.compileMatcher(m, 0);
 				ctx.entry(L, "y");
 				ctx.failure_if("x === failure");
-				ctx.text("var cap = x.captures;");
-				ctx.text("var xe = y.endIndex;");
-				ctx.text("var x = State(xe, cap);");
+				ctx.text("x = State(y.endIndex, x.captures);");
 				ctx.jump(c);
 			});
 		}
@@ -611,7 +598,7 @@ function RegExpFactory() {
 				ctx.compileMatcher(m, 0);
 				ctx.entry(L, "y");
 				ctx.failure_if("x !== failure");
-				ctx.text("var x = y;");
+				ctx.text("x = y;");
 				ctx.jump(c);
 			});
 		}
@@ -729,15 +716,10 @@ function RegExpFactory() {
 			return RegExpCompilerContext.matcher(function(ctx, c) {
 				var d = ctx.newEntry("x");
 				ctx.compileMatcher(m, d);
-				ctx.entry(d, "x1");
-				ctx.text("var y = x;");
-				ctx.text("var x = x1;");
-				ctx.text("var cap = arraycopy(y.captures);");
-				ctx.text("var xe = x.endIndex;");
-				ctx.text("var ye = y.endIndex;");
-				ctx.text("var s = Input.substring(xe, ye);");
-				ctx.text("cap[" + (parenIndex + 1) + "] = s;");
-				ctx.text("var x = State(ye, cap);");
+				ctx.entry(d, "z");
+				ctx.text("var cap = arraycopy(x.captures);");
+				ctx.text("cap[" + (parenIndex + 1) + "] = Input.substring(z.endIndex, x.endIndex);");
+				ctx.text("x = State(x.endIndex, cap);");
 				ctx.jump(c);
 			});
 		}
@@ -782,14 +764,12 @@ function RegExpFactory() {
 		return RegExpCompilerContext.matcher(function(ctx, c) {
 			ctx.text("var e = x.endIndex;");
 			ctx.failure_if("e === InputLength");
-			ctx.text("var ch = Input[e];");
-			if (IgnoreCase) ctx.text("var cc = Canonicalize(ch);");
-			if (!IgnoreCase) ctx.text("var cc = ch;");
+			if (IgnoreCase) ctx.text("var cc = Canonicalize(Input[e]);");
+			if (!IgnoreCase) ctx.text("var cc = Input[e];");
 			ctx.compileCharSet(A);
 			if (invert === false) ctx.failure_if("r === false");
 			else ctx.failure_if("r === true");
-			ctx.text("var cap = x.captures;");
-			ctx.text("x = State(e + 1, cap);");
+			ctx.text("x = State(e + 1, x.captures);");
 			ctx.jump(c);
 		});
 	}
@@ -843,7 +823,7 @@ function RegExpFactory() {
 				if (IgnoreCase) ctx.failure_if("Canonicalize(s[i]) !== Canonicalize(Input[e + i])");
 				if (!IgnoreCase) ctx.failure_if("s[i] !== Input[e + i]");
 				ctx.text("}");
-				ctx.text("var x = State(f, cap);");
+				ctx.text("x = State(f, cap);");
 				ctx.jump(c);
 			});
 		}
@@ -1224,7 +1204,7 @@ function RegExpFactory() {
 		return join(buffer);
 	}
 
-	function compile(P, F) {
+	function compile(P, F, dynamic) {
 		var ignoreCase = false;
 		var multiline = false;
 		var global = false;
@@ -1251,7 +1231,7 @@ function RegExpFactory() {
 			multiline : multiline,
 		});
 		regexp.NCapturingParens = countNCapturingParens(regexp.source);
-		evaluatePattern(regexp);
+		evaluatePattern(regexp, dynamic);
 		return regexp;
 	}
 
@@ -1263,7 +1243,7 @@ function RegExpFactory() {
 			multiline : obj.Get("multiline"),
 		});
 		regexp.NCapturingParens = countNCapturingParens(regexp.source);
-		evaluatePattern(regexp);
+		evaluatePattern(regexp, true);
 		obj.NCapturingParens = regexp.NCapturingParens;
 		obj.Match = regexp.Match;
 	}
@@ -1289,6 +1269,12 @@ function RegExpFactory() {
 		this.message = "at " + currentPos;
 		this.pos = currentPos;
 	}
+
+	/* original code
+	function noContinuation(x) {
+		return x;
+	}
+	*/
 
 	/* original code
 	function pending(c, x) {

@@ -63,7 +63,7 @@ RegExpCompilerContext.matcher = function(compile) {
 		if (!delayed) {
 			var ctx = new RegExpCompilerContext("stack, swidx, x, lastContinuation");
 			ctx.text("x=unpending(x);");
-			ctx.text("stack.push({Exit:true});");
+			ctx.text("stack.push(['Exit']);");
 			ctx.text("Lwh:while(true){");
 			ctx.text("Lsw:switch(swidx){");
 			ctx.text("case 2:");
@@ -75,9 +75,9 @@ RegExpCompilerContext.matcher = function(compile) {
 			ctx.text("}");
 			ctx.text("while(true){");
 			ctx.text("var f=stack.pop()");
-			ctx.text("if(f.Exit){return x;}");
-			ctx.text("if(f.ReturnEntry){swidx=f.ReturnEntry;break;}");
-			ctx.text("if(f.FailureEntry&&x===failure){swidx=f.FailureEntry;break;}");
+			ctx.text("if(f[0]==='Failure'&&x===failure){swidx=f[1];break;}");
+			ctx.text("if(f[0]==='Exit'){return x;}");
+			ctx.text("if(f[0]==='Return'){swidx=f[1];break;}");
 			ctx.text("}");
 			ctx.text("}");
 			delayed = ctx.finish();
@@ -195,8 +195,11 @@ RegExpCompilerContext.prototype.newEntry = function() {
 	var entry = this.entries++;
 	this.entryRef[entry] = 0;
 	if (arguments.length > 0) {
-		var args = Array.prototype.slice.call(arguments).join(",");
-		this.text("stack.push({entry:" + entry + ",args:[" + args + "]});");
+		var args = [];
+		for (var j = 0; j < arguments.length; j++) {
+			args.push(arguments[j]);
+		}
+		this.text("stack.push([" + entry + "," + args.join(',') + "]);");
 	}
 	return entry;
 };
@@ -211,9 +214,9 @@ RegExpCompilerContext.prototype.entry = function(entry) {
 	}
 	if (arguments.length > 1) {
 		this.text("var i=stack.length;");
-		this.text("while(stack[--i].entry !== " + entry + ");");
+		this.text("while(true){var s=stack[--i]; if(s[0]===" + entry + ")break;}");
 		for (var j = 1; j < arguments.length; j++) {
-			this.text("var " + arguments[j] + "=stack[i].args[" + (j - 1) + "];");
+			this.text("var " + arguments[j] + "=s[" + j + "];");
 		}
 	}
 };
@@ -248,10 +251,10 @@ RegExpCompilerContext.prototype.jump_if = function(condition, entry) {
 
 RegExpCompilerContext.prototype.setFailureHandler = function(entry) {
 	this.entryRef[entry]++;
-	this.text("stack.push({FailureEntry:" + entry + "});");
+	this.text("stack.push(['Failure'," + entry + "]);");
 };
 
 RegExpCompilerContext.prototype.setReturnHandler = function(entry) {
 	this.entryRef[entry]++;
-	this.text("stack.push({ReturnEntry:" + entry + "});");
+	this.text("stack.push(['Return'," + entry + "]);");
 };
