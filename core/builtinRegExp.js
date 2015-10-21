@@ -146,63 +146,21 @@ function State(endIndex, captures) {
 	return ({
 		endIndex : endIndex,
 		captures : captures,
-		pendingContinuation : undefined
 	});
 }
 
-function pending(c, x) {
-	assert(x.pendingContinuation === undefined, x);
-	if (c !== noContinuation) {
-		x.pendingContinuation = c;
-	}
-	return x;
-}
-
-function unpending(x) {
-	while (true) {
-		var c = x.pendingContinuation;
-		if (c === undefined) {
-			return x;
-		}
-		x.pendingContinuation = undefined;
-		x = c(x);
-	}
-}
-
 var theRegExpFactory = RegExpFactory();
-
-// temporarily moved here under compiler development
-var IgnoreCase;
-var Multiline;
-var Input;
-var InputLength;
 
 function noContinuation(x) {
 	return x;
 }
 
-function defaultMatcher(x, c) {
-	return pending(c, x);
-}
-
-defaultMatcher.compile = function(ctx, c) {
-	ctx.jump(c);
-};
-
 function Canonicalize(ch) {
-	if (IgnoreCase === false) return ch;
 	var u = ch.toUpperCase();
 	if (u.length !== 1) return ch;
 	var cu = u;
 	if ((toCharCode(ch) >= 128) && (toCharCode(cu) < 128)) return ch;
 	return cu;
-}
-
-function IsWordChar(e) {
-	if (e === -1 || e === InputLength) return false;
-	var c = Input[e];
-	if (c === '_' || isDigitChar(c)) return true;
-	return false;
 }
 
 function RegExpFactory() {
@@ -250,10 +208,12 @@ function RegExpFactory() {
 	var leftCapturingParentheses;
 	var oneCharacterOfCharSet;
 	var NCapturingParens;
+	var IgnoreCase;
+	var Multiline;
 
 	function evaluatePattern(regexp) {
-		IgnoreCase = regexp.ignoreCase; // compile time
-		Multiline = regexp.multiline; // compile time
+		IgnoreCase = regexp.ignoreCase;
+		Multiline = regexp.multiline;
 		NCapturingParens = regexp.NCapturingParens;
 
 		setPattern(regexp.source);
@@ -261,7 +221,7 @@ function RegExpFactory() {
 		var m = evaluateDisjunction();
 		if (current !== undefined) throw SyntaxError();
 		assert(NCapturingParens === leftCapturingParentheses);
-
+		/* original code
 		regexp.Match = function(str, index) {
 			Input = str;
 			InputLength = Input.length;
@@ -270,6 +230,27 @@ function RegExpFactory() {
 			var x = State(index, []);
 			return unpending(m(x, noContinuation));
 		};
+		*/
+		var ctx = new RegExpCompilerContext("Input, index");
+		ctx.text("var InputLength = Input.length;");
+		ctx.text("var x = State(index, []);");
+		ctx.text("var stack=[];");
+		ctx.text("var swidx=2;");
+		ctx.text("stack.push({Exit:true});");
+		ctx.text("Lwh:while(true){");
+		ctx.text("Lsw:switch(swidx){");
+		ctx.text("case 2:");
+		ctx.compileMatcher(m, 0);
+		ctx.text("default:assert(false,'must not reach here');");
+		ctx.text("}");
+		ctx.text("while(true){");
+		ctx.text("var f=stack.pop()");
+		ctx.text("if(f.Exit){return x;}");
+		ctx.text("if(f.ReturnEntry){swidx=f.ReturnEntry;break;}");
+		ctx.text("if(f.FailureEntry&&x===failure){swidx=f.FailureEntry;break;}");
+		ctx.text("}");
+		ctx.text("}");
+		regexp.Match = ctx.finish();
 	}
 
 	function evaluateDisjunction() {
@@ -293,24 +274,19 @@ function RegExpFactory() {
 		});
 	}
 
-	function concat(m1, m2) {
-		/* original code
-		return function(x, c) {
-			var d = function(y) {
-				return m2(y, c);
-			};
-			return m1(x, d);
-		};
-		*/
-		return RegExpCompilerContext.matcher(function(ctx, c) {
-			var L = ctx.newEntry();
-			ctx.compileMatcher(m1, L);
-			ctx.entry(L);
-			ctx.compileMatcher(m2, c);
-		});
-	}
-
+	/* original code
 	function evaluateAlternative() {
+		function defaultMatcher(x, c) {
+			return pending(c, x);
+		}
+		function concat(m1, m2) {
+			return function(x, c) {
+				var d = function(y) {
+					return m2(y, c);
+				};
+				return m1(x, d);
+			};
+		}
 		var m1 = defaultMatcher;
 		while (true) {
 			var m2 = evaluateTerm();
@@ -318,6 +294,32 @@ function RegExpFactory() {
 			var m1 = concat(m1, m2);
 		}
 		return m1;
+	}
+	*/
+
+	function evaluateAlternative() {
+		var chain = [];
+		while (true) {
+			var m = evaluateTerm();
+			if (m === undefined) break;
+			chain.push(m);
+		}
+		if (chain.length === 0) {
+			return RegExpCompilerContext.matcher(function(ctx, c) {
+				ctx.jump(c);
+			});
+		}
+		if (chain.length === 1) {
+			return chain[0];
+		}
+		return RegExpCompilerContext.matcher(function(ctx, c) {
+			for (var i = 0; i < chain.length - 1; i++) {
+				var L = ctx.newEntry();
+				ctx.compileMatcher(chain[i], L);
+				ctx.entry(L);
+			}
+			ctx.compileMatcher(chain[i], c);
+		});
 	}
 
 	function evaluateTerm() {
@@ -400,6 +402,7 @@ function RegExpFactory() {
 		});
 	}
 
+	/* original code
 	function RepeatMatcher(m, min, max, greedy, x, c, parenIndex, parenCount) {
 		if (max === 0) return pending(c, x);
 		if (min === 0 && greedy === true) return RepeatMatcher0Greedy(m, max, x, c, parenIndex, parenCount);
@@ -435,7 +438,9 @@ function RegExpFactory() {
 		if (z !== failure) return z;
 		return pending(c, x);
 	}
+	*/
 
+	/* original code
 	// optimized loop version
 	function RepeatMatcher0Greedy(m, max, x, c, parenIndex, parenCount) {
 		var stack = [];
@@ -470,6 +475,16 @@ function RegExpFactory() {
 		}
 		return pending(c, x);
 	}
+	*/
+
+	/* original code
+	function IsWordChar(e) {
+		if (e === -1 || e === InputLength) return false;
+		var c = Input[e];
+		if (c === '_' || isDigitChar(c)) return true;
+		return false;
+	}
+	*/
 
 	function evaluateAssertionTester() {
 		if (current === '^') {
@@ -485,10 +500,10 @@ function RegExpFactory() {
 			*/
 			return RegExpCompilerContext.tester(function(ctx) {
 				ctx.text("var e = x.endIndex;");
-				ctx.text("if (e === 0) var r = true;");
-				ctx.text("else if (Multiline === false) var r = false;");
-				ctx.text("else if (isLineTerminator(Input[e - 1])) var r= true;");
-				ctx.text("else var r= false;");
+				ctx.text("var r = (e === 0);");
+				if (Multiline) {
+					ctx.text("r = r || isLineTerminator(Input[e - 1]);");
+				}
 			});
 		}
 		if (current === '$') {
@@ -504,10 +519,10 @@ function RegExpFactory() {
 			*/
 			return RegExpCompilerContext.tester(function(ctx) {
 				ctx.text("var e = x.endIndex;");
-				ctx.text("if (e === InputLength) var r = true;");
-				ctx.text("else if (Multiline === false) var r = false;");
-				ctx.text("else if (isLineTerminator(Input[e])) var r= true;");
-				ctx.text("else var r= false;");
+				ctx.text("var r = (e === InputLength);");
+				if (Multiline) {
+					ctx.text("r = r || isLineTerminator(Input[e]);");
+				}
 			});
 		}
 		if (current === '\\' && lookahead === 'b') {
@@ -524,11 +539,9 @@ function RegExpFactory() {
 			*/
 			return RegExpCompilerContext.tester(function(ctx) {
 				ctx.text("var e = x.endIndex;");
-				ctx.text("var a = IsWordChar(e - 1);");
-				ctx.text("var b = IsWordChar(e);");
-				ctx.text("if (a === true && b === false) var r= true;");
-				ctx.text("else if (a === false && b === true) var r= true;");
-				ctx.text("else var r= false;");
+				ctx.text("var a = (e !== 0 && ((r=Input[e-1]) === '_' || isDigitChar(r)))");
+				ctx.text("var b = (e !== InputLength && ((r=Input[e]) === '_' || isDigitChar(r)))");
+				ctx.text("var r= (a !== b);");
 			});
 		}
 		if (current === '\\' && lookahead === 'B') {
@@ -545,11 +558,9 @@ function RegExpFactory() {
 			*/
 			return RegExpCompilerContext.tester(function(ctx) {
 				ctx.text("var e = x.endIndex;");
-				ctx.text("var a = IsWordChar(e - 1);");
-				ctx.text("var b = IsWordChar(e);");
-				ctx.text("if (a === true && b === false) var r= false;");
-				ctx.text("else if (a === false && b === true) var r= false;");
-				ctx.text("else var r= true;");
+				ctx.text("var a = (e !== 0 && ((r=Input[e-1]) === '_' || isDigitChar(r)))");
+				ctx.text("var b = (e !== InputLength && ((r=Input[e]) === '_' || isDigitChar(r)))");
+				ctx.text("var r= (a === b);");
 			});
 		}
 		return undefined;
@@ -740,7 +751,8 @@ function RegExpFactory() {
 
 	function oneElementCharSet(ch) {
 		oneCharacterOfCharSet = ch;
-		var cch = Canonicalize(ch);
+		if (IgnoreCase) var cch = Canonicalize(ch);
+		if (!IgnoreCase) var cch = ch;
 		/* original code
 		return function(cc) {
 			return cch === cc;
@@ -757,7 +769,7 @@ function RegExpFactory() {
 			var e = x.endIndex;
 			if (e === InputLength) return failure;
 			var ch = Input[e];
-			var cc = Canonicalize(ch);
+			var cc = CanonicalizeI(ch);
 			if (invert === false) {
 				if (A(cc) === false) return failure;
 			}
@@ -799,7 +811,7 @@ function RegExpFactory() {
 				};
 				*/
 				return RegExpCompilerContext.matcher(function(ctx, c) {
-					ctx.text("x=failure;break;");
+					ctx.failure();
 				});
 			}
 
@@ -813,7 +825,7 @@ function RegExpFactory() {
 				var f = e + len;
 				if (f > InputLength) return failure;
 				for (var i = 0; i < len; i++) {
-					if (Canonicalize(s[i]) !== Canonicalize(Input[e + i])) return failure;
+					if (CanonicalizeI(s[i]) !== CanonicalizeI(Input[e + i])) return failure;
 				}
 				var y = State(f, cap);
 				return pending(c, y);
@@ -847,7 +859,7 @@ function RegExpFactory() {
 			};
 			*/
 			return RegExpCompilerContext.matcher(function(ctx, c) {
-				ctx.text("x=failure;break;");
+				ctx.failure();
 			});
 		}
 		var A = oneElementCharSet(ch);
@@ -1277,5 +1289,28 @@ function RegExpFactory() {
 		this.message = "at " + currentPos;
 		this.pos = currentPos;
 	}
+
+	/* original code
+	function pending(c, x) {
+		assert(x.pendingContinuation === undefined, x);
+		if (c !== noContinuation) {
+			x.pendingContinuation = c;
+		}
+		return x;
+	}
+	*/
+
+	/* original code
+	function unpending(x) {
+		while (true) {
+			var c = x.pendingContinuation;
+			if (c === undefined) {
+				return x;
+			}
+			x.pendingContinuation = undefined;
+			x = c(x);
+		}
+	}
+	*/
 
 }

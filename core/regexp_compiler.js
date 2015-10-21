@@ -67,11 +67,10 @@ RegExpCompilerContext.matcher = function(compile) {
 			ctx.text("Lwh:while(true){");
 			ctx.text("Lsw:switch(swidx){");
 			ctx.text("case 2:");
-			compile(ctx, "1");
+			compile(ctx, 1);
 			ctx.text("case 1:");
 			ctx.text("var x=unpending(lastContinuation(x));");
-			ctx.text("case 0:");
-			ctx.text("break Lsw;");
+			ctx.text("break;");
 			ctx.text("default:assert(false,'must not reach here');");
 			ctx.text("}");
 			ctx.text("while(true){");
@@ -204,8 +203,7 @@ RegExpCompilerContext.prototype.newEntry = function() {
 
 RegExpCompilerContext.prototype.entry = function(entry) {
 	if (this.lastJump === entry) {
-		var texts = this.texts;
-		texts[texts.length - 1] = "// " + texts[texts.length - 1];
+		this.texts.length--;
 		this.entryRef[entry]--;
 	}
 	if (this.entryRef[entry] > 0) {
@@ -221,9 +219,17 @@ RegExpCompilerContext.prototype.entry = function(entry) {
 };
 
 RegExpCompilerContext.prototype.jump = function(entry) {
+	if (entry === 0) {
+		this.text("break Lsw;");
+		return;
+	}
 	this.entryRef[entry]++;
 	this.text("swidx=" + entry + ";continue Lwh;");
 	this.lastJump = entry;
+};
+
+RegExpCompilerContext.prototype.failure = function(condition) {
+	this.text("x=failure;break Lsw;");
 };
 
 RegExpCompilerContext.prototype.failure_if = function(condition) {
@@ -231,6 +237,10 @@ RegExpCompilerContext.prototype.failure_if = function(condition) {
 };
 
 RegExpCompilerContext.prototype.jump_if = function(condition, entry) {
+	if (entry === 0) {
+		this.text("if(" + condition + ")break Lsw;");
+		return;
+	}
 	this.entryRef[entry]++;
 	this.text("if(" + condition + "){swidx=" + entry + ";continue Lwh;}");
 	this.lastJump = entry;
