@@ -1,20 +1,25 @@
-#How It Works
+# How It Works
 
-##Deterministic interpreter
+TO BE DONE
 
-###Support for synchronous I/O
+## Deterministic interpreter
 
-##Recovery
+## Recovery
 
-###Checkpoint
+### Checkpoint
 
-###Roll forward
+### Roll forward
 
-###I/O Restart
+## Cluster
 
-##Cluster
+### Consistency
 
-###Consistency
+## I/O
 
-###Multiple I/O ports
+### I/O Restart
 
+### Support for synchronous I/O
+
+### Multiple I/O ports
+
+Copyright (c) 2015, Kotaro Endo.
