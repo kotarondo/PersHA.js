@@ -9,11 +9,11 @@ Emulator for process.binding interface.
 - *iomanager*  
 Persha's I/O management system.
 - *handler*  
-Node modules to handle I/O.
+Node modules to execute actual I/O requests.
 
-They are all written in javascript.
-*node-lib* and *bridge* are executed on PersHA's javascript interpreter(upper lands).
-*iomanager* and *handler* are executed on Node's javascript interpreter(lower lands).
+They are all written in javascript.  
+*node-lib* and *bridge* are executed on PersHA's javascript interpreter(upper lands).  
+*iomanager* and *handler* are executed on Node's javascript interpreter(lower lands).  
 
 
 ## I/O APIs
@@ -34,23 +34,12 @@ They are all written in javascript.
 - *node-lib* --- process.binding API ---> *bridge*
 - *bridge* --- IOPort API ---> *iomanager*
 - *iomanager* --- handler API ---> *handler*
-- *handler* --- process.binding API ---> *Node.js*
+- *handler* --- process.binding API ---> internal part of *Node.js*
 
 
 ## Five types of I/O
 
-Persha I/O system supports five types of I/O.
-
-- output-only
- - void func( ... )
-- asynchronous  
- - void func( ... , callback)
-- blocking  
- - var r = func( ... ) may throw Error
-- complex  
- - var r = func( ... , callback) may throw Error
-- listener  
- - void func( ... , listener)
+Persha's I/O system supports five types of I/O.
 
 |   | return | callback | IOPort API | handler API |
 |:---:|:---:|:---:|:---:|:---:|
@@ -59,5 +48,22 @@ Persha I/O system supports five types of I/O.
 | blocking | yes | no | syncIO | asyncIO |
 | complex | yes | yes | syncIO | syncIO |
 | listener | no | yes | open | open |
+
+The difference between asynchronous type and listener type is:
+- callback function of asynchronous type never be called twice.
+- callback function of listener type may be called more than once.
+
+Informal typedefs (Java and JavaScript mixture style):
+
+- output-only
+ - void func( ... )
+- asynchronous  
+ - void func( ... , callback )
+- blocking  
+ - var r = func( ... ) throws Exception
+- complex  
+ - var r = func( ... , callback ) throws Exception
+- listener  
+ - void setListener( listener )
 
 Copyright (c) 2015, Kotaro Endo.

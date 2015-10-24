@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/kotarondo/PersHA.js.svg?branch=master)](https://travis-ci.org/kotarondo/PersHA.js)
 [![npm version](https://badge.fury.io/js/persha.svg)](https://badge.fury.io/js/persha)
 
-PersHA.js is a persistent and higly available javascript engine. As a javascript interpreter, it has compatible functionality to Node.js. As it's non-functional features, the engine itself has persistence across restarts and can be configured as a part of highly available cluster of triple nodes.
+PersHA.js is a persistent and highly available javascript engine. As a javascript interpreter, it has compatible functionality to Node.js. As it's non-functional features, the engine itself has persistence across restarts and can be configured as a part of highly available cluster of triple nodes.
 
 PersHA.js is written in javascript, and works on Node.js.
 
@@ -12,7 +12,7 @@ PersHA.js is written in javascript, and works on Node.js.
 ```sh
 npm install -g persha
 ```
-Prerequisite: node v0.12.x, other versions do not work correctly.
+Prerequisite: node v0.12.x (with other versions it does not work correctly.)
 
 ## Starting
 
@@ -79,7 +79,7 @@ count 7
 > clearInterval(id)
 ```
 
-This is an another example showing persistence of the engine. All internal states including a value of 'x', a function 'y', and interval timer are persistent across restarts.
+This is an another example showing persistence of the engine. All internal states including a value of 'x', 'id', a function 'y', and interval timer are persistent across restarts.
 
 ## Practical Example
 
@@ -116,11 +116,11 @@ Hello 103
 
 This is a more practical example. In app.js, the express module is loaded and a web server is launched at port 3000. You can check web server's 'Hello' responses using curl command. After killing the engine, you cannot get any responses. But after restarting the engine, You can get 'Hello' responses again. Notice that number sequence in response messages continues because a variable 'x' is persistent across restarts.
 
-In general, any pure javascript module can be loaded in PersHA.js provided that the module has been installed in node_modules directory. Module search order is same as Node's one. Once a module is loaded in the engine, it won't be re-read from installed files even after restarting the engine. 
+In general, any pure javascript module can be loaded in PersHA.js provided that the module has been installed in node_modules directory. Module search order is same as Node's one. Once a module is loaded in the engine, it won't be re-read from files even after restarting the engine. 
 
 ## High Availability
 
-This feature is not supported in this version.
+This feature is not supported yet in current version.
 
 ## Multiple Instances
 
