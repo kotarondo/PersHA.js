@@ -45,8 +45,8 @@ function print_usage() {
 	console.log("Usage:");
 	console.log("    persha -init [main module]");
 	console.log("    persha -restart");
-	console
-			.log("  where data directory can be specified by the environment variable PERSHA_DATA which defaults to $HOME/.persha");
+	console.log("  where data directory can be specified by the environment variable PERSHA_DATA"
+			+ " which defaults to $HOME/.persha");
 }
 
 PERSHA_HOME = path.dirname(path.dirname(process.argv[1]));
@@ -72,6 +72,8 @@ if (cmd === '-init') {
 	node_init();
 }
 else if (cmd === '-restart') {
+	console.log("temporarily disabled");
+	process.exit(1);
 	if (!Journal_start()) {
 		console.log("ERROR: invalid: " + PERSHA_DATA);
 		process.exit(1);
@@ -84,17 +86,17 @@ else {
 }
 
 process.on('beforeExit', function() {
-	if (IOManager_state !== 'online') {
+	if (IOM_state !== 'online') {
 		return;
 	}
-	IOManager_evaluate("process.emit('beforeExit')", "");
+	consensus_evaluate("process.emit('beforeExit')", "");
 });
 
 process.on('exit', function() {
-	if (IOManager_state !== 'online') {
+	if (IOM_state !== 'online') {
 		return;
 	}
-	IOManager_evaluate("process.exit(0)", "");
+	consensus_evaluate("process.exit(0)", "");
 });
 
 process.on('uncaughtException', function(err) {

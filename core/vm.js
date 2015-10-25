@@ -35,6 +35,7 @@
 
 // ECMAScript 5.1: 15 Standard Built-in ECMAScript Objects
 
+var vm0;
 var vm;
 
 function define(obj, name, value) {
@@ -119,8 +120,9 @@ function vm_wrapper_ClassConstruct(argumentsList) {
 	}
 }
 
-function initializeVM() {
+function initializeVM(isSandbox) {
 	vm = VMObject(CLASSID_vm);
+	if (!isSandbox) vm0 = vm;
 	vm.Prototype = null;
 	vm.Extensible = true;
 
@@ -596,6 +598,10 @@ function initializeVM() {
 
 	defineFunction(vm.JSON, "parse", 2, JSON_parse);
 	defineFunction(vm.JSON, "stringify", 3, JSON_stringify);
+
+	if (isSandbox) {
+		return vm;
+	}
 
 	// ----------- Buffer ----------- 
 

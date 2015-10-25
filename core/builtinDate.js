@@ -331,7 +331,7 @@ function Date_Construct(argumentsList) {
 function Date_parse(thisValue, argumentsList) {
 	var string = argumentsList[0];
 	var s = ToString(string);
-	return IOManager_date_parse(s);
+	return consensus_date_parse(s);
 }
 
 function Date_UTC(thisValue, argumentsList) {
@@ -384,7 +384,7 @@ function Date_UTC(thisValue, argumentsList) {
 }
 
 function Date_now(thisValue, argumentsList) {
-	return IOManager_date_now(); // for deterministic behavior
+	return consensus_date_now();
 }
 
 function Date_prototype_toString(thisValue, argumentsList) {

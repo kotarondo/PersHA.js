@@ -1,6 +1,6 @@
 #!/bin/sh
 
-TIMEOUT=300
+TIMEOUT=10
 HEAD=$1
 
 killer(){
@@ -40,6 +40,8 @@ fi
 EXITCODE=$?
 [ $EXITCODE -ne 0 ] && echo EXITCODE=$EXITCODE >>results/$j && cat results/$j
 [ $EXITCODE -ne 0 ] && failed=1 && echo FAILED: $j >>results/failed && continue
+
+[ -e noRestartTest ] && continue
 
 timeout persha -restart $i >>results/$j 2>&1
 EXITCODE=$?

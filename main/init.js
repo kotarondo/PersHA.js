@@ -41,8 +41,10 @@ var BRIDGE_SCRIPT_DIR = PERSHA_HOME + "/bridge/";
 try {
 	initializeVM();
 
+	IOM_state = 'online'; //temporarily
+
 	var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + 'bridge.js').toString();
-	IOManager_evaluate(text, 'bridge/bridge.js');
+	Global_evaluateProgram(undefined, [ text, 'bridge/bridge.js' ]);
 
 	var bridge_list = [ 'process', 'fs', 'uv', 'os', 'http_parser', 'crypto',//
 	'tcp_wrap', 'udp_wrap', 'tty_wrap', 'timer_wrap', 'pipe_wrap', 'cares_wrap',//
@@ -51,7 +53,7 @@ try {
 		var n = bridge_list[i];
 		var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + n + '.js').toString();
 		text = "(function(){" + text + "})();";
-		IOManager_evaluate(text, 'bridge/' + n + '.js');
+		Global_evaluateProgram(undefined, [ text, 'bridge/' + n + '.js' ]);
 	}
 
 	var _process = Global_eval(undefined, [ "process" ]);
@@ -121,9 +123,8 @@ try {
 	}
 
 	var text = fs.readFileSync(NODE_INIT_SCRIPT_DIR + 'node.js').toString();
-	Journal_init();
-	IOManager_online();
-	IOManager_evaluate(text, 'node.js');
+	//Journal_init();
+	consensus_evaluate(text, 'node.js');
 
 } catch (e) {
 	if (isInternalError(e)) {
@@ -137,4 +138,5 @@ try {
 			console.error("FATAL: " + ToString(e));
 		}
 	}
+	process.reallyExit(1);
 }

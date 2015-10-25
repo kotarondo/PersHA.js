@@ -33,7 +33,7 @@ This function never throw any error.
 
 ### IOPort.prototype.close()
 
-This function closes *this* port.
+This function disables *listener* of *this* port.
 After this function has been called, *listener* will not be called on *this* port.
 This function always returns undefined and never throw any error.
 
@@ -86,11 +86,10 @@ This handler can return a value or can throw an exception which is ignored in ca
 This handler corresponds to the IOPort.prototype.syncIO/asyncIO function with a *callback* on a non-root port.
 This handler can return a value or can throw an exception which is ignored in case of IOPort.prototype.asyncIO although.
 
-### calling *listener* or *callback*synchronously 
+### calling *listener* synchronously 
 
-The *listener* or *callback* can be dispatched while a IOPort.prototype.syncIO is being called.
-In this case, these callbacks are synchronously dispatched in upper lands before the IOPort.prototype.syncIO returns.
-On the contrary, IOPort.prototype.asyncIO is never interrupted by callbacks even if the handler dispatches them synchronously on the call.
-In this case, these callbacks are called afterwards in upper lands.
+The *listener* can be dispatched while a IOPort.prototype.syncIO is being called.
+In this case, *listener* callbacks are synchronously dispatched in upper lands before the IOPort.prototype.syncIO returns.
+On the contrary, IOPort.prototype.asyncIO is never interrupted by *listener* callbacks even if the handler dispatches them synchronously on the call.
 
 Copyright (c) 2015, Kotaro Endo.

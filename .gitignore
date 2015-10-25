@@ -3,9 +3,10 @@
 bin/*.js
 main/enable*
 test/*/results
+test/*/stopIfFailed
+test/*/skipHeavyTests
+test/*/noRestartTest
 test/test262/*.json
 test/test262/sta.js
-test/test262/stopIfFailed
-test/test262/skipHeavyTests
 test/node/test/tmp
 test/v8bench/*.js

@@ -33,94 +33,6 @@
 
 'use strict';
 
-var taskDepth = 0;
-var taskPaused = true;
-var taskInterruptible = true;
-var taskResumedTime = 0;
-var taskAccumulatedTime = 0;
-var taskPendingError;
-
-function task_enter() {
-	assert(taskPaused && taskInterruptible);
-	taskPaused = false;
-	taskDepth++;
-	resumeTaskTimer();
-}
-
-function task_leave() {
-	assert(!taskPaused);
-	if (taskDepth === 1) {
-		runMicrotasks();
-	}
-	assert(!taskPaused);
-	taskPaused = true;
-	taskInterruptible = true;
-	taskDepth--;
-	pauseTaskTimer();
-	if (taskDepth === 0) {
-		if (IOManager_state === 'online' && taskAccumulatedTime >= RECOVERY_TARGET) {
-			taskAccumulatedTime = 0;
-			Journal_checkpoint();
-		}
-		runTasks();
-	}
-}
-
-function task_pause() {
-	assert(!taskPaused);
-	taskPaused = true;
-	taskInterruptible = false;
-	pauseTaskTimer();
-}
-
-function task_resume() {
-	assert(taskPaused);
-	taskPaused = false;
-	resumeTaskTimer();
-}
-
-function resumeTaskTimer() {
-	assert(taskResumedTime === 0);
-	taskResumedTime = Date.now();
-}
-
-function pauseTaskTimer() {
-	assert(taskResumedTime !== 0);
-	var a = Date.now() - taskResumedTime;
-	taskAccumulatedTime += (a > 0) ? a : 1;
-	taskResumedTime = 0;
-}
-
-var taskQueue = [];
-
-function scheduleTask(callback, arg) {
-	var task = ({
-		callback : callback,
-		arg : arg
-	});
-	taskQueue.push(task);
-	if (taskDepth === 0) {
-		runTasks();
-	}
-}
-
-var inRunTasks = false;
-
-function runTasks() {
-	assert(taskDepth === 0);
-	if (inRunTasks) {
-		return;
-	}
-	inRunTasks = true;
-	while (taskQueue.length > 0) {
-		var task = taskQueue[0];
-		task.callback(task.arg);
-		taskQueue.shift();
-		assert(taskDepth === 0);
-	}
-	inRunTasks = false;
-}
-
 var microtaskQueue = [];
 
 function scheduleMicrotask(callback, args) {
@@ -132,32 +44,25 @@ function scheduleMicrotask(callback, args) {
 }
 
 function runMicrotasks() {
-	assert(taskDepth === 1);
 	while (microtaskQueue.length > 0) {
 		var task = microtaskQueue[0];
 		var callback = task.callback;
 		var args = task.args;
 		assert(IsCallable(callback), callback);
 		assert(args instanceof Array, args);
-		var callingVM = vm;
-		vm = callback.vm;
-		assert(vm);
 		try {
-			callback._Call(undefined, args);
+			callback.Call(undefined, args);
 		} catch (e) {
+			if (isInternalError(e)) throw e;
 			task_callbackUncaughtError(e);
-		} finally {
-			vm = callingVM;
 		}
 		microtaskQueue.shift();
-		assert(taskDepth === 1);
 	}
 }
 
 function task_callbackUncaughtError(e) {
-	if (isInternalError(e)) throw e;
 	try {
-		var callback = vm.theGlobalObject.Get('_uncaughtErrorCallback');
+		var callback = vm0.theGlobalObject.Get('_uncaughtErrorCallback');
 		if (IsCallable(callback)) {
 			var caught = callback.Call(undefined, [ e ]);
 			if (caught) return;
@@ -166,7 +71,6 @@ function task_callbackUncaughtError(e) {
 		if (isInternalError(ee)) throw ee;
 		e = ee;
 	}
-	var err = "";
 	for (var i = 0; i < 3; i++) {
 		try {
 			if (Type(e) === TYPE_Object && e.HasProperty('stack')) {
@@ -175,13 +79,13 @@ function task_callbackUncaughtError(e) {
 			else {
 				var err = ToString(e);
 			}
+			break;
 		} catch (ee) {
 			if (isInternalError(ee)) throw ee;
 			e = ee;
 		}
 	}
-	if (IOManager_state !== 'recovery') {
-		console.error("Uncaught: " + err);
-		process.reallyExit(1);
+	if (err) {
+		consensus_uncaughtError(err);
 	}
 }

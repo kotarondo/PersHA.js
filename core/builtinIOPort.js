@@ -40,12 +40,16 @@ function IOPort_Call(thisValue, argumentsList) {
 function IOPort_Construct(argumentsList) {
 	var name = ToString(argumentsList[0]);
 	var port = VMObject(CLASSID_IOPort);
-	port.Prototype = vm.IOPort_prototype;
+	port.Prototype = vm0.IOPort_prototype;
 	port.Extensible = true;
 	defineFinal(port, 'root', null);
 	defineFinal(port, 'name', name);
 	return port;
 }
+
+var IOP_uniqueID = 0;
+var IOP_asyncCallbacks = {};
+var IOP_openPorts = {};
 
 function IOPort_prototype_open(thisValue, argumentsList) {
 	var root = thisValue;
@@ -57,46 +61,60 @@ function IOPort_prototype_open(thisValue, argumentsList) {
 	}
 	var root = thisValue;
 	var port = VMObject(CLASSID_IOPort);
-	port.Prototype = vm.IOPort_prototype;
+	port.Prototype = vm0.IOPort_prototype;
 	port.Extensible = true;
 	defineFinal(port, 'root', root);
 	defineFinal(port, 'name', name);
 	if (callback) {
-		task_pause();
-		IOManager_openPort(port, callback);
-		task_resume();
+		var txid = ++IOP_uniqueID;
+		IOP_openPorts[txid] = port;
+		port.txid = txid;
+		port.callback = callback;
 		callback.Call(undefined, [ IOPortError_Construct([ 'restart' ]), port ]);
 	}
+	IOM_bindPort(port);
 	return port;
 }
 
 function IOPort_prototype_close(thisValue, argumentsList) {
 	var port = thisValue;
 	if (Type(port) !== TYPE_Object || port.Class !== 'IOPort') throw VMTypeError();
-	task_pause();
-	IOManager_closePort(port);
-	task_resume();
+	var txid = port.txid;
+	if (txid) {
+		assert(IOP_openPorts[txid] === port);
+		delete IOP_openPorts[txid];
+		port.txid = undefined;
+		port.callback = undefined;
+	}
 }
 
 function IOPort_prototype_asyncIO(thisValue, argumentsList) {
 	var port = thisValue;
 	if (Type(port) !== TYPE_Object || port.Class !== 'IOPort') throw VMTypeError();
 	var func = ToString(argumentsList[0]);
-	var args = IOPort_unwrapArgs(argumentsList[1]);
+	var args = IOP_unwrapArgs(argumentsList[1]);
 	if (argumentsList.length >= 3) {
 		var callback = argumentsList[2];
 		if (IsCallable(callback) === false) throw VMTypeError();
 	}
-	task_pause();
-	IOManager_asyncIO(port, func, args, callback);
-	task_resume();
+	if (callback) {
+		var txid = ++IOP_uniqueID;
+		IOP_asyncCallbacks[txid] = callback;
+	}
+	IOM_bindPort(port);
+	if (port.handler && (callback || port.handler.syncIO) && (!callback || port.handler.asyncIO)) {
+		IOM_asyncIO(port, func, args, txid);
+	}
+	else {
+		consensus_completionError(txid, 'no handler');
+	}
 }
 
 function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	if (Type(thisValue) !== TYPE_Object || thisValue.Class !== 'IOPort') throw VMTypeError();
 	var port = thisValue;
 	var func = ToString(argumentsList[0]);
-	var args = IOPort_unwrapArgs(argumentsList[1]);
+	var args = IOP_unwrapArgs(argumentsList[1]);
 	if (IsCallable(argumentsList[2])) {
 		var callback = argumentsList[2];
 		var noRestartRetry = ToBoolean(argumentsList[3]);
@@ -104,68 +122,50 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	else {
 		var noRestartRetry = ToBoolean(argumentsList[2]);
 	}
-	taskPendingError = undefined;
 	do {
-		task_pause();
-		var entry = IOManager_syncIO(port, func, args, callback);
-		task_resume();
-	} while (!noRestartRetry && entry.error === 'restart');
-	if (entry.success) {
-		return IOPort_wrap(entry.value);
+		if (callback) {
+			var txid = ++IOP_uniqueID;
+		}
+		IOM_bindPort(port);
+		if (port.handler && (callback || port.handler.syncIO) && (!callback || port.handler.asyncIO)) {
+			var ret = IOM_syncIO(port, func, args, txid);
+		}
+		else {
+			consensus_completionError(txid, 'no handler');
+			var ret = consensus_errorInSyncIO('no handler');
+		}
+		if (callback && ret.type === 'return') {
+			IOP_asyncCallbacks[txid] = callback;
+		}
+	} while (!noRestartRetry && ret.type === 'error' && ret.value === 'restart');
+	if (ret.type === 'return') {
+		return ret.value;
 	}
-	if (taskPendingError) {
-		throw taskPendingError;
+	if (ret.type === 'throw') {
+		throw ret.value;
 	}
-	if (entry.error) {
-		assert(isPrimitiveValue(entry.error));
-		throw IOPortError_Construct([ entry.error ]);
-	}
-	throw IOPort_wrap(entry.exception);
+	assert(ret.type === 'error');
+	throw IOPortError_Construct([ ret.value ]);
 }
 
-function IOPort_portEvent(entry, callback, port) {
-	var callingVM = vm;
-	vm = callback.vm;
-	assert(vm);
-	try {
-		if (entry.error) {
-			assert(isPrimitiveValue(entry.error));
-			callback._Call(undefined, [ IOPortError_Construct([ entry.error ]), port ]);
-		}
-		else {
-			callback._Call(undefined, IOPort_wrapArgs(entry.value));
-		}
-	} catch (e) {
-		if (taskDepth >= 2) {
-			if (isInternalError(e)) throw e;
-			taskPendingError = e;
-			return IOPort_unwrap(e);
-		}
-		else {
-			task_callbackUncaughtError(e);
-		}
-	} finally {
-		vm = callingVM;
+function IOP_portEvent(txid, args) {
+	assert(args instanceof Array, args);
+	var port = IOP_openPorts[txid];
+	if (port === undefined) {
+		return;
 	}
+	var callback = port.callback;
+	return callback.Call(undefined, args);
 }
 
-function IOPort_completionEvent(entry, callback) {
-	var callingVM = vm;
-	vm = callback.vm;
-	assert(vm);
-	try {
-		if (entry.error) {
-			assert(isPrimitiveValue(entry.error));
-			callback._Call(undefined, [ IOPortError_Construct([ entry.error ]) ]);
-		}
-		else {
-			callback._Call(undefined, IOPort_wrapArgs(entry.value));
-		}
-	} catch (e) {
-		task_callbackUncaughtError(e);
-	} finally {
-		vm = callingVM;
+function IOP_completionEvent(txid, args) {
+	assert(args instanceof Array, args);
+	var callback = IOP_asyncCallbacks[txid];
+	if (callback === undefined) {
+		return;
 	}
+	delete IOP_asyncCallbacks[txid];
+	return callback.Call(undefined, args);
 }
 
 function IOPort_longname(port) {
@@ -177,15 +177,39 @@ function IOPort_longname(port) {
 	return IOPort_longname(root) + "." + name;
 }
 
-function IOPort_unwrapArgs(A) {
-	var a = IOPort_unwrap(A);
+function IOPortError_Call(thisValue, argumentsList) {
+	var message = argumentsList[0];
+	var obj = VMObject(CLASSID_Error);
+	obj.Prototype = vm0.IOPortError_prototype;
+	obj.Extensible = true;
+	obj.stackTrace = getStackTrace();
+	if (message !== undefined) {
+		define(obj, 'message', ToString(message));
+	}
+	return obj;
+}
+
+function IOPortError_Construct(argumentsList) {
+	var message = argumentsList[0];
+	var obj = VMObject(CLASSID_Error);
+	obj.Prototype = vm0.IOPortError_prototype;
+	obj.Extensible = true;
+	obj.stackTrace = getStackTrace();
+	if (message !== undefined) {
+		define(obj, 'message', ToString(message));
+	}
+	return obj;
+}
+
+function IOP_unwrapArgs(A) {
+	var a = IOP_unwrap(A);
 	if (a instanceof Array) {
 		return a;
 	}
 	return [ a ];
 }
 
-function IOPort_unwrap(A, stack) {
+function IOP_unwrap(A, stack) {
 	if (isPrimitiveValue(A)) {
 		return A;
 	}
@@ -238,160 +262,8 @@ function IOPort_unwrap(A, stack) {
 		if (P === 'caller' || P === 'callee' || P === 'arguments') {
 			continue;
 		}
-		a[P] = IOPort_unwrap(A.Get(P), stack);
+		a[P] = IOP_unwrap(A.Get(P), stack);
 	}
 	stack.pop();
 	return a;
-}
-
-function IOPort_prewrapArgs(a) {
-	var length = a.length;
-	var A = [];
-	for (var i = 0; i < length; i++) {
-		A[i] = IOPort_prewrap(a[i]);
-	}
-	return A;
-}
-
-function IOPort_prewrap(a, stack) {
-	if (isPrimitiveValue(a)) {
-		return a;
-	}
-	if (a instanceof Function) {
-		return undefined;
-	}
-	if (a instanceof Buffer) {
-		return new Buffer(a); // safeguard
-	}
-	if (a instanceof Date) {
-		return new Date(a.getTime());
-	}
-	if (stack === undefined) stack = [];
-	if (isIncluded(a, stack)) {
-		return null;
-	}
-	stack.push(a);
-	if (a instanceof Error) {
-		var message = String(a.message);
-		if (a instanceof TypeError) {
-			var A = new TypeError(message);
-		}
-		else if (a instanceof ReferenceError) {
-			var A = new ReferenceError(message);
-		}
-		else if (a instanceof RangeError) {
-			var A = new RangeError(message);
-		}
-		else if (a instanceof SyntaxError) {
-			var A = new SyntaxError(message);
-		}
-		else {
-			var A = new Error(message);
-		}
-	}
-	else if (a instanceof Array) {
-		var A = new Array(a.length);
-	}
-	else {
-		var A = {};
-	}
-	var keys = Object.getOwnPropertyNames(a);
-	var length = keys.length;
-	for (var i = 0; i < length; i++) {
-		var P = keys[i];
-		if (a.propertyIsEnumerable(P) === false) {
-			continue;
-		}
-		if (P === 'caller' || P === 'callee' || P === 'arguments') {
-			continue;
-		}
-		A[P] = IOPort_prewrap(a[P], stack);
-	}
-	stack.pop();
-	return A;
-}
-
-function IOPort_wrapArgs(a) {
-	var length = a.length;
-	var A = [];
-	for (var i = 0; i < length; i++) {
-		A[i] = IOPort_wrap(a[i]);
-	}
-	return A;
-}
-
-function IOPort_wrap(a) {
-	// must be compatible with FileOutputStream.readAny/writeAny
-	// i.e. IOPort_wrap == IOPort_wrap ○ readAny ○ writeAny
-	//      on IOPort_prewrap image
-	if (isPrimitiveValue(a)) {
-		return a;
-	}
-	if (a instanceof Function) {
-		return undefined;
-	}
-	if (a instanceof Buffer) {
-		var A = VMObject(CLASSID_Buffer);
-		A.Prototype = vm.Buffer_prototype;
-		A.Extensible = true;
-		A.wrappedBuffer = a;
-		defineFinal(A, 'length', a.length);
-		defineFinal(A, 'parent', A);
-		return A;
-	}
-	if (a instanceof Date) {
-		return Date_Construct([ a.getTime() ]);
-	}
-	if (a instanceof Error) {
-		var message = String(a.message);
-		if (a instanceof TypeError) {
-			var A = TypeError_Construct([ message ]);
-		}
-		else if (a instanceof ReferenceError) {
-			var A = ReferenceError_Construct([ message ]);
-		}
-		else if (a instanceof RangeError) {
-			var A = RangeError_Construct([ message ]);
-		}
-		else if (a instanceof SyntaxError) {
-			var A = SyntaxError_Construct([ message ]);
-		}
-		else {
-			var A = Error_Construct([ message ]);
-		}
-	}
-	else if (a instanceof Array) {
-		var A = Array_Construct([ a.length ]);
-	}
-	else {
-		var A = Object_Construct([]);
-	}
-	for ( var P in a) {
-		A.Put(P, IOPort_wrap(a[P]), false);
-	}
-	return A;
-}
-
-function IOPortError_Call(thisValue, argumentsList) {
-	var message = argumentsList[0];
-	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = vm.IOPortError_prototype;
-	obj.Extensible = true;
-	obj.stackTrace = getStackTrace();
-	if (message !== undefined) {
-		define(obj, 'message', ToString(message));
-	}
-	return obj;
-}
-
-function IOPortError_Construct(argumentsList) {
-	var message = argumentsList[0];
-	var obj = VMObject(CLASSID_Error);
-	obj.Prototype = vm.IOPortError_prototype;
-	obj.Extensible = true;
-	obj.stackTrace = getStackTrace();
-	if (message !== undefined) {
-		define(obj, 'message', ToString(message));
-	}
-	return obj;
 }
