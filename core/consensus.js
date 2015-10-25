@@ -48,7 +48,8 @@ function consensus_math_random() {
 }
 
 function consensus_uncaughtError(err) {
-	console.log("Uncaught: "+err);
+	console.log("Uncaught: " + err);
+	process.reallyExit(1);
 }
 
 function consensus_evaluate(text, filename) {

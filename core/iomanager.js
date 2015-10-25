@@ -44,7 +44,6 @@ function IOM_bindPort(port) {
 	if (port.handler !== undefined) {
 		return;
 	}
-	IOM_InSyncIO = false;
 	port.handler = null;
 	var root = port.Get('root');
 	var name = port.Get('name');
@@ -64,7 +63,9 @@ function IOM_bindPort(port) {
 		port.handler = root.handler.open(name, function() {
 			var args = Array.prototype.slice.call(arguments);
 			if (IOM_InSyncIO) {
+				IOM_InSyncIO = false;
 				consensus_portSyncCallback(port.txid, args);
+				IOM_InSyncIO = true;
 			}
 			else {
 				consensus_portAsyncCallback(port.txid, args);
@@ -78,7 +79,6 @@ function IOM_bindPort(port) {
 function IOM_asyncIO(port, func, args, txid) {
 	assert(IOM_state === 'online', IOM_state);
 	var handler = port.handler;
-	IOM_InSyncIO = false;
 	try {
 		if (!txid) {
 			handler.syncIO(func, args);

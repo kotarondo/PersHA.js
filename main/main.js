@@ -97,6 +97,7 @@ process.on('exit', function() {
 		return;
 	}
 	consensus_evaluate("process.exit(0)", "");
+	process.reallyExit(1);
 });
 
 process.on('uncaughtException', function(err) {
