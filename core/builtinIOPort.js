@@ -101,13 +101,7 @@ function IOPort_prototype_asyncIO(thisValue, argumentsList) {
 		var txid = ++IOP_uniqueID;
 		IOP_asyncCallbacks[txid] = callback;
 	}
-	IOM_bindPort(port);
-	if (port.handler && (callback || port.handler.syncIO) && (!callback || port.handler.asyncIO)) {
-		IOM_asyncIO(port, func, args, txid);
-	}
-	else {
-		consensus_completionError(txid, 'no handler');
-	}
+	IOM_asyncIO(port, func, args, txid);
 }
 
 function IOPort_prototype_syncIO(thisValue, argumentsList) {
@@ -126,14 +120,7 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 		if (callback) {
 			var txid = ++IOP_uniqueID;
 		}
-		IOM_bindPort(port);
-		if (port.handler && (callback || port.handler.syncIO) && (!callback || port.handler.asyncIO)) {
-			var ret = IOM_syncIO(port, func, args, txid);
-		}
-		else {
-			consensus_completionError(txid, 'no handler');
-			var ret = consensus_errorInSyncIO('no handler');
-		}
+		var ret = IOM_syncIO(port, func, args, txid);
 		if (callback && ret.type === 'return') {
 			IOP_asyncCallbacks[txid] = callback;
 		}
@@ -148,6 +135,16 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 	throw IOPortError_Construct([ ret.value ]);
 }
 
+function IOP_completionEvent(txid, args) {
+	assert(args instanceof Array, args);
+	var callback = IOP_asyncCallbacks[txid];
+	if (callback === undefined) {
+		return;
+	}
+	delete IOP_asyncCallbacks[txid];
+	return callback.Call(undefined, args);
+}
+
 function IOP_portEvent(txid, args) {
 	assert(args instanceof Array, args);
 	var port = IOP_openPorts[txid];
@@ -158,14 +155,10 @@ function IOP_portEvent(txid, args) {
 	return callback.Call(undefined, args);
 }
 
-function IOP_completionEvent(txid, args) {
-	assert(args instanceof Array, args);
-	var callback = IOP_asyncCallbacks[txid];
-	if (callback === undefined) {
-		return;
+function IOP_restartPorts() {
+	for ( var txid in IOP_openPorts) {
+		IOP_portEvent(txid, [ IOPort_Construct([ 'restart' ]) ]);
 	}
-	delete IOP_asyncCallbacks[txid];
-	return callback.Call(undefined, args);
 }
 
 function IOPort_longname(port) {

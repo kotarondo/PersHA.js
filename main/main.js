@@ -72,13 +72,11 @@ if (cmd === '-init') {
 	node_init();
 }
 else if (cmd === '-restart') {
-	console.log("temporarily disabled");
-	process.exit(1);
 	if (!Journal_start()) {
 		console.log("ERROR: invalid: " + PERSHA_DATA);
 		process.exit(1);
 	}
-	IOManager_start();
+	consensus_recovery();
 }
 else {
 	print_usage();

@@ -148,12 +148,12 @@ function writeSnapshot(l_ostream) {
 	for ( var name in systemProperties) {
 		mark(eval(name));
 	}
-	for ( var txid in IOManager_asyncCallbacks) {
-		var callback = IOManager_asyncCallbacks[txid];
+	for ( var txid in IOP_asyncCallbacks) {
+		var callback = IOP_asyncCallbacks[txid];
 		mark(callback);
 	}
-	for ( var txid in IOManager_openPorts) {
-		var port = IOManager_openPorts[txid];
+	for ( var txid in IOP_openPorts) {
+		var port = IOP_openPorts[txid];
 		mark(port);
 		mark(port.callback);
 	}
@@ -196,15 +196,15 @@ function writeSnapshot(l_ostream) {
 	ostream.writeString("");
 
 	ostream.writeString("IO");
-	ostream.writeInt(IOManager_uniqueID);
-	for ( var txid in IOManager_asyncCallbacks) {
-		var callback = IOManager_asyncCallbacks[txid];
+	ostream.writeInt(IOP_uniqueID);
+	for ( var txid in IOP_asyncCallbacks) {
+		var callback = IOP_asyncCallbacks[txid];
 		ostream.writeInt(ToNumber(txid));
 		ostream.writeValue(callback);
 	}
 	ostream.writeInt(0);
-	for ( var txid in IOManager_openPorts) {
-		var port = IOManager_openPorts[txid];
+	for ( var txid in IOP_openPorts) {
+		var port = IOP_openPorts[txid];
 		assert(ToNumber(txid) === port.txid);
 		ostream.writeInt(ToNumber(txid));
 		ostream.writeValue(port);
@@ -290,17 +290,17 @@ function readSnapshot(l_istream) {
 	}
 
 	istream.assert(istream.readString() === "IO");
-	IOManager_uniqueID = istream.readInt();
-	IOManager_asyncCallbacks = {};
-	IOManager_openPorts = {};
+	IOP_uniqueID = istream.readInt();
+	IOP_asyncCallbacks = {};
+	IOP_openPorts = {};
 	while (true) {
 		var txid = istream.readInt();
 		if (txid === 0) {
 			break;
 		}
 		var callback = istream.readValue();
-		IOManager_asyncCallbacks[txid] = callback;
-		istream.assert(txid <= IOManager_uniqueID);
+		IOP_asyncCallbacks[txid] = callback;
+		istream.assert(txid <= IOP_uniqueID);
 		istream.assert(IsCallable(callback));
 	}
 	while (true) {
@@ -310,16 +310,17 @@ function readSnapshot(l_istream) {
 		}
 		var port = istream.readValue();
 		var callback = istream.readValue();
-		IOManager_openPorts[txid] = port;
+		IOP_openPorts[txid] = port;
 		port.txid = txid;
 		port.callback = callback;
-		istream.assert(txid <= IOManager_uniqueID);
+		istream.assert(txid <= IOP_uniqueID);
 		istream.assert(port.ClassID == CLASSID_IOPort);
 		istream.assert(IsCallable(callback));
 	}
 
 	istream.assert(istream.readString() === "FINISH");
 	istream.assert(checkVM());
+	vm0 = vm;
 
 	//cleanup
 	for (var i = OBJID_BASE; i < allObjs.length; i++) {

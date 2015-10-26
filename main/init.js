@@ -41,8 +41,6 @@ var BRIDGE_SCRIPT_DIR = PERSHA_HOME + "/bridge/";
 try {
 	initializeVM();
 
-	IOM_state = 'online'; //temporarily
-
 	var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + 'bridge.js').toString();
 	Global_evaluateProgram(undefined, [ text, 'bridge/bridge.js' ]);
 
@@ -123,7 +121,8 @@ try {
 	}
 
 	var text = fs.readFileSync(NODE_INIT_SCRIPT_DIR + 'node.js').toString();
-	//Journal_init();
+	Journal_init();
+	consensus_recovery();
 	consensus_evaluate(text, 'node.js');
 
 } catch (e) {

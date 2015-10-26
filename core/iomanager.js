@@ -77,8 +77,15 @@ function IOM_bindPort(port) {
 }
 
 function IOM_asyncIO(port, func, args, txid) {
-	assert(IOM_state === 'online', IOM_state);
+	if (IOM_state !== 'online') {
+		return;
+	}
+	IOM_bindPort(port);
 	var handler = port.handler;
+	if (!handler || (!txid && !handler.syncIO) || (txid && !handler.asyncIO)) {
+		consensus_completionError(txid, 'no handler');
+		return;
+	}
 	try {
 		if (!txid) {
 			handler.syncIO(func, args);
@@ -95,8 +102,15 @@ function IOM_asyncIO(port, func, args, txid) {
 }
 
 function IOM_syncIO(port, func, args, txid) {
-	assert(IOM_state === 'online', IOM_state);
+	if (IOM_state !== 'online') {
+		return consensus_syncIO_recovery();
+	}
+	IOM_bindPort(port);
 	var handler = port.handler;
+	if (!handler || (!txid && !handler.syncIO) || (txid && !handler.asyncIO)) {
+		consensus_completionError(txid, 'no handler');
+		var ret = consensus_errorInSyncIO('no handler');
+	}
 	IOM_InSyncIO = true;
 	try {
 		if (!txid) {

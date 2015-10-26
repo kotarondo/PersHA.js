@@ -33,38 +33,79 @@
 
 'use strict';
 
-// temporarily
+// temporary implementation
 
-function consensus_date_now() {
-	return Date.now();
-}
-
-function consensus_date_parse(str) {
-	return Date.parse(str);
-}
-
-function consensus_math_random() {
-	return Math.random();
-}
-
-function consensus_uncaughtError(err) {
-	console.log("Uncaught: " + err);
-	process.reallyExit(1);
-}
-
-function consensus_evaluate(text, filename) {
-	try {
-		Global_evaluateProgram(undefined, [ text, filename ]);
-	} catch (e) {
-		if (isInternalError(e)) throw e;
-		task_callbackUncaughtError(e);
+function consensus_recovery() {
+	while (IOM_state !== 'online') {
+		var entry = Journal_read();
+		if (entry === undefined) {
+			IOM_state = 'online';
+			Journal_write({
+				type : 'online'
+			});
+			IOP_restartPorts();
+			for ( var txid in IOP_asyncCallbacks) {
+				consensus_completionError(txid, 'restart');
+			}
+			return;
+		}
+		switch (entry.type) {
+		case 'online':
+			IOP_restartPorts();
+			break;
+		case 'completionEvent':
+			var args = consensus_wrapArgs(entry.args);
+			try {
+				IOP_completionEvent(entry.txid, args);
+			} catch (e) {
+				if (isInternalError(e)) throw e;
+				task_callbackUncaughtError(e);
+			}
+			runMicrotasks();
+			break;
+		case 'completionError':
+			try {
+				IOP_completionEvent(entry.txid, [ IOPort_Construct([ entry.reason ]) ]);
+			} catch (e) {
+				if (isInternalError(e)) throw e;
+				task_callbackUncaughtError(e);
+			}
+			runMicrotasks();
+			break;
+		case 'portEvent':
+			var args = consensus_wrapArgs(entry.args);
+			try {
+				IOP_portEvent(entry.txid, args);
+			} catch (e) {
+				if (isInternalError(e)) throw e;
+				task_callbackUncaughtError(e);
+			}
+			runMicrotasks();
+			break;
+		case 'evaluate':
+			try {
+				Global_evaluateProgram(undefined, [ entry.text, entry.filename ]);
+			} catch (e) {
+				if (isInternalError(e)) throw e;
+				task_callbackUncaughtError(e);
+			}
+			runMicrotasks();
+			break;
+		default:
+			assert(false, entry);
+		}
 	}
-	runMicrotasks();
 }
 
 function consensus_completionCallback(txid, args) {
 	if (!txid) return;
 	process.nextTick(function() {
+		args = consensus_prewrapArgs(args);
+		Journal_write({
+			type : 'completionEvent',
+			txid : txid,
+			args : args,
+		});
 		args = consensus_wrapArgs(args);
 		try {
 			IOP_completionEvent(txid, args);
@@ -79,6 +120,11 @@ function consensus_completionCallback(txid, args) {
 function consensus_completionError(txid, reason) {
 	if (!txid) return;
 	process.nextTick(function() {
+		Journal_write({
+			type : 'completionError',
+			txid : txid,
+			reason : reason,
+		});
 		try {
 			IOP_completionEvent(txid, [ IOPort_Construct([ reason ]) ]);
 		} catch (e) {
@@ -92,6 +138,12 @@ function consensus_completionError(txid, reason) {
 function consensus_portAsyncCallback(txid, args) {
 	if (!txid) return;
 	process.nextTick(function() {
+		args = consensus_prewrapArgs(args);
+		Journal_write({
+			type : 'portEvent',
+			txid : txid,
+			args : args,
+		});
 		args = consensus_wrapArgs(args);
 		try {
 			IOP_portEvent(txid, args);
@@ -103,7 +155,84 @@ function consensus_portAsyncCallback(txid, args) {
 	});
 }
 
+function consensus_evaluate(text, filename) {
+	process.nextTick(function() {
+		Journal_write({
+			type : 'evaluate',
+			text : text,
+			filename : filename,
+		});
+		try {
+			Global_evaluateProgram(undefined, [ text, filename ]);
+		} catch (e) {
+			if (isInternalError(e)) throw e;
+			task_callbackUncaughtError(e);
+		}
+		runMicrotasks();
+	});
+}
+
+function consensus_syncIO_recovery() {
+	while (true) {
+		var entry = Journal_read();
+		if (entry === undefined) {
+			IOM_state = 'online';
+			Journal_write({
+				type : 'online'
+			});
+			IOP_restartPorts();
+			for ( var txid in IOP_asyncCallbacks) {
+				consensus_completionError(txid, 'restart');
+			}
+			Journal_write({
+				type : 'error',
+				reason : 'restart'
+			});
+			return {
+				type : 'error',
+				value : 'restart'
+			};
+		}
+		switch (entry.type) {
+		case 'online':
+			IOP_restartPorts();
+			continue;
+		case 'return':
+			var value = consensus_wrap(entry.value);
+			return {
+				type : 'return',
+				value : value
+			};
+		case 'throw':
+			var e = consensus_wrap(entry.e);
+			return {
+				type : 'throw',
+				value : e
+			};
+		case 'error':
+			return {
+				type : 'error',
+				value : entry.reason
+			};
+		case 'portEvent':
+			var args = consensus_wrapArgs(entry.args);
+			try {
+				IOP_portEvent(entry.txid, args);
+			} catch (e) {
+			}
+			break;
+		default:
+			assert(false, entry);
+		}
+	}
+}
+
 function consensus_returnFromSyncIO(value) {
+	value = consensus_prewrap(value);
+	Journal_write({
+		type : 'return',
+		value : value
+	});
 	value = consensus_wrap(value);
 	return {
 		type : 'return',
@@ -112,6 +241,11 @@ function consensus_returnFromSyncIO(value) {
 }
 
 function consensus_exceptionInSyncIO(e) {
+	e = consensus_prewrap(e);
+	Journal_write({
+		type : 'throw',
+		e : e
+	});
 	e = consensus_wrap(e);
 	return {
 		type : 'throw',
@@ -120,12 +254,24 @@ function consensus_exceptionInSyncIO(e) {
 }
 
 function consensus_errorInSyncIO(reason) {
-	//TODO
-	assert(false, reason);
+	Journal_write({
+		type : 'error',
+		reason : reason
+	});
+	return {
+		type : 'error',
+		value : reason
+	};
 }
 
 function consensus_portSyncCallback(txid, args) {
 	if (!txid) return;
+	args = consensus_prewrapArgs(args);
+	Journal_write({
+		type : 'portEvent',
+		txid : txid,
+		args : args,
+	});
 	args = consensus_wrapArgs(args);
 	try {
 		IOP_portEvent(txid, args);
@@ -133,6 +279,118 @@ function consensus_portSyncCallback(txid, args) {
 		e = IOP_unwrap(e);
 		throw e;
 	}
+}
+
+function consensus_date_now() {
+	if (IOM_state !== 'online') {
+		var entry = Journal_read();
+		if (entry !== undefined) {
+			assert(entry.now !== undefined, entry);
+			return entry.now;
+		}
+	}
+	var now = Date.now();
+	Journal_write({
+		now : now
+	});
+	return now;
+}
+
+function consensus_date_parse(str) {
+	if (IOM_state !== 'online') {
+		var entry = Journal_read();
+		if (entry !== undefined) {
+			assert(entry.parse !== undefined, entry);
+			return entry.parse;
+		}
+	}
+	var parse = Date.parse(str);
+	Journal_write({
+		parse : parse
+	});
+	return parse;
+}
+
+function consensus_math_random() {
+	if (IOM_state !== 'online') {
+		var entry = Journal_read();
+		if (entry !== undefined) {
+			assert(entry.random !== undefined, entry);
+			return entry.random;
+		}
+	}
+	var random = Math.random();
+	Journal_write({
+		random : random
+	});
+	return random;
+}
+
+function consensus_prewrapArgs(a) {
+	var length = a.length;
+	var A = [];
+	for (var i = 0; i < length; i++) {
+		A[i] = consensus_prewrap(a[i]);
+	}
+	return A;
+}
+
+function consensus_prewrap(a, stack) {
+	if (isPrimitiveValue(a)) {
+		return a;
+	}
+	if (a instanceof Function) {
+		return undefined;
+	}
+	if (a instanceof Buffer) {
+		return new Buffer(a); // safeguard
+	}
+	if (a instanceof Date) {
+		return new Date(a.getTime());
+	}
+	if (stack === undefined) stack = [];
+	if (isIncluded(a, stack)) {
+		return null;
+	}
+	stack.push(a);
+	if (a instanceof Error) {
+		var message = String(a.message);
+		if (a instanceof TypeError) {
+			var A = new TypeError(message);
+		}
+		else if (a instanceof ReferenceError) {
+			var A = new ReferenceError(message);
+		}
+		else if (a instanceof RangeError) {
+			var A = new RangeError(message);
+		}
+		else if (a instanceof SyntaxError) {
+			var A = new SyntaxError(message);
+		}
+		else {
+			var A = new Error(message);
+		}
+	}
+	else if (a instanceof Array) {
+		var A = new Array(a.length);
+	}
+	else {
+		var A = {};
+	}
+	var keys = Object.getOwnPropertyNames(a);
+	var length = keys.length;
+	for (var i = 0; i < length; i++) {
+		var P = keys[i];
+		if (a.propertyIsEnumerable(P) === false) {
+			continue;
+		}
+		if (P === 'caller' || P === 'callee' || P === 'arguments') {
+			continue;
+		}
+		A[P] = consensus_prewrap(a[P], stack);
+	}
+	stack.pop();
+	return A;
 }
 
 function consensus_wrapArgs(a) {
@@ -144,7 +402,7 @@ function consensus_wrapArgs(a) {
 	return A;
 }
 
-function consensus_wrap(a, stack) {
+function consensus_wrap(a) {
 	if (isPrimitiveValue(a)) {
 		return a;
 	}
@@ -163,11 +421,6 @@ function consensus_wrap(a, stack) {
 	if (a instanceof Date) {
 		return Date_Construct([ a.getTime() ]);
 	}
-	if (stack === undefined) stack = [];
-	if (isIncluded(a, stack)) {
-		return null;
-	}
-	stack.push(a);
 	if (a instanceof Error) {
 		var message = String(a.message);
 		if (a instanceof TypeError) {
@@ -192,87 +445,13 @@ function consensus_wrap(a, stack) {
 	else {
 		var A = Object_Construct([]);
 	}
-	var keys = Object.getOwnPropertyNames(a);
-	var length = keys.length;
-	for (var i = 0; i < length; i++) {
-		var P = keys[i];
-		if (a.propertyIsEnumerable(P) === false) {
-			continue;
-		}
-		if (P === 'caller' || P === 'callee' || P === 'arguments') {
-			continue;
-		}
-		A.Put(P, consensus_wrap(a[P], stack), false);
+	for ( var P in a) {
+		A.Put(P, consensus_wrap(a[P]), false);
 	}
-	stack.pop();
 	return A;
 }
 
-/*
-function IOManager_evaluate(text, filename) {
-	try {
-		Global_evaluateProgram(undefined, [ text, filename ]);
-	} catch (e) {
-		if (isInternalError(e)) throw e;
-		task_callbackUncaughtError(e);
-	}
-	task_leave();
+function consensus_uncaughtError(err) {
+	console.log("Uncaught: " + err);
+	process.reallyExit(1);
 }
-
-		while (true) {
-			var entry = Journal_read();
-			if (entry === undefined) {
-				IOManager_online();
-				var entry = {
-					type : 'return',
-					func : func,
-					error : 'restart'
-				};
-				Journal_write(entry);
-				return entry;
-			}
-			if (entry.type === 'return') {
-				assert(entry.func === func, entry);
-				if (callback && entry.success) {
-					IOManager_asyncCallbacks[txid] = callback;
-				}
-				return entry;
-			}
-			if (entry.type === 'portEvent') {
-				IOManager_portEvent(entry);
-				continue;
-			}
-			if (entry.type === 'evaluate') {
-				IOManager_evaluate(entry.text, entry.filename);
-				continue;
-			}
-			assert(false);
-		}
-	}
-
-function IOP_online() {
-	for ( var txid in IOP_openPorts) {
-		IOP_portEvent(txid, [IOPort_Construct(['restart'])]);
-	}
-	for ( var txid in IOP_asyncCallbacks) {
-		consensus_completionEvent(txid,  [IOPort_Construct(['restart'])]);
-	}
-}
-
-function task_loop() {
-		var entry = Journal_read();
-		if (entry === undefined) {
-			IOManager_online();
-			break;
-		}
-		if (entry.type === 'evaluate') {
-			IOManager_evaluate(entry.text, entry.filename);
-		}
-		else if (entry.type === 'completionEvent') {
-			IOManager_completionEvent(entry);
-		}
-		else {
-			IOManager_portEvent(entry);
-		}
-}
-*/
