@@ -35,155 +35,124 @@
 
 // temporary implementation
 
+var consensus_queue = [];
+var consensus_loop_scheduled = false;
+
+function consensus_schedule(entry) {
+	consensus_queue.push(entry);
+	if (!consensus_loop_scheduled) {
+		consensus_loop_scheduled = true;
+		process.nextTick(consensus_loop);
+	}
+}
+
+function consensus_loop() {
+	consensus_loop_scheduled = false;
+	while (consensus_queue.length > 0) {
+		var entry = consensus_queue.shift();
+		Journal_write(entry);
+		consensus_handler(entry);
+	}
+}
+
 function consensus_recovery() {
 	while (IOM_state !== 'online') {
 		var entry = Journal_read();
 		if (entry === undefined) {
-			IOM_state = 'online';
-			Journal_write({
-				type : 'online'
-			});
-			IOP_restartPorts();
 			for ( var txid in IOP_asyncCallbacks) {
 				consensus_completionError(txid, 'restart');
 			}
+			IOM_state = 'online';
+			var entry;
+			Journal_write(entry = {
+				type : 'online'
+			});
+			consensus_handler(entry);
 			return;
 		}
+		consensus_handler(entry);
+	}
+}
+
+function consensus_handler(entry) {
+	try {
 		switch (entry.type) {
 		case 'online':
 			IOP_restartPorts();
 			break;
 		case 'completionEvent':
 			var args = consensus_wrapArgs(entry.args);
-			try {
-				IOP_completionEvent(entry.txid, args);
-			} catch (e) {
-				if (isInternalError(e)) throw e;
-				task_callbackUncaughtError(e);
-			}
-			runMicrotasks();
+			IOP_completionEvent(entry.txid, args);
 			break;
 		case 'completionError':
-			try {
-				IOP_completionEvent(entry.txid, [ IOPort_Construct([ entry.reason ]) ]);
-			} catch (e) {
-				if (isInternalError(e)) throw e;
-				task_callbackUncaughtError(e);
-			}
-			runMicrotasks();
+			IOP_completionEvent(entry.txid, [ IOPort_Construct([ entry.reason ]) ]);
 			break;
 		case 'portEvent':
 			var args = consensus_wrapArgs(entry.args);
-			try {
-				IOP_portEvent(entry.txid, args);
-			} catch (e) {
-				if (isInternalError(e)) throw e;
-				task_callbackUncaughtError(e);
-			}
-			runMicrotasks();
+			IOP_portEvent(entry.txid, args);
 			break;
 		case 'evaluate':
-			try {
-				Global_evaluateProgram(undefined, [ entry.text, entry.filename ]);
-			} catch (e) {
-				if (isInternalError(e)) throw e;
-				task_callbackUncaughtError(e);
-			}
-			runMicrotasks();
+			Global_evaluateProgram(undefined, [ entry.text, entry.filename ]);
 			break;
 		default:
 			assert(false, entry);
 		}
+	} catch (e) {
+		if (isInternalError(e)) throw e;
+		task_callbackUncaughtError(e);
 	}
+	runMicrotasks();
 }
 
 function consensus_completionCallback(txid, args) {
 	if (!txid) return;
-	process.nextTick(function() {
-		args = consensus_prewrapArgs(args);
-		Journal_write({
-			type : 'completionEvent',
-			txid : txid,
-			args : args,
-		});
-		args = consensus_wrapArgs(args);
-		try {
-			IOP_completionEvent(txid, args);
-		} catch (e) {
-			if (isInternalError(e)) throw e;
-			task_callbackUncaughtError(e);
-		}
-		runMicrotasks();
+	consensus_schedule({
+		type : 'completionEvent',
+		txid : txid,
+		args : consensus_prewrapArgs(args),
 	});
 }
 
 function consensus_completionError(txid, reason) {
 	if (!txid) return;
-	process.nextTick(function() {
-		Journal_write({
-			type : 'completionError',
-			txid : txid,
-			reason : reason,
-		});
-		try {
-			IOP_completionEvent(txid, [ IOPort_Construct([ reason ]) ]);
-		} catch (e) {
-			if (isInternalError(e)) throw e;
-			task_callbackUncaughtError(e);
-		}
-		runMicrotasks();
+	consensus_schedule({
+		type : 'completionError',
+		txid : txid,
+		reason : reason,
 	});
 }
 
 function consensus_portAsyncCallback(txid, args) {
 	if (!txid) return;
-	process.nextTick(function() {
-		args = consensus_prewrapArgs(args);
-		Journal_write({
-			type : 'portEvent',
-			txid : txid,
-			args : args,
-		});
-		args = consensus_wrapArgs(args);
-		try {
-			IOP_portEvent(txid, args);
-		} catch (e) {
-			if (isInternalError(e)) throw e;
-			task_callbackUncaughtError(e);
-		}
-		runMicrotasks();
+	consensus_schedule({
+		type : 'portEvent',
+		txid : txid,
+		args : consensus_prewrapArgs(args),
 	});
 }
 
 function consensus_evaluate(text, filename) {
-	process.nextTick(function() {
-		Journal_write({
-			type : 'evaluate',
-			text : text,
-			filename : filename,
-		});
-		try {
-			Global_evaluateProgram(undefined, [ text, filename ]);
-		} catch (e) {
-			if (isInternalError(e)) throw e;
-			task_callbackUncaughtError(e);
-		}
-		runMicrotasks();
+	var entry;
+	Journal_write(entry = {
+		type : 'evaluate',
+		text : text,
+		filename : filename,
 	});
+	consensus_handler(entry);
 }
 
 function consensus_syncIO_recovery() {
 	while (true) {
 		var entry = Journal_read();
 		if (entry === undefined) {
+			for ( var txid in IOP_asyncCallbacks) {
+				consensus_completionError(txid, 'restart');
+			}
 			IOM_state = 'online';
 			Journal_write({
 				type : 'online'
 			});
 			IOP_restartPorts();
-			for ( var txid in IOP_asyncCallbacks) {
-				consensus_completionError(txid, 'restart');
-			}
 			Journal_write({
 				type : 'error',
 				reason : 'restart'

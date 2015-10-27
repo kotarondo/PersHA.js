@@ -157,7 +157,11 @@ function IOP_portEvent(txid, args) {
 
 function IOP_restartPorts() {
 	for ( var txid in IOP_openPorts) {
-		IOP_portEvent(txid, [ IOPort_Construct([ 'restart' ]) ]);
+		var port = IOP_openPorts[txid];
+		try {
+			IOP_portEvent(txid, [ IOPortError_Construct([ 'restart' ]), port ]);
+		} catch (e) {
+		}
 	}
 }
 
