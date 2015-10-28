@@ -36,10 +36,7 @@
 var fs = require('fs');
 
 function FileOutputStream(filename, openExists) {
-	var capacity = 8192;
-	var cacheLen = 0;
 	var position = 0;
-	var buffer = new Buffer(capacity);
 	if (openExists) {
 		var fd = fs.openSync(filename, 'r+');
 	}
@@ -52,13 +49,13 @@ function FileOutputStream(filename, openExists) {
 	}
 
 	function setPosition(pos) {
-		flush();
+		dos.flush();
 		position = pos;
 		fs.ftruncateSync(fd, position);
 	}
 
 	function close() {
-		flush();
+		dos.flush();
 		try {
 			fs.closeSync(fd);
 		} catch (e) {
@@ -71,142 +68,14 @@ function FileOutputStream(filename, openExists) {
 		fs.fsyncSync(fd);
 	}
 
-	function flush() {
-		assert(cacheLen <= capacity, cacheLen);
-		writeFully(fd, buffer, 0, cacheLen);
-		cacheLen = 0;
-	}
-
-	function putByte(x) {
-		if (cacheLen === capacity) {
-			flush();
+	function write(buffer) {
+		if (typeof buffer === "string") {
+			var l = fs.writeSync(fd, buffer, position);
+			position += l;
+			return true;
 		}
-		buffer[cacheLen++] = x;
-	}
-
-	function writeInt(x) {
-		assert((typeof x) === "number", x);
-		assert(floor(x) === x && x >= 0, x);
-		while (true) {
-			if (x < 128) {
-				putByte(x);
-				return;
-			}
-			putByte((x & 127) + 128);
-			x = x >>> 7;
-		}
-	}
-
-	function writeString(x) {
-		assert((typeof x) === "string");
-		var length = Buffer.byteLength(x);
-		writeInt(length);
-		if (capacity < cacheLen + length) {
-			flush();
-			if (capacity < length) {
-				var l = fs.writeSync(fd, x, position);
-				position += l;
-				assert(l === length);
-				return;
-			}
-		}
-		var l = buffer.write(x, cacheLen);
-		assert(l === length);
-		cacheLen += length;
-	}
-
-	function writeBuffer(x) {
-		assert(x instanceof Buffer);
-		var length = x.length;
-		writeInt(length);
-		if (capacity < cacheLen + length) {
-			flush();
-			if (capacity < length) {
-				writeFully(fd, x, 0, length);
-				return;
-			}
-		}
-		x.copy(buffer, cacheLen);
-		cacheLen += length;
-	}
-
-	function writeNumber(x) {
-		assert((typeof x) === "number");
-		if (capacity < cacheLen + 8) {
-			flush();
-		}
-		buffer.writeDoubleLE(x, cacheLen);
-		cacheLen += 8;
-	}
-
-	function writeAny(x) {
-		switch (typeof x) {
-		case "undefined":
-			writeInt(1);
-			return;
-		case "boolean":
-			writeInt((x === true) ? 2 : 3);
-			return;
-		case "number":
-			writeInt(4);
-			writeNumber(x);
-			return;
-		case "string":
-			writeInt(5);
-			writeString(x);
-			return;
-		}
-		if (x === null) {
-			writeInt(6);
-			return;
-		}
-		if (x instanceof Function) {
-			writeInt(1);
-			return;
-		}
-		if (x instanceof Buffer) {
-			writeInt(7);
-			writeBuffer(x);
-			return;
-		}
-		if (x instanceof Date) {
-			writeInt(8);
-			writeNumber(x.getTime());
-			return;
-		}
-		if (x instanceof Error) {
-			if (x instanceof TypeError) {
-				writeInt(91);
-			}
-			else if (x instanceof ReferenceError) {
-				writeInt(92);
-			}
-			else if (x instanceof RangeError) {
-				writeInt(93);
-			}
-			else if (x instanceof SyntaxError) {
-				writeInt(94);
-			}
-			else {
-				writeInt(9);
-			}
-			writeString(String(x.message));
-		}
-		else if (x instanceof Array) {
-			writeInt(10);
-			writeInt(x.length);
-		}
-		else {
-			writeInt(11);
-		}
-		for ( var P in x) {
-			writeString(P);
-			writeAny(x[P]);
-		}
-		writeString('');
-	}
-
-	function writeFully(fd, buffer, startPos, endPos) {
+		var startPos = 0;
+		var endPos = buffer.length;
 		for (var i = 0; i < 10000; i++) {
 			assert(startPos <= endPos, startPos);
 			if (startPos >= endPos) {
@@ -217,37 +86,37 @@ function FileOutputStream(filename, openExists) {
 			startPos += l;
 		}
 		throw Error("too many retries");
+		return true;
 	}
+
+	var dos = DataOutputStream({
+		write : write
+	});
 
 	return {
 		getPosition : getPosition,
 		setPosition : setPosition,
-		writeInt : writeInt,
-		writeString : writeString,
-		writeBuffer : writeBuffer,
-		writeNumber : writeNumber,
-		writeAny : writeAny,
-		flush : flush,
+		writeInt : dos.writeInt,
+		writeString : dos.writeString,
+		writeBuffer : dos.writeBuffer,
+		writeNumber : dos.writeNumber,
+		writeAny : dos.writeAny,
+		flush : dos.flush,
 		fsync : fsync,
 		close : close,
 	};
 }
 
 function FileInputStream(filename) {
-	var capacity = 8192;
-	var cacheOff = 0;
-	var cacheSize = 0;
 	var position = 0;
-	var buffer = new Buffer(capacity);
 	var fd = fs.openSync(filename, 'r');
 
 	function getPosition() {
-		return position - cacheSize + cacheOff;
+		return position - dis.getCacheRemain();
 	}
 
 	function setPosition(pos) {
-		cacheOff = 0;
-		cacheSize = 0;
+		dis.clearCache();
 		position = pos;
 	}
 
@@ -259,141 +128,7 @@ function FileInputStream(filename) {
 		fd = undefined;
 	}
 
-	function fill(length) {
-		if (cacheOff + length <= cacheSize) {
-			return;
-		}
-		assert(cacheOff <= cacheSize);
-		if (0 < cacheOff && cacheOff < cacheSize) {
-			buffer.copy(buffer, 0, cacheOff, cacheSize);
-		}
-		cacheSize -= cacheOff;
-		cacheOff = 0;
-		var l = readFully(fd, buffer, cacheSize, length, capacity);
-		cacheSize += l;
-		assert(length <= cacheSize && cacheSize <= capacity, cacheSize);
-	}
-
-	function getByte(x) {
-		fill(1);
-		return buffer[cacheOff++];
-	}
-
-	function readInt() {
-		var x = 0;
-		var s = 0;
-		while (true) {
-			var c = getByte();
-			if (c < 128) {
-				return x + (c << s);
-			}
-			x += (c - 128) << s;
-			s += 7;
-		}
-	}
-
-	function readString() {
-		var length = readInt();
-		if (length > capacity) {
-			var b = new Buffer(length);
-			if (cacheOff < cacheSize) {
-				buffer.copy(b, 0, cacheOff, cacheSize);
-			}
-			var cached = cacheSize - cacheOff;
-			var l = readFully(fd, b, cached, length, length);
-			assert(cached + l === length, l);
-			cacheOff = 0;
-			cacheSize = 0;
-			return b.toString();
-		}
-		fill(length);
-		var s = buffer.toString(null, cacheOff, cacheOff + length);
-		cacheOff += length;
-		return s;
-	}
-
-	function readBuffer() {
-		var length = readInt();
-		var b = new Buffer(length);
-		if (length > capacity) {
-			if (cacheOff < cacheSize) {
-				buffer.copy(b, 0, cacheOff, cacheSize);
-			}
-			var cached = cacheSize - cacheOff;
-			var l = readFully(fd, b, cached, length, length);
-			assert(cached + l === length, l);
-			cacheOff = 0;
-			cacheSize = 0;
-			return b;
-		}
-		fill(length);
-		buffer.copy(b, 0, cacheOff, cacheOff + length);
-		cacheOff += length;
-		return b;
-	}
-
-	function readNumber() {
-		fill(8);
-		var x = buffer.readDoubleLE(cacheOff);
-		cacheOff += 8;
-		return x;
-	}
-
-	function readAny() {
-		var type = readInt();
-		switch (type) {
-		case 1:
-			return undefined;
-		case 2:
-			return true;
-		case 3:
-			return false;
-		case 4:
-			return readNumber();
-		case 5:
-			return readString();
-		case 6:
-			return null;
-		case 7:
-			return readBuffer();
-		case 8:
-			return new Date(readNumber());
-		case 91:
-			var a = new TypeError(readString());
-			break;
-		case 92:
-			var a = new ReferenceError(readString());
-			break;
-		case 93:
-			var a = new RangeError(readString());
-			break;
-		case 94:
-			var a = new SyntaxError(readString());
-			break;
-		case 9:
-			var a = new Error(readString());
-			break;
-		case 10:
-			var a = [];
-			a.length = readInt();
-			break;
-		case 11:
-			var a = {};
-			break;
-		default:
-			throw Error("file broken: type=" + type);
-		}
-		while (true) {
-			var P = readString();
-			if (P === '') {
-				break;
-			}
-			a[P] = readAny();
-		}
-		return a;
-	}
-
-	function readFully(fd, buffer, startPos, minPos, capacity) {
+	function readFully(buffer, startPos, minPos, capacity) {
 		var transferred = 0;
 		for (var i = 0; i < 10000; i++) {
 			assert(startPos <= capacity, startPos);
@@ -411,14 +146,18 @@ function FileInputStream(filename) {
 		throw Error("too many retries");
 	}
 
+	var dis = DataInputStream({
+		readFully : readFully
+	});
+
 	return {
 		getPosition : getPosition,
 		setPosition : setPosition,
-		readInt : readInt,
-		readString : readString,
-		readBuffer : readBuffer,
-		readNumber : readNumber,
-		readAny : readAny,
+		readInt : dis.readInt,
+		readString : dis.readString,
+		readBuffer : dis.readBuffer,
+		readNumber : dis.readNumber,
+		readAny : dis.readAny,
 		close : close,
 	};
 }
