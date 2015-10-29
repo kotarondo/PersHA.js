@@ -33,8 +33,6 @@
 
 'use strict';
 
-var STRICT_CONFORMANCE = false;
-
 function assert(condition, info) {
 	if (!condition) {
 		debugger;
@@ -181,29 +179,6 @@ function isInternalError(x) {
 	if (x.Class !== undefined) return false;
 	debugger;
 	return true;
-}
-
-function isSnapshotObject(x) {
-	if (typeof x !== "object") {
-		return false;
-	}
-	if (x === null) {
-		return false;
-	}
-	return true;
-}
-
-function redirectException(e) {
-	if (e instanceof TypeError) {
-		throw VMTypeError(e.message);
-	}
-	if (e instanceof RangeError) {
-		throw VMRangeError(e.message);
-	}
-	if (e instanceof ReferenceError) {
-		throw VMReferenceError(e.message);
-	}
-	assert(false, e);
 }
 
 function compareNumber(a, b) {

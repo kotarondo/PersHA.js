@@ -128,6 +128,16 @@ var systemProperties = {
 	INSPECT_MAX_BYTES : undefined,
 };
 
+function isSnapshotObject(x) {
+	if (typeof x !== "object") {
+		return false;
+	}
+	if (x === null) {
+		return false;
+	}
+	return true;
+}
+
 function writeSnapshot(l_ostream) {
 	var allObjs = [];
 	allObjs.length = OBJID_BASE;

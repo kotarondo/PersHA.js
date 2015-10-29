@@ -787,3 +787,16 @@ function Buffer_FastPut(P, V, Throw) {
 	}
 	return default_Put.call(O, P, V, Throw);
 }
+
+function redirectException(e) {
+	if (e instanceof TypeError) {
+		throw VMTypeError(e.message);
+	}
+	if (e instanceof RangeError) {
+		throw VMRangeError(e.message);
+	}
+	if (e instanceof ReferenceError) {
+		throw VMReferenceError(e.message);
+	}
+	assert(false, e);
+}

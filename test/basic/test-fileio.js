@@ -44,7 +44,7 @@ function load(filename){
 	require('vm').runInThisContext(require('fs').readFileSync(filename).toString());
 }
 
-load('../../core/helper.js');
+load('../../main/helper.js');
 load('../../main/dataio.js');
 load('../../main/fileio.js');
 
