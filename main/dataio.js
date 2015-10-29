@@ -41,9 +41,8 @@ function DataOutputStream(stream) {
 
 	function flush() {
 		assert(cacheLen <= capacity, cacheLen);
-		if (!stream.write(buffer.slice(0, cacheLen))) {
-			buffer = new Buffer(capacity);
-		}
+		stream.write(buffer.slice(0, cacheLen));
+		buffer = new Buffer(capacity);
 		cacheLen = 0;
 	}
 
@@ -146,7 +145,8 @@ function DataOutputStream(stream) {
 		}
 		if (stack === undefined) stack = [];
 		if (isIncluded(x, stack)) {
-			return null;
+			writeInt(6);
+			return;
 		}
 		stack.push(x);
 		if (x instanceof Error) {
@@ -191,12 +191,18 @@ function DataOutputStream(stream) {
 		stack.pop();
 	}
 
+	function write(x) {
+		writeAny(x);
+		flush();
+	}
+
 	return {
 		writeInt : writeInt,
 		writeString : writeString,
 		writeBuffer : writeBuffer,
 		writeNumber : writeNumber,
 		writeAny : writeAny,
+		write : write,
 		flush : flush,
 	};
 }
@@ -231,7 +237,7 @@ function DataInputStream(stream) {
 		assert(length <= cacheSize && cacheSize <= capacity, cacheSize);
 	}
 
-	function getByte(x) {
+	function getByte() {
 		fill(1);
 		return buffer[cacheOff++];
 	}
@@ -331,8 +337,7 @@ function DataInputStream(stream) {
 			var a = new Error(readString());
 			break;
 		case 10:
-			var a = [];
-			a.length = readInt();
+			var a = new Array(readInt());
 			break;
 		case 11:
 			var a = {};
@@ -359,4 +364,206 @@ function DataInputStream(stream) {
 		readNumber : readNumber,
 		readAny : readAny,
 	};
+}
+
+function OnDataInput(stream, callback) {
+	var cacheOff = 0;
+	var cacheSize = 0;
+	var buffer;
+	var pending = [];
+	var stack = [];
+	var gValue;
+	gCall(main);
+
+	function gCall(f) {
+		stack.push({
+			next : 0
+		});
+		stack.push(f);
+		return true;
+	}
+
+	function gReturn(v) {
+		stack.length -= 2;
+		gValue = v;
+		return true;
+	}
+
+	stream.on('data', function(data) {
+		if (data.length === 0) return;
+		if (buffer) {
+			pending.push(data);
+		}
+		else {
+			buffer = data;
+		}
+		cacheSize += data.length;
+		do {
+			var f = stack[stack.length - 1];
+			var ctx = stack[stack.length - 2];
+		} while (f(ctx));
+	});
+
+	function pack() {
+		while (buffer && cacheOff >= buffer.length) {
+			cacheOff -= buffer.length;
+			cacheSize -= buffer.length;
+			buffer = pending.shift();
+		}
+	}
+
+	function readCache(len) {
+		var buf = new Buffer(len);
+		var off = 0;
+		while (off < len) {
+			var l = buffer.length - cacheOff;
+			if (len < off + l) {
+				l = len - off;
+			}
+			buffer.copy(buf, off, cacheOff, cacheOff + l);
+			off += l;
+			cacheOff += l;
+			pack();
+		}
+		return buf;
+	}
+
+	function getByte(ctx) {
+		if (cacheSize < cacheOff + 1) return false;
+		gReturn(buffer[cacheOff++]);
+		pack();
+		return true;
+	}
+
+	function readInt(ctx) {
+		switch (ctx.next) {
+		case 0:
+			ctx.x = 0;
+			ctx.s = 1;
+			return ctx.next = 1, gCall(getByte);
+		case 1:
+			var c = gValue;
+			if (c < 128) {
+				return gRetrun(ctx.x + c * ctx.s);
+			}
+			ctx.x += (c - 128) * ctx.s;
+			ctx.s *= 128;
+			return ctx.next = 1, gCall(getByte);
+		}
+		assert(false, ctx);
+	}
+
+	function readString(ctx) {
+		switch (ctx.next) {
+		case 0:
+			return ctx.next = 1, gCall(readInt);
+		case 1:
+			var length = gValue;
+			if (cacheSize < cacheOff + length) return false;
+			return gReturn(readCache(length).toString());
+		}
+		assert(false, ctx);
+	}
+
+	function readBuffer(ctx) {
+		switch (ctx.next) {
+		case 0:
+			return ctx.next = 1, gCall(readInt);
+		case 1:
+			var length = gValue;
+			if (cacheSize < cacheOff + length) return false;
+			return gReturn(readCache(length));
+		}
+		assert(false, ctx);
+	}
+
+	function readNumber(ctx) {
+		if (cacheSize < cacheOff + 8) return false;
+		return gReturn(readCache(8).readDoubleLE(cacheOff));
+	}
+
+	function readAny(ctx) {
+		switch (ctx.next) {
+		case 0:
+			return ctx.next = 1, gCall(readInt);
+		case 1:
+			ctx.type = gValue;
+			switch (ctx.type) {
+			case 1:
+				return gReturn(undefined);
+			case 2:
+				return gReturn(true);
+			case 3:
+				return gReturn(false);
+			case 4:
+				return gReturn(), gCall(readNumber);
+			case 5:
+				return gReturn(), gCall(readString);
+			case 6:
+				return gReturn(null);
+			case 7:
+				return gReturn(), gCall(readBuffer);
+			case 8:
+				return ctx.next = 2, gCall(readNumber);
+			case 91:
+			case 92:
+			case 93:
+			case 94:
+			case 9:
+				return ctx.next = 2, gCall(readString);
+			case 10:
+				return ctx.next = 2, gCall(readInt);
+			}
+		case 2:
+			switch (ctx.type) {
+			case 8:
+				return gReturn(new Date(gValue));
+			case 91:
+				ctx.a = new TypeError(gValue);
+				break;
+			case 92:
+				ctx.a = new ReferenceError(gValue);
+				break;
+			case 93:
+				ctx.a = new RangeError(gValue);
+				break;
+			case 94:
+				ctx.a = new SyntaxError(gValue);
+				break;
+			case 9:
+				ctx.a = new Error(gValue);
+				break;
+			case 10:
+				ctx.a = new Array(gValue);
+				break;
+			case 11:
+				var a = {};
+				break;
+			default:
+				assert(false, ctx);
+			}
+			return ctx.next = 3, gCall(readString);
+		case 3:
+			ctx.P = gValue;
+			if (ctx.P === '') {
+				return gReturn(ctx.a);
+			}
+			return ctx.next = 4, gCall(readAny);
+		case 4:
+			ctx.a[ctx.P] = gValue;
+			return ctx.next = 3, gCall(readString);
+		}
+		assert(false, ctx);
+	}
+
+	function main(ctx) {
+		switch (ctx.next) {
+		case 0:
+			return ctx.next = 1, gCall(readAny);
+		case 1:
+			callback(gValue);
+			return ctx.next = 1, gCall(readAny);
+		}
+		assert(false, ctx);
+	}
 }

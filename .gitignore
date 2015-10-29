@@ -3,6 +3,7 @@
 bin/*.js
 main/enable*
 test/*/results
+test/*/tmp
 test/*/stopIfFailed
 test/*/skipHeavyTests
 test/*/noRestartTest

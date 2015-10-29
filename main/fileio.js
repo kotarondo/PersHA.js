@@ -72,7 +72,7 @@ function FileOutputStream(filename, openExists) {
 		if (typeof buffer === "string") {
 			var l = fs.writeSync(fd, buffer, position);
 			position += l;
-			return true;
+			return;
 		}
 		var startPos = 0;
 		var endPos = buffer.length;
@@ -86,7 +86,6 @@ function FileOutputStream(filename, openExists) {
 			startPos += l;
 		}
 		throw Error("too many retries");
-		return true;
 	}
 
 	var dos = DataOutputStream({
@@ -101,6 +100,7 @@ function FileOutputStream(filename, openExists) {
 		writeBuffer : dos.writeBuffer,
 		writeNumber : dos.writeNumber,
 		writeAny : dos.writeAny,
+		write : dos.write,
 		flush : dos.flush,
 		fsync : fsync,
 		close : close,
