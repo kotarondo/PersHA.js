@@ -28,7 +28,9 @@
   "engines": {
     "node": "0.12.x"
   },
-  "dependencies": {},
+  "dependencies": {
+    "blocking-socket": ">= 0.1.0"
+  },
   "devDependencies": {},
   "directories": {},
   "scripts": {
