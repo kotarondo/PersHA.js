@@ -444,7 +444,7 @@ function OnDataInput(stream, callback) {
 		case 1:
 			var c = gValue;
 			if (c < 128) {
-				return gRetrun(ctx.x + c * ctx.s);
+				return gReturn(ctx.x + c * ctx.s);
 			}
 			ctx.x += (c - 128) * ctx.s;
 			ctx.s *= 128;
@@ -479,7 +479,7 @@ function OnDataInput(stream, callback) {
 
 	function readNumber(ctx) {
 		if (cacheSize < cacheOff + 8) return false;
-		return gReturn(readCache(8).readDoubleLE(cacheOff));
+		return gReturn(readCache(8).readDoubleLE(0));
 	}
 
 	function readAny(ctx) {
@@ -537,7 +537,7 @@ function OnDataInput(stream, callback) {
 				ctx.a = new Array(gValue);
 				break;
 			case 11:
-				var a = {};
+				ctx.a = {};
 				break;
 			default:
 				assert(false, ctx);
