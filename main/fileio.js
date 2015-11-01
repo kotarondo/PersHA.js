@@ -128,14 +128,14 @@ function FileInputStream(filename) {
 		fd = undefined;
 	}
 
-	function readFully(buffer, startPos, minPos, capacity) {
+	function readFully(buffer, startPos, minPos) {
 		var transferred = 0;
 		for (var i = 0; i < 10000; i++) {
-			assert(startPos <= capacity, startPos);
+			assert(startPos <= buffer.length, startPos);
 			if (minPos <= startPos) {
 				return transferred;
 			}
-			var l = fs.readSync(fd, buffer, startPos, capacity - startPos, position);
+			var l = fs.readSync(fd, buffer, startPos, buffer.length - startPos, position);
 			if (l === 0) {
 				throw Error("end of file");
 			}

@@ -232,7 +232,7 @@ function DataInputStream(stream) {
 		}
 		cacheSize -= cacheOff;
 		cacheOff = 0;
-		var l = stream.readFully(buffer, cacheSize, length, capacity);
+		var l = stream.readFully(buffer, cacheSize, length);
 		cacheSize += l;
 		assert(length <= cacheSize && cacheSize <= capacity, cacheSize);
 	}
@@ -263,7 +263,7 @@ function DataInputStream(stream) {
 				buffer.copy(b, 0, cacheOff, cacheSize);
 			}
 			var cached = cacheSize - cacheOff;
-			var l = stream.readFully(b, cached, length, length);
+			var l = stream.readFully(b, cached, length);
 			assert(cached + l === length, l);
 			cacheOff = 0;
 			cacheSize = 0;
@@ -283,7 +283,7 @@ function DataInputStream(stream) {
 				buffer.copy(b, 0, cacheOff, cacheSize);
 			}
 			var cached = cacheSize - cacheOff;
-			var l = stream.readFully(b, cached, length, length);
+			var l = stream.readFully(b, cached, length);
 			assert(cached + l === length, l);
 			cacheOff = 0;
 			cacheSize = 0;

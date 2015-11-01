@@ -26,7 +26,11 @@ rm -rf tmp
 mkdir -p tmp
 failed=0
 
-for i in *.js
+node ./echo-server &
+ECHO_SERVER_PID=$!
+npm install blocking-socket
+
+for i in test-*.js
 do
 f=${i##*/}
 j=${f%%.js}
@@ -37,6 +41,8 @@ EXITCODE=$?
 [ $EXITCODE -ne 0 ] && failed=1 && echo FAILED: $j >>results/failed && continue
 
 done
+
+kill $ECHO_SERVER_PID
 
 cat results/failed
 exit $failed
