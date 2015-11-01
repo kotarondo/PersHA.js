@@ -85,9 +85,9 @@ function Journal_start() {
 	}
 	Journal_currentFileNo = maxFileNo;
 	Journal_currentGen = maxGen;
-	Journal_readCheckpointHeader();
-	readSnapshot(Journal_inputStream);
-	Journal_readLogHeader();
+	//Journal_readCheckpointHeader();
+	//readSnapshot(Journal_inputStream);
+	//Journal_readLogHeader();
 	return true;
 }
 
@@ -98,7 +98,6 @@ function Journal_checkpoint() {
 	Journal_writeCheckpointHeader();
 	writeSnapshot(Journal_outputStream);
 	Journal_writeLogHeader();
-	taskAccumulatedTime = 0;
 }
 
 function Journal_init() {
@@ -109,9 +108,9 @@ function Journal_init() {
 	Journal_currentFileNo = 0;
 	Journal_currentGen = 1;
 	Journal_clearLogHeader();
-	Journal_writeCheckpointHeader();
-	writeSnapshot(Journal_outputStream);
-	Journal_writeLogHeader();
+	//Journal_writeCheckpointHeader();
+	//writeSnapshot(Journal_outputStream);
+	//Journal_writeLogHeader();
 }
 
 function Journal_readCheckpointHeader() {

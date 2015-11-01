@@ -33,45 +33,43 @@
 
 'use strict';
 
-var bs = require('blocking-socket');
+var net = require('net');
 
-function BlockingSocketOutputStream(fd) {
-	function write(buffer) {
-		var transferred = 0;
-		while (transferred < buffer.length) {
-			var l = bs.send(fd, buffer.slice(transferred));
-			if (l < 0) {
-				throw new Error("send error");
+var serverA = net.Server();
+var async_event_queue = [];
+
+serverA.on('connection', function(conn) {
+	var online = false;
+	var clientWaiting = false;
+	var dos = DataOutputStream(conn);
+
+	OnDataInput(conn, function(entry) {
+		if (entry.type === 'getNextEvent') {
+			assert(!clientWaiting);
+			if (!online) {
+				//TODO Journal_read();
+				online = true;
+				dos.write({
+					type : 'online'
+				});
 			}
-			transferred += l;
-			assert(transferred <= buffer.length, l);
+			else if (async_event_queue.length === 0) {
+				clientWaiting = true;
+			}
+			else {
+				entry = async_event_queue.shift();
+				//TODO Journal_write(entry);
+				dos.write(entry);
+			}
 		}
-	}
-
-	return DataOutputStream({
-		write : write
-	});
-}
-
-function BlockingSocketInputStream(fd) {
-	function readFully(buffer, startPos, minPos) {
-		var transferred = 0;
-		while (true) {
-			assert(startPos <= buffer.length, startPos);
-			if (minPos <= startPos) {
-				return transferred;
-			}
-			var l = bs.recv(fd, buffer.slice(startPos));
-			if (l <= 0) {
-				throw new Error("recv error");
-			}
-			startPos += l;
-			transferred += l;
+		else if (clientWaiting) {
+			assert(async_event_queue.length === 0, async_event_queue);
+			clientWaiting = false;
+			//TODO Journal_write(entry);
+			dos.write(entry);
 		}
-		throw Error("too many retries");
-	}
-
-	return DataInputStream({
-		readFully : readFully
+		else {
+			async_event_queue.push(entry);
+		}
 	});
-}
+});

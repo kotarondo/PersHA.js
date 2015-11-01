@@ -121,8 +121,6 @@ try {
 	}
 
 	var text = fs.readFileSync(NODE_INIT_SCRIPT_DIR + 'node.js').toString();
-	Journal_init();
-	consensus_recovery();
 	consensus_evaluate(text, 'node.js');
 
 } catch (e) {

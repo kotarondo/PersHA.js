@@ -142,7 +142,7 @@ function IOP_completionEvent(txid, args) {
 		return;
 	}
 	delete IOP_asyncCallbacks[txid];
-	return callback.Call(undefined, args);
+	callback.Call(undefined, args);
 }
 
 function IOP_portEvent(txid, args) {
@@ -152,7 +152,7 @@ function IOP_portEvent(txid, args) {
 		return;
 	}
 	var callback = port.callback;
-	return callback.Call(undefined, args);
+	callback.Call(undefined, args);
 }
 
 function IOP_restartPorts() {
@@ -263,4 +263,62 @@ function IOP_unwrap(A, stack) {
 	}
 	stack.pop();
 	return a;
+}
+
+function IOP_wrapArgs(a) {
+	var length = a.length;
+	var A = [];
+	for (var i = 0; i < length; i++) {
+		A[i] = IOP_wrap(a[i]);
+	}
+	return A;
+}
+
+function IOP_wrap(a) {
+	if (isPrimitiveValue(a)) {
+		return a;
+	}
+	if (a instanceof Function) {
+		return undefined;
+	}
+	if (a instanceof Buffer) {
+		var A = VMObject(CLASSID_Buffer);
+		A.Prototype = vm.Buffer_prototype;
+		A.Extensible = true;
+		A.wrappedBuffer = a;
+		defineFinal(A, 'length', a.length);
+		defineFinal(A, 'parent', A);
+		return A;
+	}
+	if (a instanceof Date) {
+		return Date_Construct([ a.getTime() ]);
+	}
+	if (a instanceof Error) {
+		var message = String(a.message);
+		if (a instanceof TypeError) {
+			var A = TypeError_Construct([ message ]);
+		}
+		else if (a instanceof ReferenceError) {
+			var A = ReferenceError_Construct([ message ]);
+		}
+		else if (a instanceof RangeError) {
+			var A = RangeError_Construct([ message ]);
+		}
+		else if (a instanceof SyntaxError) {
+			var A = SyntaxError_Construct([ message ]);
+		}
+		else {
+			var A = Error_Construct([ message ]);
+		}
+	}
+	else if (a instanceof Array) {
+		var A = Array_Construct([ a.length ]);
+	}
+	else {
+		var A = Object_Construct([]);
+	}
+	for ( var P in a) {
+		A.Put(P, IOP_wrap(a[P]), false);
+	}
+	return A;
 }

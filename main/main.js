@@ -33,13 +33,8 @@
 
 'use strict'
 
-global.require = require;
-global.PERSHA_HOME = undefined;
-global.PERSHA_DATA = undefined;
-
 var path = require('path');
 var fs = require('fs');
-var vm = require('vm');
 
 function print_usage() {
 	console.log("Usage:");
@@ -49,8 +44,8 @@ function print_usage() {
 			+ " which defaults to $HOME/.persha");
 }
 
-PERSHA_HOME = path.dirname(path.dirname(process.argv[1]));
-PERSHA_DATA = process.env.PERSHA_DATA;
+var PERSHA_HOME = path.dirname(path.dirname(process.argv[1]));
+var PERSHA_DATA = process.env.PERSHA_DATA;
 if (PERSHA_DATA[0] !== '/') {
 	console.log("ERROR: PERSHA_DATA must be absolute path: " + PERSHA_DATA);
 	process.exit(1);
@@ -60,8 +55,6 @@ if (!fs.existsSync(PERSHA_DATA)) {
 	process.exit(1);
 }
 
-vm.runInThisContext(fs.readFileSync(PERSHA_HOME + "/bin/core.js").toString(), "core.js");
-
 var cmd = process.argv[2];
 if (cmd === '-init') {
 	fs.readdirSync(PERSHA_DATA).forEach(function(file) {
@@ -69,36 +62,31 @@ if (cmd === '-init') {
 			fs.unlinkSync(PERSHA_DATA + "/" + file);
 		}
 	});
-	node_init();
+	Journal_init();
 }
 else if (cmd === '-restart') {
 	if (!Journal_start()) {
 		console.log("ERROR: invalid: " + PERSHA_DATA);
 		process.exit(1);
 	}
-	consensus_recovery();
 }
 else {
 	print_usage();
 	process.exit(1);
 }
 
-process.on('beforeExit', function() {
-	if (IOM_state !== 'online') {
-		return;
+fs.readdirSync(PERSHA_DATA).forEach(function(file) {
+	if (file.indexOf("ipc") === 0) {
+		fs.unlinkSync(PERSHA_DATA + "/" + file);
 	}
-	consensus_evaluate("process.emit('beforeExit')", "");
 });
 
-process.on('exit', function() {
-	if (IOM_state !== 'online') {
-		return;
-	}
-	consensus_evaluate("process.exit(0)", "");
-	process.reallyExit(1);
-});
-
-process.on('uncaughtException', function(err) {
-	console.error(err.stack);
-	process.reallyExit(1);
+serverA.listen(PERSHA_DATA + "/ipcA", function() {
+	serverS.listen(PERSHA_DATA + "/ipcS", function() {
+		var args = process.argv.slice(1);
+		args[0] = PERSHA_HOME + "/bin/core_main.js";
+		require('child_process').spawn('node', args, {
+			stdio : 'inherit'
+		});
+	});
 });

@@ -4,7 +4,7 @@ TARGET=bin/core.js
 
 echo "// This is a generated file by make.sh" >${TARGET}
 
-for file in helper.js dataio.js fileio.js journal.js
+for file in helper.js dataio.js bsocketio.js
 do
 	cat main/${file} >>${TARGET}
 done
@@ -14,6 +14,10 @@ do
 	cat core/${file} >>${TARGET}
 done
 
+echo "function node_init(){" >>${TARGET}
+cat main/init.js >>${TARGET}
+echo "}" >>${TARGET}
+
 [ -e "main/enableStripper" ] && node main/stripper.js ${TARGET}
 [ -e "main/enableProfiler" ] && node main/profiler.js ${TARGET}
 
@@ -21,8 +25,9 @@ TARGET=bin/main.js
 
 echo "// This is a generated file by make.sh" >${TARGET}
 
-cat main/main.js  >>${TARGET}
+for file in helper.js dataio.js fileio.js serverA.js serverS.js main.js journal.js 
+do
+	cat main/${file} >>${TARGET}
+done
 
-echo "function node_init(){" >>${TARGET}
-cat main/init.js >>${TARGET}
-echo "}" >>${TARGET}
+cat main/core_main.js  > bin/core_main.js

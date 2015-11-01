@@ -31,47 +31,51 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-'use strict';
+'use strict'
 
-var bs = require('blocking-socket');
+global.require = require;
+global.PERSHA_HOME = undefined;
+global.PERSHA_DATA = undefined;
 
-function BlockingSocketOutputStream(fd) {
-	function write(buffer) {
-		var transferred = 0;
-		while (transferred < buffer.length) {
-			var l = bs.send(fd, buffer.slice(transferred));
-			if (l < 0) {
-				throw new Error("send error");
-			}
-			transferred += l;
-			assert(transferred <= buffer.length, l);
-		}
+var path = require('path');
+var fs = require('fs');
+var vm = require('vm');
+
+PERSHA_HOME = path.dirname(path.dirname(process.argv[1]));
+PERSHA_DATA = process.env.PERSHA_DATA;
+
+vm.runInThisContext(fs.readFileSync(PERSHA_HOME + "/bin/core.js").toString(), "core.js");
+
+consensus_socket.connect(PERSHA_DATA + "/ipcA", function() {
+	var cmd = process.argv[2];
+	if (cmd === '-init') {
+		node_init();
 	}
-
-	return DataOutputStream({
-		write : write
-	});
-}
-
-function BlockingSocketInputStream(fd) {
-	function readFully(buffer, startPos, minPos) {
-		var transferred = 0;
-		while (true) {
-			assert(startPos <= buffer.length, startPos);
-			if (minPos <= startPos) {
-				return transferred;
-			}
-			var l = bs.recv(fd, buffer.slice(startPos));
-			if (l <= 0) {
-				throw new Error("recv error");
-			}
-			startPos += l;
-			transferred += l;
-		}
-		throw Error("too many retries");
+	else if (cmd === '-restart') {
 	}
-
-	return DataInputStream({
-		readFully : readFully
+	consensus_schedule.write({
+		type : 'getNextEvent',
 	});
-}
+});
+
+/*
+process.on('beforeExit', function() {
+	if (IOM_state !== 'online') {
+		return;
+	}
+	consensus_evaluate("process.emit('beforeExit')", "");
+});
+
+process.on('exit', function() {
+	if (IOM_state !== 'online') {
+		return;
+	}
+	consensus_evaluate("process.exit(0)", "");
+	process.reallyExit(1);
+});
+
+process.on('uncaughtException', function(err) {
+	console.error(err.stack);
+	process.reallyExit(1);
+});
+*/

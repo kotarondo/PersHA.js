@@ -33,62 +33,29 @@
 
 'use strict';
 
-// temporary implementation
-
-var consensus_queue = [];
-var consensus_loop_scheduled = false;
-
-function consensus_schedule(entry) {
-	consensus_queue.push(entry);
-	if (!consensus_loop_scheduled) {
-		consensus_loop_scheduled = true;
-		process.nextTick(consensus_loop);
-	}
-}
-
-function consensus_loop() {
-	consensus_loop_scheduled = false;
-	while (consensus_queue.length > 0) {
-		var entry = consensus_queue.shift();
-		Journal_write(entry);
-		consensus_handler(entry);
-	}
-}
-
-function consensus_recovery() {
-	while (IOM_state !== 'online') {
-		var entry = Journal_read();
-		if (entry === undefined) {
+var consensus_socket = require('net').Socket();
+var consensus_schedule = DataOutputStream(consensus_socket);
+OnDataInput(consensus_socket, function(entry) {
+	try {
+		switch (entry.type) {
+		case 'online':
 			for ( var txid in IOP_asyncCallbacks) {
 				consensus_completionError(txid, 'restart');
 			}
 			IOM_state = 'online';
-			var entry;
-			Journal_write(entry = {
-				type : 'online'
-			});
-			consensus_handler(entry);
-			return;
-		}
-		consensus_handler(entry);
-	}
-}
-
-function consensus_handler(entry) {
-	try {
-		switch (entry.type) {
-		case 'online':
+			break;
+		case 'restart':
 			IOP_restartPorts();
 			break;
 		case 'completionEvent':
-			var args = consensus_wrapArgs(entry.args);
+			var args = IOP_wrapArgs(entry.args);
 			IOP_completionEvent(entry.txid, args);
 			break;
 		case 'completionError':
 			IOP_completionEvent(entry.txid, [ IOPort_Construct([ entry.reason ]) ]);
 			break;
 		case 'portEvent':
-			var args = consensus_wrapArgs(entry.args);
+			var args = IOP_wrapArgs(entry.args);
 			IOP_portEvent(entry.txid, args);
 			break;
 		case 'evaluate':
@@ -102,20 +69,23 @@ function consensus_handler(entry) {
 		task_callbackUncaughtError(e);
 	}
 	runMicrotasks();
-}
+	consensus_schedule.write({
+		type : 'getNextEvent',
+	});
+});
 
 function consensus_completionCallback(txid, args) {
 	if (!txid) return;
-	consensus_schedule({
+	consensus_schedule.write({
 		type : 'completionEvent',
 		txid : txid,
-		args : consensus_prewrapArgs(args),
+		args : args,
 	});
 }
 
 function consensus_completionError(txid, reason) {
 	if (!txid) return;
-	consensus_schedule({
+	consensus_schedule.write({
 		type : 'completionError',
 		txid : txid,
 		reason : reason,
@@ -124,70 +94,99 @@ function consensus_completionError(txid, reason) {
 
 function consensus_portAsyncCallback(txid, args) {
 	if (!txid) return;
-	consensus_schedule({
+	consensus_schedule.write({
 		type : 'portEvent',
 		txid : txid,
-		args : consensus_prewrapArgs(args),
+		args : args,
 	});
 }
 
 function consensus_evaluate(text, filename) {
-	var entry;
-	Journal_write(entry = {
+	consensus_schedule.write({
 		type : 'evaluate',
 		text : text,
 		filename : filename,
 	});
-	consensus_handler(entry);
 }
 
-function consensus_syncIO_recovery() {
+var consensus_sync = function() {
+	var fd = require('blocking-socket').open(PERSHA_DATA + "/ipcS");
+	var dos = BlockingSocketOutputStream(fd);
+	var dis = BlockingSocketInputStream(fd);
+	var peek;
+
+	function write(entry) {
+		dos.write(entry);
+	}
+
+	function read() {
+		if (peek) {
+			var entry = peek;
+			peek = undefined;
+		}
+		else {
+			var entry = dis.readAny();
+		}
+		return entry;
+	}
+
+	function read_portEvent() {
+		var entry = read();
+		if (entry.type !== 'portEvent') {
+			peek = event;
+			return undefined;
+		}
+		return entry;
+	}
+
+	return {
+		write : write,
+		read : read,
+		read_portEvent : read_portEvent,
+	};
+}();
+
+function consensus_completionSyncIO(type, value) {
+	consensus_sync.write({
+		type : type,
+		value : value
+	});
 	while (true) {
-		var entry = Journal_read();
-		if (entry === undefined) {
+		var entry = consensus_sync.read();
+		switch (entry.type) {
+		case 'online':
 			for ( var txid in IOP_asyncCallbacks) {
 				consensus_completionError(txid, 'restart');
 			}
 			IOM_state = 'online';
-			Journal_write({
-				type : 'online'
-			});
-			IOP_restartPorts();
-			Journal_write({
-				type : 'error',
-				reason : 'restart'
-			});
-			return {
-				type : 'error',
-				value : 'restart'
-			};
-		}
-		switch (entry.type) {
-		case 'online':
+			continue;
+		case 'restart':
 			IOP_restartPorts();
 			continue;
 		case 'return':
-			var value = consensus_wrap(entry.value);
+			var value = IOP_wrap(entry.value);
 			return {
 				type : 'return',
 				value : value
 			};
 		case 'throw':
-			var e = consensus_wrap(entry.e);
+			var value = IOP_wrap(entry.value);
 			return {
 				type : 'throw',
-				value : e
+				value : value
 			};
 		case 'error':
+			assert(isPrimitiveValue(entry.value), entry);
 			return {
 				type : 'error',
-				value : entry.reason
+				value : entry.value
 			};
 		case 'portEvent':
-			var args = consensus_wrapArgs(entry.args);
+			var args = IOP_wrapArgs(entry.args);
 			try {
 				IOP_portEvent(entry.txid, args);
 			} catch (e) {
+				if (isInternalError(e)) throw e;
 			}
 			break;
 		default:
@@ -196,231 +195,59 @@ function consensus_syncIO_recovery() {
 	}
 }
 
-function consensus_returnFromSyncIO(value) {
-	value = consensus_prewrap(value);
-	Journal_write({
-		type : 'return',
-		value : value
-	});
-	value = consensus_wrap(value);
-	return {
-		type : 'return',
-		value : value
-	};
-}
-
-function consensus_exceptionInSyncIO(e) {
-	e = consensus_prewrap(e);
-	Journal_write({
-		type : 'throw',
-		e : e
-	});
-	e = consensus_wrap(e);
-	return {
-		type : 'throw',
-		value : e
-	};
-}
-
-function consensus_errorInSyncIO(reason) {
-	Journal_write({
-		type : 'error',
-		reason : reason
-	});
-	return {
-		type : 'error',
-		value : reason
-	};
-}
-
 function consensus_portSyncCallback(txid, args) {
 	if (!txid) return;
-	args = consensus_prewrapArgs(args);
-	Journal_write({
+	consensus_sync.write({
 		type : 'portEvent',
 		txid : txid,
 		args : args,
 	});
-	args = consensus_wrapArgs(args);
+	var entry = consensus_sync.read_portEvent();
+	if (!entry) {
+		return;
+	}
+	args = IOP_wrapArgs(entry.args);
 	try {
-		IOP_portEvent(txid, args);
+		IOP_portEvent(entry.txid, args);
 	} catch (e) {
+		if (isInternalError(e)) throw e;
 		e = IOP_unwrap(e);
 		throw e;
 	}
 }
 
 function consensus_date_now() {
-	if (IOM_state !== 'online') {
-		var entry = Journal_read();
-		if (entry !== undefined) {
-			assert(entry.now !== undefined, entry);
-			return entry.now;
-		}
-	}
-	var now = Date.now();
-	Journal_write({
-		now : now
+	consensus_sync.write({
+		type : 'Date.now',
+		value : Date.now()
 	});
-	return now;
+	var entry = consensus_sync.read();
+	assert(entry.type === 'Date.now', entry);
+	return entry.value;
 }
 
 function consensus_date_parse(str) {
-	if (IOM_state !== 'online') {
-		var entry = Journal_read();
-		if (entry !== undefined) {
-			assert(entry.parse !== undefined, entry);
-			return entry.parse;
-		}
-	}
-	var parse = Date.parse(str);
-	Journal_write({
-		parse : parse
+	consensus_sync.write({
+		type : 'Date.parse',
+		value : Date.parse(str)
 	});
-	return parse;
+	var entry = consensus_sync.read();
+	assert(entry.type === 'Date.parse', entry);
+	return entry.value;
 }
 
 function consensus_math_random() {
-	if (IOM_state !== 'online') {
-		var entry = Journal_read();
-		if (entry !== undefined) {
-			assert(entry.random !== undefined, entry);
-			return entry.random;
-		}
-	}
-	var random = Math.random();
-	Journal_write({
-		random : random
+	consensus_sync.write({
+		type : 'Math.random',
+		value : Math.random()
 	});
-	return random;
-}
-
-function consensus_prewrapArgs(a) {
-	var length = a.length;
-	var A = [];
-	for (var i = 0; i < length; i++) {
-		A[i] = consensus_prewrap(a[i]);
-	}
-	return A;
-}
-
-function consensus_prewrap(a, stack) {
-	if (isPrimitiveValue(a)) {
-		return a;
-	}
-	if (a instanceof Function) {
-		return undefined;
-	}
-	if (a instanceof Buffer) {
-		return new Buffer(a); // safeguard
-	}
-	if (a instanceof Date) {
-		return new Date(a.getTime());
-	}
-	if (stack === undefined) stack = [];
-	if (isIncluded(a, stack)) {
-		return null;
-	}
-	stack.push(a);
-	if (a instanceof Error) {
-		var message = String(a.message);
-		if (a instanceof TypeError) {
-			var A = new TypeError(message);
-		}
-		else if (a instanceof ReferenceError) {
-			var A = new ReferenceError(message);
-		}
-		else if (a instanceof RangeError) {
-			var A = new RangeError(message);
-		}
-		else if (a instanceof SyntaxError) {
-			var A = new SyntaxError(message);
-		}
-		else {
-			var A = new Error(message);
-		}
-	}
-	else if (a instanceof Array) {
-		var A = new Array(a.length);
-	}
-	else {
-		var A = {};
-	}
-	var keys = Object.getOwnPropertyNames(a);
-	var length = keys.length;
-	for (var i = 0; i < length; i++) {
-		var P = keys[i];
-		if (a.propertyIsEnumerable(P) === false) {
-			continue;
-		}
-		if (P === 'caller' || P === 'callee' || P === 'arguments') {
-			continue;
-		}
-		A[P] = consensus_prewrap(a[P], stack);
-	}
-	stack.pop();
-	return A;
-}
-
-function consensus_wrapArgs(a) {
-	var length = a.length;
-	var A = [];
-	for (var i = 0; i < length; i++) {
-		A[i] = consensus_wrap(a[i]);
-	}
-	return A;
-}
-
-function consensus_wrap(a) {
-	if (isPrimitiveValue(a)) {
-		return a;
-	}
-	if (a instanceof Function) {
-		return undefined;
-	}
-	if (a instanceof Buffer) {
-		var A = VMObject(CLASSID_Buffer);
-		A.Prototype = vm.Buffer_prototype;
-		A.Extensible = true;
-		A.wrappedBuffer = a;
-		defineFinal(A, 'length', a.length);
-		defineFinal(A, 'parent', A);
-		return A;
-	}
-	if (a instanceof Date) {
-		return Date_Construct([ a.getTime() ]);
-	}
-	if (a instanceof Error) {
-		var message = String(a.message);
-		if (a instanceof TypeError) {
-			var A = TypeError_Construct([ message ]);
-		}
-		else if (a instanceof ReferenceError) {
-			var A = ReferenceError_Construct([ message ]);
-		}
-		else if (a instanceof RangeError) {
-			var A = RangeError_Construct([ message ]);
-		}
-		else if (a instanceof SyntaxError) {
-			var A = SyntaxError_Construct([ message ]);
-		}
-		else {
-			var A = Error_Construct([ message ]);
-		}
-	}
-	else if (a instanceof Array) {
-		var A = Array_Construct([ a.length ]);
-	}
-	else {
-		var A = Object_Construct([]);
-	}
-	for ( var P in a) {
-		A.Put(P, consensus_wrap(a[P]), false);
-	}
-	return A;
+	var entry = consensus_sync.read();
+	assert(entry.type === 'Math.random', entry);
+	return entry.value;
 }
 
 function consensus_uncaughtError(err) {
+	//TODO
 	console.log("Uncaught: " + err);
 	process.reallyExit(1);
 }

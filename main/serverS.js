@@ -33,45 +33,26 @@
 
 'use strict';
 
-var bs = require('blocking-socket');
+var net = require('net');
 
-function BlockingSocketOutputStream(fd) {
-	function write(buffer) {
-		var transferred = 0;
-		while (transferred < buffer.length) {
-			var l = bs.send(fd, buffer.slice(transferred));
-			if (l < 0) {
-				throw new Error("send error");
-			}
-			transferred += l;
-			assert(transferred <= buffer.length, l);
+var serverS = net.Server();
+
+serverS.on('connection', function(conn) {
+	var dos = DataOutputStream(conn);
+
+	OnDataInput(conn, function(entry) {
+		switch (entry.type) {
+		case 'readSnapshot':
+			//TODO
+			return;
+		case 'writeSnapshot':
+			//TODO
+			return;
+		case 'offline':
+			//TODO
+			return;
 		}
-	}
-
-	return DataOutputStream({
-		write : write
+		//TODO Journal_write(entry);
+		dos.write(entry);
 	});
-}
-
-function BlockingSocketInputStream(fd) {
-	function readFully(buffer, startPos, minPos) {
-		var transferred = 0;
-		while (true) {
-			assert(startPos <= buffer.length, startPos);
-			if (minPos <= startPos) {
-				return transferred;
-			}
-			var l = bs.recv(fd, buffer.slice(startPos));
-			if (l <= 0) {
-				throw new Error("recv error");
-			}
-			startPos += l;
-			transferred += l;
-		}
-		throw Error("too many retries");
-	}
-
-	return DataInputStream({
-		readFully : readFully
-	});
-}
+});
