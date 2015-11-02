@@ -4,7 +4,7 @@ TARGET=bin/core.js
 
 echo "// This is a generated file by make.sh" >${TARGET}
 
-for file in helper.js dataio.js bsocketio.js
+for file in helper.js dataio.js bsocketio.js socketio.js containerio.js
 do
 	cat main/${file} >>${TARGET}
 done
@@ -25,7 +25,7 @@ TARGET=bin/main.js
 
 echo "// This is a generated file by make.sh" >${TARGET}
 
-for file in helper.js dataio.js fileio.js serverA.js serverS.js main.js journal.js 
+for file in helper.js dataio.js fileio.js socketio.js serverA.js serverS.js journal.js main.js 
 do
 	cat main/${file} >>${TARGET}
 done

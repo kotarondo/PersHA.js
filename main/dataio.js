@@ -40,8 +40,9 @@ function DataOutputStream(stream) {
 	var buffer = new Buffer(capacity);
 
 	function flush() {
+		if(cacheLen === 0) return;
 		assert(cacheLen <= capacity, cacheLen);
-		stream.write(buffer.slice(0, cacheLen));
+		stream.writeRaw(buffer.slice(0, cacheLen));
 		buffer = new Buffer(capacity);
 		cacheLen = 0;
 	}
@@ -73,8 +74,10 @@ function DataOutputStream(stream) {
 		writeInt(length);
 		if (capacity < cacheLen + length) {
 			flush();
-			if (capacity < length) {
-				stream.write(x);
+			if (capacity <= length) {
+				x = new Buffer(x);
+				assert(x.length === length);
+				stream.writeRaw(x);
 				return;
 			}
 		}
@@ -83,20 +86,28 @@ function DataOutputStream(stream) {
 		cacheLen += length;
 	}
 
-	function writeBuffer(x) {
+	function writeRaw(x) {
 		assert(x instanceof Buffer);
 		var length = x.length;
-		writeInt(length);
 		if (capacity < cacheLen + length) {
 			flush();
-			if (capacity < length) {
-				x = new Buffer(x); // safeguard
-				stream.write(x);
+			if (capacity <= length) {
+				stream.writeRaw(x);
 				return;
 			}
 		}
 		x.copy(buffer, cacheLen);
 		cacheLen += length;
+	}
+
+	function writeBuffer(x) {
+		assert(x instanceof Buffer);
+		var length = x.length;
+		writeInt(length);
+		if (capacity <= length) {
+			x = new Buffer(x); // safeguard
+		}
+		writeRaw(x);
 	}
 
 	function writeNumber(x) {
@@ -191,27 +202,22 @@ function DataOutputStream(stream) {
 		stack.pop();
 	}
 
-	function write(x) {
-		writeAny(x);
-		flush();
-	}
-
 	return {
 		writeInt : writeInt,
 		writeString : writeString,
 		writeBuffer : writeBuffer,
 		writeNumber : writeNumber,
 		writeAny : writeAny,
-		write : write,
+		writeRaw : writeRaw,
 		flush : flush,
 	};
 }
 
 function DataInputStream(stream) {
-	var capacity = 8192;
 	var cacheOff = 0;
 	var cacheSize = 0;
-	var buffer = new Buffer(capacity);
+	var buffer;
+	var pending = [];
 
 	function getCacheRemain() {
 		return cacheSize - cacheOff;
@@ -220,21 +226,56 @@ function DataInputStream(stream) {
 	function clearCache() {
 		cacheOff = 0;
 		cacheSize = 0;
+		buffer = undefined;
+		pending = [];
 	}
 
 	function fill(length) {
-		if (cacheOff + length <= cacheSize) {
-			return;
+		while (cacheOff + length > cacheSize) {
+			var data = stream.readRaw();
+			assert(data.length > 0, data);
+			if (buffer) {
+				pending.push(data);
+			}
+			else {
+				buffer = data;
+			}
+			cacheSize += data.length;
 		}
-		assert(cacheOff <= cacheSize);
-		if (0 < cacheOff && cacheOff < cacheSize) {
-			buffer.copy(buffer, 0, cacheOff, cacheSize);
+		pack();
+	}
+
+	function pack() {
+		while (buffer && cacheOff >= buffer.length) {
+			cacheOff -= buffer.length;
+			cacheSize -= buffer.length;
+			buffer = pending.shift();
 		}
-		cacheSize -= cacheOff;
-		cacheOff = 0;
-		var l = stream.readFully(buffer, cacheSize, length);
-		cacheSize += l;
-		assert(length <= cacheSize && cacheSize <= capacity, cacheSize);
+	}
+
+	function readRaw() {
+		fill(1);
+		var l = buffer.length - cacheOff;
+		var data = buffer.slice(cacheOff);
+		cacheOff += l;
+		pack();
+		return data;
+	}
+
+	function readCache(len) {
+		var buf = new Buffer(len);
+		var off = 0;
+		while (off < len) {
+			var l = buffer.length - cacheOff;
+			if (len < off + l) {
+				l = len - off;
+			}
+			buffer.copy(buf, off, cacheOff, cacheOff + l);
+			off += l;
+			cacheOff += l;
+			pack();
+		}
+		return buf;
 	}
 
 	function getByte() {
@@ -257,49 +298,19 @@ function DataInputStream(stream) {
 
 	function readString() {
 		var length = readInt();
-		if (length > capacity) {
-			var b = new Buffer(length);
-			if (cacheOff < cacheSize) {
-				buffer.copy(b, 0, cacheOff, cacheSize);
-			}
-			var cached = cacheSize - cacheOff;
-			var l = stream.readFully(b, cached, length);
-			assert(cached + l === length, l);
-			cacheOff = 0;
-			cacheSize = 0;
-			return b.toString();
-		}
 		fill(length);
-		var s = buffer.toString(null, cacheOff, cacheOff + length);
-		cacheOff += length;
-		return s;
+		return readCache(length).toString();
 	}
 
 	function readBuffer() {
 		var length = readInt();
-		var b = new Buffer(length);
-		if (length > capacity) {
-			if (cacheOff < cacheSize) {
-				buffer.copy(b, 0, cacheOff, cacheSize);
-			}
-			var cached = cacheSize - cacheOff;
-			var l = stream.readFully(b, cached, length);
-			assert(cached + l === length, l);
-			cacheOff = 0;
-			cacheSize = 0;
-			return b;
-		}
 		fill(length);
-		buffer.copy(b, 0, cacheOff, cacheOff + length);
-		cacheOff += length;
-		return b;
+		return readCache(length);
 	}
 
 	function readNumber() {
 		fill(8);
-		var x = buffer.readDoubleLE(cacheOff);
-		cacheOff += 8;
-		return x;
+		return readCache(8).readDoubleLE(0);
 	}
 
 	function readAny() {
@@ -343,7 +354,7 @@ function DataInputStream(stream) {
 			var a = {};
 			break;
 		default:
-			throw Error("file broken: type=" + type);
+			throw Error("data stream broken");
 		}
 		while (true) {
 			var P = readString();
@@ -363,10 +374,11 @@ function DataInputStream(stream) {
 		readBuffer : readBuffer,
 		readNumber : readNumber,
 		readAny : readAny,
+		readRaw : readRaw,
 	};
 }
 
-function OnDataInput(stream, callback) {
+function DataInputEmitter(callback) {
 	var cacheOff = 0;
 	var cacheSize = 0;
 	var buffer;
@@ -389,7 +401,7 @@ function OnDataInput(stream, callback) {
 		return true;
 	}
 
-	stream.on('data', function(data) {
+	function emit(data) {
 		if (data.length === 0) return;
 		if (buffer) {
 			pending.push(data);
@@ -402,7 +414,7 @@ function OnDataInput(stream, callback) {
 			var f = stack[stack.length - 1];
 			var ctx = stack[stack.length - 2];
 		} while (f(ctx));
-	});
+	}
 
 	function pack() {
 		while (buffer && cacheOff >= buffer.length) {
@@ -566,4 +578,8 @@ function OnDataInput(stream, callback) {
 		}
 		assert(false, ctx);
 	}
+
+	return {
+		emit : emit
+	};
 }

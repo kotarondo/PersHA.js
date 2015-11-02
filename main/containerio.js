@@ -33,55 +33,17 @@
 
 'use strict';
 
-var fs = require('fs');
+function ContainerOutputStream(stream) {
 
-function FileOutputStream(filename, openExists) {
-	var position = 0;
-	if (openExists) {
-		var fd = fs.openSync(filename, 'r+');
-	}
-	else {
-		var fd = fs.openSync(filename, 'w');
-	}
-
-	function getPosition() {
-		return position;
-	}
-
-	function setPosition(pos) {
-		dos.flush();
-		position = pos;
-		fs.ftruncateSync(fd, position);
+	function writeRaw(buffer) {
+		assert(buffer instanceof Buffer);
+		stream.writeAny(buffer);
 	}
 
 	function close() {
 		dos.flush();
-		try {
-			fs.closeSync(fd);
-		} catch (e) {
-		}
-		fd = undefined;
-	}
-
-	function fsync() {
-		flush();
-		fs.fsyncSync(fd);
-	}
-
-	function writeRaw(buffer) {
-		assert(buffer instanceof Buffer);
-		var startPos = 0;
-		var endPos = buffer.length;
-		for (var i = 0; i < 10000; i++) {
-			assert(startPos <= endPos, startPos);
-			if (startPos >= endPos) {
-				return;
-			}
-			var l = fs.writeSync(fd, buffer, startPos, endPos - startPos, position);
-			position += l;
-			startPos += l;
-		}
-		throw Error("too many retries");
+		stream.writeAny("end of container");
+		stream.flush();
 	}
 
 	var dos = DataOutputStream({
@@ -89,8 +51,6 @@ function FileOutputStream(filename, openExists) {
 	});
 
 	return {
-		getPosition : getPosition,
-		setPosition : setPosition,
 		writeInt : dos.writeInt,
 		writeString : dos.writeString,
 		writeBuffer : dos.writeBuffer,
@@ -98,40 +58,25 @@ function FileOutputStream(filename, openExists) {
 		writeAny : dos.writeAny,
 		writeRaw : dos.writeRaw,
 		flush : dos.flush,
-		fsync : fsync,
 		close : close,
 	};
 }
 
-function FileInputStream(filename) {
-	var position = 0;
-	var fd = fs.openSync(filename, 'r');
+function ContainerInputStream(stream) {
 
-	function getPosition() {
-		return position - dis.getCacheRemain();
-	}
-
-	function setPosition(pos) {
-		dis.clearCache();
-		position = pos;
+	function readRaw() {
+		var buffer = stream.readAny();
+		if (!(buffer instanceof Buffer)) {
+			throw Error("data stream broken");
+		}
+		return buffer;
 	}
 
 	function close() {
-		try {
-			fs.closeSync(fd);
-		} catch (e) {
+		var eoc = stream.readAny();
+		if (eoc !== "end of container") {
+			throw Error("data stream broken");
 		}
-		fd = undefined;
-	}
-
-	function readRaw() {
-		var buffer = new Buffer(8192);
-		var l = fs.readSync(fd, buffer, 0, buffer.length, position);
-		if (l <= 0) {
-			throw Error("end of file");
-		}
-		position += l;
-		return buffer.slice(0, l);
 	}
 
 	var dis = DataInputStream({
@@ -139,8 +84,6 @@ function FileInputStream(filename) {
 	});
 
 	return {
-		getPosition : getPosition,
-		setPosition : setPosition,
 		readInt : dis.readInt,
 		readString : dis.readString,
 		readBuffer : dis.readBuffer,

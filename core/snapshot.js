@@ -46,9 +46,6 @@ function SnapshotOutputStream(ostream, allObjs) {
 		writeBuffer : function(x) {
 			ostream.writeBuffer(x);
 		},
-		writeAny : function(x) {
-			ostream.writeAny(x);
-		},
 		writeValue : function(x) {
 			switch (typeof x) {
 			case "undefined":
@@ -86,9 +83,6 @@ function SnapshotInputStream(istream, allObjs) {
 		},
 		readBuffer : function() {
 			return istream.readBuffer();
-		},
-		readAny : function() {
-			return istream.readAny();
 		},
 		readValue : function() {
 			var ID = istream.readInt();
@@ -225,7 +219,6 @@ function writeSnapshot(l_ostream) {
 	ostream.writeString("FINISH");
 
 	//cleanup
-	l_ostream.flush();
 	for (var i = OBJID_BASE; i < allObjs.length; i++) {
 		var obj = allObjs[i];
 		obj.ID = 0;

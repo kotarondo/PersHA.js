@@ -33,7 +33,6 @@
 
 'use strict';
 
-var JOURNAL_FILEBASE= PERSHA_DATA + "/journal";
 var MAX_CHECKPOINT_FILES = 8;
 
 var Journal_currentFileNo;
@@ -107,7 +106,7 @@ function Journal_init() {
 	}
 	Journal_currentFileNo = 0;
 	Journal_currentGen = 1;
-	Journal_clearLogHeader();
+	//Journal_clearLogHeader();
 	//Journal_writeCheckpointHeader();
 	//writeSnapshot(Journal_outputStream);
 	//Journal_writeLogHeader();
@@ -116,7 +115,7 @@ function Journal_init() {
 function Journal_readCheckpointHeader() {
 	Journal_closeInputStream();
 	try {
-		Journal_inputStream = FileInputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "cp.bin");
+		Journal_inputStream = FileInputStream(PERSHA_DATA + "/journal" + Journal_currentFileNo + "cp.bin");
 		var header = Journal_inputStream.readAny();
 		if (isPrimitiveValue(header) || header.magic !== "checkpoint") {
 			return null;
@@ -130,7 +129,7 @@ function Journal_readCheckpointHeader() {
 function Journal_readLogHeader() {
 	Journal_closeInputStream();
 	try {
-		Journal_inputStream = FileInputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "log.bin");
+		Journal_inputStream = FileInputStream(PERSHA_DATA + "/journal" + Journal_currentFileNo + "log.bin");
 		var header = Journal_inputStream.readAny();
 		if (isPrimitiveValue(header) || header.magic !== "log") {
 			return null;
@@ -143,7 +142,7 @@ function Journal_readLogHeader() {
 
 function Journal_writeCheckpointHeader() {
 	Journal_closeOutputStream();
-	Journal_outputStream = FileOutputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "cp.bin");
+	Journal_outputStream = FileOutputStream(PERSHA_DATA + "/journal" + Journal_currentFileNo + "cp.bin");
 	var header = {
 		magic : "checkpoint",
 		gen : Journal_currentGen,
@@ -154,7 +153,7 @@ function Journal_writeCheckpointHeader() {
 
 function Journal_writeLogHeader() {
 	Journal_closeOutputStream();
-	Journal_outputStream = FileOutputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "log.bin");
+	Journal_outputStream = FileOutputStream(PERSHA_DATA + "/journal" + Journal_currentFileNo + "log.bin");
 	var header = {
 		magic : "log",
 		gen : Journal_currentGen,
@@ -165,14 +164,14 @@ function Journal_writeLogHeader() {
 
 function Journal_clearLogHeader() {
 	Journal_closeOutputStream();
-	Journal_outputStream = FileOutputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "log.bin");
+	Journal_outputStream = FileOutputStream(PERSHA_DATA + "/journal" + Journal_currentFileNo + "log.bin");
 	Journal_outputStream.writeAny({});
 	Journal_outputStream.flush();
 }
 
 function Journal_openLog(position) {
 	Journal_closeOutputStream();
-	Journal_outputStream = FileOutputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "log.bin", true);
+	Journal_outputStream = FileOutputStream(PERSHA_DATA + "/journal" + Journal_currentFileNo + "log.bin", true);
 	Journal_outputStream.setPosition(position);
 }
 

@@ -34,8 +34,14 @@
 'use strict';
 
 var consensus_socket = require('net').Socket();
-var consensus_schedule = DataOutputStream(consensus_socket);
-OnDataInput(consensus_socket, function(entry) {
+var consensus_async = SocketOutputStream(consensus_socket);
+
+function consensus_schedule(entry) {
+	consensus_async.writeAny(entry);
+	consensus_async.flush();
+}
+
+SocketInputEmitter(consensus_socket, function(entry) {
 	try {
 		switch (entry.type) {
 		case 'online':
@@ -52,7 +58,7 @@ OnDataInput(consensus_socket, function(entry) {
 			IOP_completionEvent(entry.txid, args);
 			break;
 		case 'completionError':
-			IOP_completionEvent(entry.txid, [ IOPort_Construct([ entry.reason ]) ]);
+			IOP_completionEvent(entry.txid, [ IOPortError_Construct([ entry.reason ]) ]);
 			break;
 		case 'portEvent':
 			var args = IOP_wrapArgs(entry.args);
@@ -69,14 +75,14 @@ OnDataInput(consensus_socket, function(entry) {
 		task_callbackUncaughtError(e);
 	}
 	runMicrotasks();
-	consensus_schedule.write({
+	consensus_schedule({
 		type : 'getNextEvent',
 	});
 });
 
 function consensus_completionCallback(txid, args) {
 	if (!txid) return;
-	consensus_schedule.write({
+	consensus_schedule({
 		type : 'completionEvent',
 		txid : txid,
 		args : args,
@@ -85,7 +91,7 @@ function consensus_completionCallback(txid, args) {
 
 function consensus_completionError(txid, reason) {
 	if (!txid) return;
-	consensus_schedule.write({
+	consensus_schedule({
 		type : 'completionError',
 		txid : txid,
 		reason : reason,
@@ -94,7 +100,7 @@ function consensus_completionError(txid, reason) {
 
 function consensus_portAsyncCallback(txid, args) {
 	if (!txid) return;
-	consensus_schedule.write({
+	consensus_schedule({
 		type : 'portEvent',
 		txid : txid,
 		args : args,
@@ -102,7 +108,7 @@ function consensus_portAsyncCallback(txid, args) {
 }
 
 function consensus_evaluate(text, filename) {
-	consensus_schedule.write({
+	consensus_schedule({
 		type : 'evaluate',
 		text : text,
 		filename : filename,
@@ -116,7 +122,8 @@ var consensus_sync = function() {
 	var peek;
 
 	function write(entry) {
-		dos.write(entry);
+		dos.writeAny(entry);
+		dos.flush();
 	}
 
 	function read() {
@@ -130,19 +137,32 @@ var consensus_sync = function() {
 		return entry;
 	}
 
-	function read_portEvent() {
+	function readPortEvent() {
 		var entry = read();
 		if (entry.type !== 'portEvent') {
+			assert(!peek, peek);
 			peek = event;
 			return undefined;
 		}
 		return entry;
 	}
 
+	function writeSnapshot1() {
+		dos.writeAny({
+			type : 'writeSnapshot'
+		});
+		var cos = ContainerOutputStream(dos);
+		writeSnapshot(cos);
+		cos.close();
+		var entry = read();
+		assert(entry.type === 'snapshotWritten', entry);
+	}
+
 	return {
 		write : write,
 		read : read,
-		read_portEvent : read_portEvent,
+		readPortEvent : readPortEvent,
+		writeSnapshot : writeSnapshot1,
 	};
 }();
 
@@ -202,7 +222,7 @@ function consensus_portSyncCallback(txid, args) {
 		txid : txid,
 		args : args,
 	});
-	var entry = consensus_sync.read_portEvent();
+	var entry = consensus_sync.readPortEvent();
 	if (!entry) {
 		return;
 	}

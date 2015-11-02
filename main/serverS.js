@@ -38,21 +38,38 @@ var net = require('net');
 var serverS = net.Server();
 
 serverS.on('connection', function(conn) {
-	var dos = DataOutputStream(conn);
+	var dos = SocketOutputStream(conn);
+	var snapshotReading;
+	var snapshotWriting;
 
-	OnDataInput(conn, function(entry) {
+	SocketInputEmitter(conn, function(entry) {
+		if (snapshotWriting) {
+			if (entry === "end of container") {
+				snapshotWriting = false;
+				//TODO close file
+				dos.writeAny({
+					type: 'snapshotWritten'
+				});
+				dos.flush();
+				return;
+			}
+			//TODO write entry
+			return;
+		}
 		switch (entry.type) {
 		case 'readSnapshot':
-			//TODO
+			snapshotReading = true;
 			return;
 		case 'writeSnapshot':
-			//TODO
+			snapshotWriting = true;
+			//TODO open file
 			return;
 		case 'offline':
 			//TODO
 			return;
 		}
 		//TODO Journal_write(entry);
-		dos.write(entry);
+		dos.writeAny(entry);
+		dos.flush();
 	});
 });

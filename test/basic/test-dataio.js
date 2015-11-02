@@ -229,17 +229,12 @@ function testread(data0){
 	assert("false");
 }
 
-bridge = ({
-	on:function(event, callback){
-		this.callback = callback;
-	},
-	write:function(buffer){
-		this.callback(buffer);
+die = DataInputEmitter(testread);
+fos = DataOutputStream({
+	writeRaw:function(buffer){
+		die.emit(buffer);
 	}
 });
-
-OnDataInput(bridge, testread);
-fos = DataOutputStream(bridge);
 
 testwrite(function(){fos.writeAny(0);fos.flush()});
 

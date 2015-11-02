@@ -33,20 +33,10 @@
 
 'use strict';
 
-var bs = require('blocking-socket');
-
-function BlockingSocketOutputStream(fd) {
+function SocketOutputStream(socket) {
 	function writeRaw(buffer) {
 		assert(buffer instanceof Buffer);
-		var transferred = 0;
-		while (transferred < buffer.length) {
-			var l = bs.send(fd, buffer.slice(transferred));
-			if (l < 0) {
-				throw Error("send error");
-			}
-			transferred += l;
-			assert(transferred <= buffer.length, l);
-		}
+		socket.write(buffer);
 	}
 
 	return DataOutputStream({
@@ -54,17 +44,11 @@ function BlockingSocketOutputStream(fd) {
 	});
 }
 
-function BlockingSocketInputStream(fd) {
-	function readRaw() {
-		var buffer = new Buffer(8192);
-		var l = bs.recv(fd, buffer);
-		if (l <= 0) {
-			throw Error("recv error");
-		}
-		return buffer.slice(0, l);
-	}
+function SocketInputEmitter(socket, callback) {
+	var die = DataInputEmitter(callback);
 
-	return DataInputStream({
-		readRaw : readRaw
+	socket.on('data', function(buffer) {
+		assert(buffer instanceof Buffer);
+		die.emit(buffer);
 	});
 }

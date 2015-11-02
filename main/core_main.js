@@ -50,10 +50,11 @@ consensus_socket.connect(PERSHA_DATA + "/ipcA", function() {
 	var cmd = process.argv[2];
 	if (cmd === '-init') {
 		node_init();
+		consensus_sync.writeSnapshot();
 	}
 	else if (cmd === '-restart') {
 	}
-	consensus_schedule.write({
+	consensus_schedule({
 		type : 'getNextEvent',
 	});
 });
