@@ -39,36 +39,74 @@ var serverS = net.Server();
 
 serverS.on('connection', function(conn) {
 	var dos = SocketOutputStream(conn);
-	var snapshotReading;
 	var snapshotWriting;
+
+	function snapshotRead() {
+		Journal_startReadCheckpoint();
+		while (true) {
+			try {
+				var buffer = Journal_inputStream.readRaw();
+			} catch (e) {
+				if (e.message !== 'end of file') {
+					console.error("CHECKPOINT: " + e.stack);
+					process.reallyExit(1);
+				}
+				Journal_closeReadCheckpoint();
+				dos.writeAny("end of container");
+				dos.flush();
+				return;
+			}
+			dos.writeAny(buffer);
+		}
+	}
 
 	SocketInputEmitter(conn, function(entry) {
 		if (snapshotWriting) {
 			if (entry === "end of container") {
 				snapshotWriting = false;
-				//TODO close file
+				Journal_closeWriteCheckpoint();
 				dos.writeAny({
-					type: 'snapshotWritten'
+					type : 'snapshotWritten'
 				});
 				dos.flush();
 				return;
 			}
-			//TODO write entry
+			assert(entry instanceof Buffer);
+			Journal_outputStream.writeRaw(entry);
 			return;
 		}
 		switch (entry.type) {
 		case 'readSnapshot':
-			snapshotReading = true;
+			snapshotRead();
 			return;
 		case 'writeSnapshot':
 			snapshotWriting = true;
-			//TODO open file
+			Journal_startWriteCheckpoint();
 			return;
 		case 'offline':
-			//TODO
+		case 'getNextEvent':
+			if (online) {
+				dos.writeAny({
+					type : 'error',
+					value : 'restart'
+				});
+				dos.flush();
+				return;
+			}
+			var entry = Journal_read();
+			if (!entry) {
+				online = true;
+				dos.writeAny({
+					type : 'online'
+				});
+				dos.flush();
+				return;
+			}
+			dos.writeAny(entry);
+			dos.flush();
 			return;
 		}
-		//TODO Journal_write(entry);
+		Journal_write(entry);
 		dos.writeAny(entry);
 		dos.flush();
 	});

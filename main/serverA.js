@@ -37,9 +37,9 @@ var net = require('net');
 
 var serverA = net.Server();
 var async_event_queue = [];
+var online = false;
 
 serverA.on('connection', function(conn) {
-	var online = false;
 	var clientWaiting = false;
 	var dos = SocketOutputStream(conn);
 
@@ -47,11 +47,16 @@ serverA.on('connection', function(conn) {
 		if (entry.type === 'getNextEvent') {
 			assert(!clientWaiting);
 			if (!online) {
-				//TODO Journal_read();
-				online = true;
-				dos.writeAny({
-					type : 'online'
-				});
+				var entry = Journal_read();
+				if (!entry) {
+					online = true;
+					dos.writeAny({
+						type : 'online'
+					});
+					dos.flush();
+					return;
+				}
+				dos.writeAny(entry);
 				dos.flush();
 			}
 			else if (async_event_queue.length === 0) {
@@ -59,7 +64,7 @@ serverA.on('connection', function(conn) {
 			}
 			else {
 				entry = async_event_queue.shift();
-				//TODO Journal_write(entry);
+				Journal_write(entry);
 				dos.writeAny(entry);
 				dos.flush();
 			}
@@ -67,7 +72,7 @@ serverA.on('connection', function(conn) {
 		else if (clientWaiting) {
 			assert(async_event_queue.length === 0, async_event_queue);
 			clientWaiting = false;
-			//TODO Journal_write(entry);
+			Journal_write(entry);
 			dos.writeAny(entry);
 			dos.flush();
 		}

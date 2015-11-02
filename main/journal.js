@@ -35,20 +35,20 @@
 
 var MAX_CHECKPOINT_FILES = 8;
 
-var Journal_currentFileNo;
-var Journal_currentGen;
+var Journal_currentFileNo = 0;
+var Journal_currentGen = 0;
 var Journal_inputStream;
 var Journal_outputStream;
 
 function Journal_read() {
-	if (Journal_inputStream === undefined) {
+	if (!Journal_inputStream) {
 		return undefined;
 	}
 	try {
 		var position = Journal_inputStream.getPosition();
 		return Journal_inputStream.readAny();
 	} catch (e) {
-		if (e.message != 'end of file') {
+		if (e.message !== 'end of file') {
 			console.error("JOURNAL: " + e.stack);
 			process.reallyExit(1);
 		}
@@ -59,11 +59,16 @@ function Journal_read() {
 }
 
 function Journal_write(entry) {
-	if (Journal_outputStream === undefined) {
-		return;
-	}
+	assert(Journal_outputStream);
 	Journal_outputStream.writeAny(entry);
 	Journal_outputStream.flush();
+}
+
+function Journal_init() {
+	for (var i = 0; i < MAX_CHECKPOINT_FILES; i++) {
+		Journal_currentFileNo = i;
+		Journal_clearLogHeader();
+	}
 }
 
 function Journal_start() {
@@ -84,32 +89,26 @@ function Journal_start() {
 	}
 	Journal_currentFileNo = maxFileNo;
 	Journal_currentGen = maxGen;
-	//Journal_readCheckpointHeader();
-	//readSnapshot(Journal_inputStream);
-	//Journal_readLogHeader();
 	return true;
 }
 
-function Journal_checkpoint() {
+function Journal_startReadCheckpoint() {
+	Journal_readCheckpointHeader();
+}
+
+function Journal_closeReadCheckpoint() {
+	Journal_readLogHeader();
+}
+
+function Journal_startWriteCheckpoint() {
 	Journal_currentFileNo = (Journal_currentFileNo + 1) % MAX_CHECKPOINT_FILES;
 	Journal_currentGen++;
 	Journal_clearLogHeader();
 	Journal_writeCheckpointHeader();
-	writeSnapshot(Journal_outputStream);
-	Journal_writeLogHeader();
 }
 
-function Journal_init() {
-	for (var i = 0; i < MAX_CHECKPOINT_FILES; i++) {
-		Journal_currentFileNo = i;
-		Journal_clearLogHeader();
-	}
-	Journal_currentFileNo = 0;
-	Journal_currentGen = 1;
-	//Journal_clearLogHeader();
-	//Journal_writeCheckpointHeader();
-	//writeSnapshot(Journal_outputStream);
-	//Journal_writeLogHeader();
+function Journal_closeWriteCheckpoint() {
+	Journal_writeLogHeader();
 }
 
 function Journal_readCheckpointHeader() {

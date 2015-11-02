@@ -53,6 +53,9 @@ consensus_socket.connect(PERSHA_DATA + "/ipcA", function() {
 		consensus_sync.writeSnapshot();
 	}
 	else if (cmd === '-restart') {
+		IOM_state = 'recovery';
+		console.log("RECOVERING ...");
+		consensus_sync.readSnapshot();
 	}
 	consensus_schedule({
 		type : 'getNextEvent',

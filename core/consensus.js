@@ -45,11 +45,11 @@ SocketInputEmitter(consensus_socket, function(entry) {
 	try {
 		switch (entry.type) {
 		case 'online':
+			if (IOM_state === 'recovery') console.log("READY");
 			for ( var txid in IOP_asyncCallbacks) {
 				consensus_completionError(txid, 'restart');
 			}
 			IOM_state = 'online';
-			break;
 		case 'restart':
 			IOP_restartPorts();
 			break;
@@ -122,6 +122,7 @@ var consensus_sync = function() {
 	var peek;
 
 	function write(entry) {
+		//console.log("sync write "+entry.type);
 		dos.writeAny(entry);
 		dos.flush();
 	}
@@ -134,6 +135,7 @@ var consensus_sync = function() {
 		else {
 			var entry = dis.readAny();
 		}
+		//console.log("sync read "+entry.type);
 		return entry;
 	}
 
@@ -158,11 +160,22 @@ var consensus_sync = function() {
 		assert(entry.type === 'snapshotWritten', entry);
 	}
 
+	function readSnapshot1() {
+		dos.writeAny({
+			type : 'readSnapshot'
+		});
+		dos.flush();
+		var cis = ContainerInputStream(dis);
+		readSnapshot(cis);
+		cis.close();
+	}
+
 	return {
 		write : write,
 		read : read,
 		readPortEvent : readPortEvent,
 		writeSnapshot : writeSnapshot1,
+		readSnapshot : readSnapshot1,
 	};
 }();
 
@@ -175,14 +188,17 @@ function consensus_completionSyncIO(type, value) {
 		var entry = consensus_sync.read();
 		switch (entry.type) {
 		case 'online':
+			if (IOM_state === 'recovery') console.log("READY");
 			for ( var txid in IOP_asyncCallbacks) {
 				consensus_completionError(txid, 'restart');
 			}
 			IOM_state = 'online';
-			continue;
 		case 'restart':
 			IOP_restartPorts();
-			continue;
+			return {
+				type : 'error',
+				value : 'restart'
+			};
 		case 'return':
 			var value = IOP_wrap(entry.value);
 			return {
@@ -208,7 +224,10 @@ function consensus_completionSyncIO(type, value) {
 			} catch (e) {
 				if (isInternalError(e)) throw e;
 			}
-			break;
+			consensus_sync.write({
+				type : 'getNextEvent'
+			});
+			continue;
 		default:
 			assert(false, entry);
 		}
