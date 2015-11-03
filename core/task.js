@@ -89,3 +89,21 @@ function task_callbackUncaughtError(e) {
 		consensus_uncaughtError(err);
 	}
 }
+
+var taskAccumulatedTime = 0;
+var taskResumedTime = undefined;
+
+function taskResumeClock() {
+	assert(taskResumedTime === undefined);
+	taskResumedTime = Date.now();
+}
+
+function taskPauseClock() {
+	assert(taskResumedTime !== undefined);
+	var elapsed = Date.now() - taskResumedTime;
+	if (elapsed <= 0) {
+		elapsed = 1;
+	}
+	taskAccumulatedTime += elapsed;
+	taskResumedTime = undefined;
+}

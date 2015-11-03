@@ -49,7 +49,9 @@ vm.runInThisContext(fs.readFileSync(PERSHA_HOME + "/bin/core.js").toString(), "c
 consensus_socket.connect(PERSHA_DATA + "/ipcA", function() {
 	var cmd = process.argv[2];
 	if (cmd === '-init') {
+		taskResumeClock();
 		node_init();
+		taskPauseClock();
 		consensus_writeSnapshot();
 	}
 	else if (cmd === '-restart') {
@@ -63,20 +65,11 @@ consensus_socket.connect(PERSHA_DATA + "/ipcA", function() {
 });
 
 process.on('beforeExit', function() {
-	console.error('beforeExit');
-	if (IOM_state !== 'online') {
-		return;
-	}
 	consensus_beforeExit();
 });
 
 process.on('exit', function() {
-	console.error('exit');
-	if (IOM_state !== 'online') {
-		return;
-	}
 	consensus_exit();
-	process.reallyExit(0);
 });
 
 process.on('uncaughtException', function(err) {

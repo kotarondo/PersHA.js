@@ -72,7 +72,9 @@ function IOPort_prototype_open(thisValue, argumentsList) {
 		port.callback = callback;
 		callback.Call(undefined, [ IOPortError_Construct([ 'restart' ]), port ]);
 	}
+	taskPauseClock();
 	IOM_bindPort(port);
+	taskResumeClock();
 	return port;
 }
 
@@ -101,7 +103,9 @@ function IOPort_prototype_asyncIO(thisValue, argumentsList) {
 		var txid = ++IOP_uniqueID;
 		IOP_asyncCallbacks[txid] = callback;
 	}
+	taskPauseClock();
 	IOM_asyncIO(port, func, args, txid);
+	taskResumeClock();
 }
 
 function IOPort_prototype_syncIO(thisValue, argumentsList) {
@@ -120,7 +124,9 @@ function IOPort_prototype_syncIO(thisValue, argumentsList) {
 		if (callback) {
 			var txid = ++IOP_uniqueID;
 		}
+		taskPauseClock();
 		var ret = IOM_syncIO(port, func, args, txid);
+		taskResumeClock();
 		if (callback && ret.type === 'return') {
 			IOP_asyncCallbacks[txid] = callback;
 		}

@@ -47,9 +47,11 @@ function consensus_schedule(entry) {
 
 SocketInputEmitter(consensus_socket, function(entry) {
 	//console.log("async read " + entry.type);
+	taskResumeClock();
 	try {
 		switch (entry.type) {
 		case 'pause':
+			taskPauseClock();
 			if (consensus_scheduled === 0) {
 				consensus_socket.unref();
 			}
@@ -85,6 +87,11 @@ SocketInputEmitter(consensus_socket, function(entry) {
 		task_callbackUncaughtError(e);
 	}
 	runMicrotasks();
+	taskPauseClock();
+	if (taskAccumulatedTime >= 3000) {
+		taskAccumulatedTime = 0;
+		consensus_writeSnapshot();
+	}
 	consensus_schedule({
 		type : 'getNextEvent',
 	});
@@ -176,6 +183,7 @@ function consensus_completionSyncIO(type, value) {
 	});
 	while (true) {
 		var entry = consensus_sync.read();
+		taskResumeClock();
 		switch (entry.type) {
 		case 'online':
 			if (IOM_state === 'recovery') console.log("READY");
@@ -185,24 +193,28 @@ function consensus_completionSyncIO(type, value) {
 			IOM_state = 'online';
 		case 'restart':
 			IOP_restartPorts();
+			taskPauseClock();
 			return {
 				type : 'error',
 				value : 'restart'
 			};
 		case 'return':
 			var value = IOP_wrap(entry.value);
+			taskPauseClock();
 			return {
 				type : 'return',
 				value : value
 			};
 		case 'throw':
 			var value = IOP_wrap(entry.value);
+			taskPauseClock();
 			return {
 				type : 'throw',
 				value : value
 			};
 		case 'error':
 			assert(isPrimitiveValue(entry.value), entry);
+			taskPauseClock();
 			return {
 				type : 'error',
 				value : entry.value
@@ -214,13 +226,14 @@ function consensus_completionSyncIO(type, value) {
 			} catch (e) {
 				if (isInternalError(e)) throw e;
 			}
-			consensus_sync.write({
-				type : 'getNextEvent'
-			});
-			continue;
+			break;
 		default:
 			assert(false, entry);
 		}
+		taskPauseClock();
+		consensus_sync.write({
+			type : 'getNextEvent'
+		});
 	}
 }
 
@@ -235,14 +248,17 @@ function consensus_portSyncCallback(txid, args) {
 	if (!entry) {
 		return;
 	}
+	taskResumeClock();
 	args = IOP_wrapArgs(entry.args);
 	try {
 		IOP_portEvent(entry.txid, args);
 	} catch (e) {
 		if (isInternalError(e)) throw e;
 		e = IOP_unwrap(e);
+		taskPauseClock();
 		throw e;
 	}
+	taskPauseClock();
 }
 
 function consensus_date_now() {
@@ -295,19 +311,25 @@ function consensus_readSnapshot() {
 	cis.close();
 }
 
+function consensus_evaluateProgram(text, filename) {
+	taskResumeClock();
+	try {
+		Global_evaluateProgram(undefined, [ text, filename ]);
+	} catch (e) {
+		if (isInternalError(e)) throw e;
+		task_callbackUncaughtError(e);
+	}
+	runMicrotasks();
+	taskPauseClock();
+}
+
 function consensus_beforeExit() {
 	consensus_sync.write({
 		type : 'beforeExit'
 	});
 	var entry = consensus_sync.read();
 	assert(entry.type === 'evaluate', entry);
-	try {
-		Global_evaluateProgram(undefined, [ entry.text, entry.filename ]);
-	} catch (e) {
-		if (isInternalError(e)) throw e;
-		task_callbackUncaughtError(e);
-	}
-	runMicrotasks();
+	consensus_evaluateProgram(entry.text, entry.filename);
 }
 
 function consensus_exit() {
@@ -316,13 +338,7 @@ function consensus_exit() {
 	});
 	var entry = consensus_sync.read();
 	assert(entry.type === 'evaluate', entry);
-	try {
-		Global_evaluateProgram(undefined, [ entry.text, entry.filename ]);
-	} catch (e) {
-		if (isInternalError(e)) throw e;
-		task_callbackUncaughtError(e);
-	}
-	runMicrotasks();
+	consensus_evaluateProgram(entry.text, entry.filename);
 }
 
 function consensus_uncaughtError(err) {
