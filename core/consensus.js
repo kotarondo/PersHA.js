@@ -35,16 +35,25 @@
 
 var consensus_socket = require('net').Socket();
 var consensus_async = SocketOutputStream(consensus_socket);
+var consensus_scheduled = 0;
 
 function consensus_schedule(entry) {
+	//console.log("async write " + entry.type);
 	consensus_async.writeAny(entry);
 	consensus_async.flush();
 	consensus_socket.ref();
+	consensus_scheduled++;
 }
 
 SocketInputEmitter(consensus_socket, function(entry) {
+	//console.log("async read " + entry.type);
 	try {
 		switch (entry.type) {
+		case 'pause':
+			if (consensus_scheduled === 0) {
+				consensus_socket.unref();
+			}
+			return;
 		case 'online':
 			if (IOM_state === 'recovery') console.log("READY");
 			for ( var txid in IOP_asyncCallbacks) {
@@ -65,9 +74,6 @@ SocketInputEmitter(consensus_socket, function(entry) {
 			var args = IOP_wrapArgs(entry.args);
 			IOP_portEvent(entry.txid, args);
 			break;
-		case 'unref':
-			consensus_socket.unref();
-			break;
 		case 'evaluate':
 			Global_evaluateProgram(undefined, [ entry.text, entry.filename ]);
 			break;
@@ -79,10 +85,10 @@ SocketInputEmitter(consensus_socket, function(entry) {
 		task_callbackUncaughtError(e);
 	}
 	runMicrotasks();
-	consensus_async.writeAny({
+	consensus_schedule({
 		type : 'getNextEvent',
 	});
-	consensus_async.flush();
+	consensus_scheduled = 0;
 });
 
 function consensus_completionCallback(txid, args) {
@@ -127,7 +133,7 @@ var consensus_sync = function() {
 	var peek;
 
 	function write(entry) {
-		//console.log("sync write "+entry.type);
+		//console.log("sync write " + entry.type);
 		dos.writeAny(entry);
 		dos.flush();
 	}
@@ -140,7 +146,7 @@ var consensus_sync = function() {
 		else {
 			var entry = dis.readAny();
 		}
-		//console.log("sync read "+entry.type);
+		//console.log("sync read " + entry.type);
 		return entry;
 	}
 

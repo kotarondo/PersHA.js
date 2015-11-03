@@ -41,7 +41,7 @@ var async_event_queue = [];
 var online = false;
 
 serverA.on('connection', function(conn) {
-	var clientWaiting = false;
+	var clientPaused = false;
 	var dos = SocketOutputStream(conn);
 
 	function send(entry) {
@@ -51,6 +51,7 @@ serverA.on('connection', function(conn) {
 
 	SocketInputEmitter(conn, function(entry) {
 		if (entry.type === 'getNextEvent') {
+			assert(!clientPaused);
 			if (!online) {
 				var entry = Journal_read();
 				if (entry) {
@@ -67,12 +68,10 @@ serverA.on('connection', function(conn) {
 				return;
 			}
 			else if (async_event_queue.length === 0) {
-				if (!clientWaiting) {
-					clientWaiting = true;
-					send({
-						type : 'unref'
-					});
-				}
+				clientPaused = true;
+				send({
+					type : 'pause'
+				});
 				return;
 			}
 			else {
@@ -82,9 +81,9 @@ serverA.on('connection', function(conn) {
 				return;
 			}
 		}
-		else if (clientWaiting) {
+		else if (clientPaused) {
 			assert(async_event_queue.length === 0, async_event_queue);
-			clientWaiting = false;
+			clientPaused = false;
 			Journal_write(entry);
 			send(entry);
 			return;
