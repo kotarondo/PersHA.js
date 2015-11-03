@@ -39,6 +39,7 @@ var consensus_async = SocketOutputStream(consensus_socket);
 function consensus_schedule(entry) {
 	consensus_async.writeAny(entry);
 	consensus_async.flush();
+	consensus_socket.ref();
 }
 
 SocketInputEmitter(consensus_socket, function(entry) {
@@ -64,6 +65,9 @@ SocketInputEmitter(consensus_socket, function(entry) {
 			var args = IOP_wrapArgs(entry.args);
 			IOP_portEvent(entry.txid, args);
 			break;
+		case 'unref':
+			consensus_socket.unref();
+			break;
 		case 'evaluate':
 			Global_evaluateProgram(undefined, [ entry.text, entry.filename ]);
 			break;
@@ -75,9 +79,10 @@ SocketInputEmitter(consensus_socket, function(entry) {
 		task_callbackUncaughtError(e);
 	}
 	runMicrotasks();
-	consensus_schedule({
+	consensus_async.writeAny({
 		type : 'getNextEvent',
 	});
+	consensus_async.flush();
 });
 
 function consensus_completionCallback(txid, args) {
@@ -149,33 +154,12 @@ var consensus_sync = function() {
 		return entry;
 	}
 
-	function writeSnapshot1() {
-		dos.writeAny({
-			type : 'writeSnapshot'
-		});
-		var cos = ContainerOutputStream(dos);
-		writeSnapshot(cos);
-		cos.close();
-		var entry = read();
-		assert(entry.type === 'snapshotWritten', entry);
-	}
-
-	function readSnapshot1() {
-		dos.writeAny({
-			type : 'readSnapshot'
-		});
-		dos.flush();
-		var cis = ContainerInputStream(dis);
-		readSnapshot(cis);
-		cis.close();
-	}
-
 	return {
 		write : write,
 		read : read,
 		readPortEvent : readPortEvent,
-		writeSnapshot : writeSnapshot1,
-		readSnapshot : readSnapshot1,
+		dos : dos,
+		dis : dis,
 	};
 }();
 
@@ -283,6 +267,56 @@ function consensus_math_random() {
 	var entry = consensus_sync.read();
 	assert(entry.type === 'Math.random', entry);
 	return entry.value;
+}
+
+function consensus_writeSnapshot() {
+	consensus_sync.write({
+		type : 'writeSnapshot'
+	});
+	var cos = ContainerOutputStream(consensus_sync.dos);
+	writeSnapshot(cos);
+	cos.close();
+	var entry = consensus_sync.read();
+	assert(entry.type === 'snapshotWritten', entry);
+}
+
+function consensus_readSnapshot() {
+	consensus_sync.write({
+		type : 'readSnapshot'
+	});
+	var cis = ContainerInputStream(consensus_sync.dis);
+	readSnapshot(cis);
+	cis.close();
+}
+
+function consensus_beforeExit() {
+	consensus_sync.write({
+		type : 'beforeExit'
+	});
+	var entry = consensus_sync.read();
+	assert(entry.type === 'evaluate', entry);
+	try {
+		Global_evaluateProgram(undefined, [ entry.text, entry.filename ]);
+	} catch (e) {
+		if (isInternalError(e)) throw e;
+		task_callbackUncaughtError(e);
+	}
+	runMicrotasks();
+}
+
+function consensus_exit() {
+	consensus_sync.write({
+		type : 'exit'
+	});
+	var entry = consensus_sync.read();
+	assert(entry.type === 'evaluate', entry);
+	try {
+		Global_evaluateProgram(undefined, [ entry.text, entry.filename ]);
+	} catch (e) {
+		if (isInternalError(e)) throw e;
+		task_callbackUncaughtError(e);
+	}
+	runMicrotasks();
 }
 
 function consensus_uncaughtError(err) {

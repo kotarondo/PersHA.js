@@ -85,8 +85,11 @@ serverA.listen(PERSHA_DATA + "/ipcA", function() {
 	serverS.listen(PERSHA_DATA + "/ipcS", function() {
 		var args = process.argv.slice(1);
 		args[0] = PERSHA_HOME + "/bin/core_main.js";
-		require('child_process').spawn('node', args, {
+		var core = require('child_process').spawn('node', args, {
 			stdio : 'inherit'
+		});
+		core.on('close', function(exitcode) {
+			process.exit(exitcode);
 		});
 	});
 });

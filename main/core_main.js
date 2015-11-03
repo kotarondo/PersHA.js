@@ -50,36 +50,36 @@ consensus_socket.connect(PERSHA_DATA + "/ipcA", function() {
 	var cmd = process.argv[2];
 	if (cmd === '-init') {
 		node_init();
-		consensus_sync.writeSnapshot();
+		consensus_writeSnapshot();
 	}
 	else if (cmd === '-restart') {
 		IOM_state = 'recovery';
 		console.log("RECOVERING ...");
-		consensus_sync.readSnapshot();
+		consensus_readSnapshot();
 	}
 	consensus_schedule({
 		type : 'getNextEvent',
 	});
 });
 
-/*
 process.on('beforeExit', function() {
+	console.error('beforeExit');
 	if (IOM_state !== 'online') {
 		return;
 	}
-	consensus_evaluate("process.emit('beforeExit')", "");
+	consensus_beforeExit();
 });
 
 process.on('exit', function() {
+	console.error('exit');
 	if (IOM_state !== 'online') {
 		return;
 	}
-	consensus_evaluate("process.exit(0)", "");
-	process.reallyExit(1);
+	consensus_exit();
+	process.reallyExit(0);
 });
 
 process.on('uncaughtException', function(err) {
 	console.error(err.stack);
 	process.reallyExit(1);
 });
-*/

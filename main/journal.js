@@ -59,7 +59,7 @@ function Journal_read() {
 }
 
 function Journal_write(entry) {
-	assert(Journal_outputStream);
+	assert(Journal_outputStream, entry);
 	Journal_outputStream.writeAny(entry);
 	Journal_outputStream.flush();
 }

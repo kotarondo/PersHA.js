@@ -35,11 +35,75 @@
 
 var net = require('net');
 
+var serverA = net.Server();
 var serverS = net.Server();
+var async_event_queue = [];
+var online = false;
+
+serverA.on('connection', function(conn) {
+	var clientWaiting = false;
+	var dos = SocketOutputStream(conn);
+
+	function send(entry) {
+		dos.writeAny(entry);
+		dos.flush();
+	}
+
+	SocketInputEmitter(conn, function(entry) {
+		if (entry.type === 'getNextEvent') {
+			if (!online) {
+				var entry = Journal_read();
+				if (entry) {
+					send(entry);
+					return;
+				}
+				online = true;
+				Journal_write({
+					type : 'restart'
+				});
+				send({
+					type : 'online'
+				});
+				return;
+			}
+			else if (async_event_queue.length === 0) {
+				if (!clientWaiting) {
+					clientWaiting = true;
+					send({
+						type : 'unref'
+					});
+				}
+				return;
+			}
+			else {
+				entry = async_event_queue.shift();
+				Journal_write(entry);
+				send(entry);
+				return;
+			}
+		}
+		else if (clientWaiting) {
+			assert(async_event_queue.length === 0, async_event_queue);
+			clientWaiting = false;
+			Journal_write(entry);
+			send(entry);
+			return;
+		}
+		else {
+			async_event_queue.push(entry);
+			return;
+		}
+	});
+});
 
 serverS.on('connection', function(conn) {
 	var dos = SocketOutputStream(conn);
 	var snapshotWriting;
+
+	function send(entry) {
+		dos.writeAny(entry);
+		dos.flush();
+	}
 
 	function snapshotRead() {
 		Journal_startReadCheckpoint();
@@ -52,11 +116,10 @@ serverS.on('connection', function(conn) {
 					process.reallyExit(1);
 				}
 				Journal_closeReadCheckpoint();
-				dos.writeAny("end of container");
-				dos.flush();
+				send("end of container");
 				return;
 			}
-			dos.writeAny(buffer);
+			send(buffer);
 		}
 	}
 
@@ -65,10 +128,9 @@ serverS.on('connection', function(conn) {
 			if (entry === "end of container") {
 				snapshotWriting = false;
 				Journal_closeWriteCheckpoint();
-				dos.writeAny({
+				send({
 					type : 'snapshotWritten'
 				});
-				dos.flush();
 				return;
 			}
 			assert(entry instanceof Buffer);
@@ -83,31 +145,54 @@ serverS.on('connection', function(conn) {
 			snapshotWriting = true;
 			Journal_startWriteCheckpoint();
 			return;
-		case 'offline':
-		case 'getNextEvent':
-			if (online) {
-				dos.writeAny({
-					type : 'error',
-					value : 'restart'
-				});
-				dos.flush();
-				return;
-			}
-			var entry = Journal_read();
-			if (!entry) {
-				online = true;
-				dos.writeAny({
-					type : 'online'
-				});
-				dos.flush();
-				return;
-			}
-			dos.writeAny(entry);
-			dos.flush();
+		case 'beforeExit':
+			assert(online);
+			var entry = {
+				type : 'evaluate',
+				text : "process.emit('beforeExit')",
+				filename : "(beforeExit)"
+			};
+			Journal_write(entry);
+			send(entry);
+			return;
+		case 'exit':
+			assert(online);
+			var entry = {
+				type : 'evaluate',
+				text : "process.exit(0)",
+				filename : "(exit)"
+			};
+			Journal_write(entry);
+			send(entry);
 			return;
 		}
+		if (!online) {
+			var entry = Journal_read();
+			if (entry) {
+				send(entry);
+				return;
+			}
+			online = true;
+			Journal_write({
+				type : 'restart'
+			});
+			send({
+				type : 'online'
+			});
+			return;
+		}
+		switch (entry.type) {
+		case 'offline':
+			assert(false, entry);
+			break;
+		case 'getNextEvent':
+			var entry = {
+				type : 'error',
+				value : 'restart'
+			};
+			break;
+		}
 		Journal_write(entry);
-		dos.writeAny(entry);
-		dos.flush();
+		send(entry);
 	});
 });
