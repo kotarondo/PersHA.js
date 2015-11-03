@@ -67,18 +67,21 @@ serverA.on('connection', function(conn) {
 				});
 				return;
 			}
+			if (entry.time >= 3000) {
+				send({
+					type : 'snapshot'
+				});
+			}
 			else if (async_event_queue.length === 0) {
 				clientPaused = true;
 				send({
 					type : 'pause'
 				});
-				return;
 			}
 			else {
 				entry = async_event_queue.shift();
 				Journal_write(entry);
 				send(entry);
-				return;
 			}
 		}
 		else if (clientPaused) {

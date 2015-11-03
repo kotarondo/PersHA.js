@@ -59,7 +59,9 @@ function Journal_read() {
 }
 
 function Journal_write(entry) {
-	assert(Journal_outputStream, entry);
+	if (!Journal_outputStream) {
+		return undefined;
+	}
 	Journal_outputStream.writeAny(entry);
 	Journal_outputStream.flush();
 }
@@ -69,6 +71,7 @@ function Journal_init() {
 		Journal_currentFileNo = i;
 		Journal_clearLogHeader();
 	}
+	Journal_closeOutputStream();
 }
 
 function Journal_start() {

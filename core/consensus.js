@@ -47,15 +47,24 @@ function consensus_schedule(entry) {
 
 SocketInputEmitter(consensus_socket, function(entry) {
 	//console.log("async read " + entry.type);
+	switch (entry.type) {
+	case 'pause':
+		if (consensus_scheduled === 0) {
+			consensus_socket.unref();
+		}
+		return;
+	case 'snapshot':
+		consensus_writeSnapshot();
+		taskAccumulatedTime = 0;
+		consensus_schedule({
+			type : 'getNextEvent',
+		});
+		consensus_scheduled = 0;
+		return;
+	}
 	taskResumeClock();
 	try {
 		switch (entry.type) {
-		case 'pause':
-			taskPauseClock();
-			if (consensus_scheduled === 0) {
-				consensus_socket.unref();
-			}
-			return;
 		case 'online':
 			if (IOM_state === 'recovery') console.log("READY");
 			for ( var txid in IOP_asyncCallbacks) {
@@ -88,12 +97,9 @@ SocketInputEmitter(consensus_socket, function(entry) {
 	}
 	runMicrotasks();
 	taskPauseClock();
-	if (taskAccumulatedTime >= 3000) {
-		taskAccumulatedTime = 0;
-		consensus_writeSnapshot();
-	}
 	consensus_schedule({
 		type : 'getNextEvent',
+		time : taskAccumulatedTime
 	});
 	consensus_scheduled = 0;
 });

@@ -49,10 +49,10 @@ vm.runInThisContext(fs.readFileSync(PERSHA_HOME + "/bin/core.js").toString(), "c
 consensus_socket.connect(PERSHA_DATA + "/ipcA", function() {
 	var cmd = process.argv[2];
 	if (cmd === '-init') {
+		taskAccumulatedTime = Infinity;
 		taskResumeClock();
 		node_init();
 		taskPauseClock();
-		consensus_writeSnapshot();
 	}
 	else if (cmd === '-restart') {
 		IOM_state = 'recovery';

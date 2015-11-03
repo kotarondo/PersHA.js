@@ -40,7 +40,7 @@ function DataOutputStream(stream) {
 	var buffer = new Buffer(capacity);
 
 	function flush() {
-		if(cacheLen === 0) return;
+		if (cacheLen === 0) return;
 		assert(cacheLen <= capacity, cacheLen);
 		stream.writeRaw(buffer.slice(0, cacheLen));
 		buffer = new Buffer(capacity);
@@ -354,7 +354,7 @@ function DataInputStream(stream) {
 			var a = {};
 			break;
 		default:
-			throw Error("data stream broken");
+			throw Error("data stream broken: " + type);
 		}
 		while (true) {
 			var P = readString();
