@@ -1,6 +1,6 @@
 #!/bin/sh
 
-TIMEOUT=100
+TIMEOUT=200
 HEAD=$1
 
 killer(){
