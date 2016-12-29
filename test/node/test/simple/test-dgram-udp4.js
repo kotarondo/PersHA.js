@@ -75,4 +75,4 @@ server.bind(server_port);
 
 timer = setTimeout(function() {
   throw new Error('Timeout');
-}, 400);
+}, 200);

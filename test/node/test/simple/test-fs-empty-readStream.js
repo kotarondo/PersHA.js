@@ -43,7 +43,7 @@ fs.open(emptyFile, 'r', function (error, fd) {
 
   setTimeout(function () {
     assert.equal(readEmit, true);
-  }, 100);
+  }, 50);
 });
 
 fs.open(emptyFile, 'r', function (error, fd) {
@@ -64,5 +64,5 @@ fs.open(emptyFile, 'r', function (error, fd) {
 
   setTimeout(function () {
     assert.equal(readEmit, false);
-  }, 100);
+  }, 50);
 });

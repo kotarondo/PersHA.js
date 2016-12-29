@@ -89,7 +89,7 @@ function Buffer_Construct(argumentsList) {
 		throw VMTypeError();
 	}
 	var obj = VMObject(CLASSID_Buffer);
-	obj.Prototype = vm0.Buffer_prototype;
+	obj.Prototype = vm.Buffer_prototype;
 	obj.Extensible = true;
 	obj.wrappedBuffer = buf;
 	defineFinal(obj, "length", buf.length);
@@ -148,7 +148,7 @@ function Buffer_concat(thisValue, argumentsList) {
 		redirectException(e);
 	}
 	var obj = VMObject(CLASSID_Buffer);
-	obj.Prototype = vm0.Buffer_prototype;
+	obj.Prototype = vm.Buffer_prototype;
 	obj.Extensible = true;
 	obj.wrappedBuffer = buf;
 	defineFinal(obj, "length", buf.length);
@@ -353,7 +353,7 @@ function Buffer_prototype_slice(thisValue, argumentsList) {
 		redirectException(e);
 	}
 	var obj = VMObject(CLASSID_Buffer);
-	obj.Prototype = vm0.Buffer_prototype;
+	obj.Prototype = vm.Buffer_prototype;
 	obj.Extensible = true;
 	obj.wrappedBuffer = buf;
 	defineFinal(obj, "length", buf.length);
@@ -786,17 +786,4 @@ function Buffer_FastPut(P, V, Throw) {
 		if (index < len) buf[index] = ToUint32(V);
 	}
 	return default_Put.call(O, P, V, Throw);
-}
-
-function redirectException(e) {
-	if (e instanceof TypeError) {
-		throw VMTypeError(e.message);
-	}
-	if (e instanceof RangeError) {
-		throw VMRangeError(e.message);
-	}
-	if (e instanceof ReferenceError) {
-		throw VMReferenceError(e.message);
-	}
-	assert(false, e);
 }

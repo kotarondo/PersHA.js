@@ -35,8 +35,6 @@
 
 // ECMAScript 5.1: 8 Types
 
-var STRICT_CONFORMANCE = false;
-
 var TYPE_Undefined = 1;
 var TYPE_Boolean = 2;
 var TYPE_Number = 3;

@@ -33,22 +33,23 @@
 
 'use strict';
 
+var JOURNAL_FILEBASE= PERSHA_DATA + "/journal";
 var MAX_CHECKPOINT_FILES = 8;
 
-var Journal_currentFileNo = 0;
-var Journal_currentGen = 0;
+var Journal_currentFileNo;
+var Journal_currentGen;
 var Journal_inputStream;
 var Journal_outputStream;
 
 function Journal_read() {
-	if (!Journal_inputStream) {
+	if (Journal_inputStream === undefined) {
 		return undefined;
 	}
 	try {
 		var position = Journal_inputStream.getPosition();
 		return Journal_inputStream.readAny();
 	} catch (e) {
-		if (e.message !== 'end of file') {
+		if (e.message != 'end of file') {
 			console.error("JOURNAL: " + e.stack);
 			process.reallyExit(1);
 		}
@@ -59,19 +60,11 @@ function Journal_read() {
 }
 
 function Journal_write(entry) {
-	if (!Journal_outputStream) {
-		return undefined;
+	if (Journal_outputStream === undefined) {
+		return;
 	}
 	Journal_outputStream.writeAny(entry);
 	Journal_outputStream.flush();
-}
-
-function Journal_init() {
-	for (var i = 0; i < MAX_CHECKPOINT_FILES; i++) {
-		Journal_currentFileNo = i;
-		Journal_clearLogHeader();
-	}
-	Journal_closeOutputStream();
 }
 
 function Journal_start() {
@@ -92,32 +85,39 @@ function Journal_start() {
 	}
 	Journal_currentFileNo = maxFileNo;
 	Journal_currentGen = maxGen;
+	Journal_readCheckpointHeader();
+	readSnapshot(Journal_inputStream);
+	Journal_readLogHeader();
 	return true;
 }
 
-function Journal_startReadCheckpoint() {
-	Journal_readCheckpointHeader();
-}
-
-function Journal_closeReadCheckpoint() {
-	Journal_readLogHeader();
-}
-
-function Journal_startWriteCheckpoint() {
+function Journal_checkpoint() {
 	Journal_currentFileNo = (Journal_currentFileNo + 1) % MAX_CHECKPOINT_FILES;
 	Journal_currentGen++;
 	Journal_clearLogHeader();
 	Journal_writeCheckpointHeader();
+	writeSnapshot(Journal_outputStream);
+	Journal_writeLogHeader();
+	taskAccumulatedTime = 0;
 }
 
-function Journal_closeWriteCheckpoint() {
+function Journal_init() {
+	for (var i = 0; i < MAX_CHECKPOINT_FILES; i++) {
+		Journal_currentFileNo = i;
+		Journal_clearLogHeader();
+	}
+	Journal_currentFileNo = 0;
+	Journal_currentGen = 1;
+	Journal_clearLogHeader();
+	Journal_writeCheckpointHeader();
+	writeSnapshot(Journal_outputStream);
 	Journal_writeLogHeader();
 }
 
 function Journal_readCheckpointHeader() {
 	Journal_closeInputStream();
 	try {
-		Journal_inputStream = FileInputStream(PERSHA_DATA + "/journal" + Journal_currentFileNo + "cp.bin");
+		Journal_inputStream = FileInputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "cp.bin");
 		var header = Journal_inputStream.readAny();
 		if (isPrimitiveValue(header) || header.magic !== "checkpoint") {
 			return null;
@@ -131,7 +131,7 @@ function Journal_readCheckpointHeader() {
 function Journal_readLogHeader() {
 	Journal_closeInputStream();
 	try {
-		Journal_inputStream = FileInputStream(PERSHA_DATA + "/journal" + Journal_currentFileNo + "log.bin");
+		Journal_inputStream = FileInputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "log.bin");
 		var header = Journal_inputStream.readAny();
 		if (isPrimitiveValue(header) || header.magic !== "log") {
 			return null;
@@ -144,7 +144,7 @@ function Journal_readLogHeader() {
 
 function Journal_writeCheckpointHeader() {
 	Journal_closeOutputStream();
-	Journal_outputStream = FileOutputStream(PERSHA_DATA + "/journal" + Journal_currentFileNo + "cp.bin");
+	Journal_outputStream = FileOutputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "cp.bin");
 	var header = {
 		magic : "checkpoint",
 		gen : Journal_currentGen,
@@ -155,7 +155,7 @@ function Journal_writeCheckpointHeader() {
 
 function Journal_writeLogHeader() {
 	Journal_closeOutputStream();
-	Journal_outputStream = FileOutputStream(PERSHA_DATA + "/journal" + Journal_currentFileNo + "log.bin");
+	Journal_outputStream = FileOutputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "log.bin");
 	var header = {
 		magic : "log",
 		gen : Journal_currentGen,
@@ -166,14 +166,14 @@ function Journal_writeLogHeader() {
 
 function Journal_clearLogHeader() {
 	Journal_closeOutputStream();
-	Journal_outputStream = FileOutputStream(PERSHA_DATA + "/journal" + Journal_currentFileNo + "log.bin");
+	Journal_outputStream = FileOutputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "log.bin");
 	Journal_outputStream.writeAny({});
 	Journal_outputStream.flush();
 }
 
 function Journal_openLog(position) {
 	Journal_closeOutputStream();
-	Journal_outputStream = FileOutputStream(PERSHA_DATA + "/journal" + Journal_currentFileNo + "log.bin", true);
+	Journal_outputStream = FileOutputStream(JOURNAL_FILEBASE + Journal_currentFileNo + "log.bin", true);
 	Journal_outputStream.setPosition(position);
 }
 

@@ -111,7 +111,7 @@ function Math_pow(thisValue, argumentsList) {
 }
 
 function Math_random(thisValue, argumentsList) {
-	return consensus_math_random();
+	return IOManager_math_random(); // for deterministic behavior
 }
 
 function Math_round(thisValue, argumentsList) {

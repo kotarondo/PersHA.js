@@ -42,7 +42,7 @@ try {
 	initializeVM();
 
 	var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + 'bridge.js').toString();
-	Global_evaluateProgram(undefined, [ text, 'bridge/bridge.js' ]);
+	IOManager_evaluate(text, 'bridge/bridge.js');
 
 	var bridge_list = [ 'process', 'fs', 'uv', 'os', 'http_parser', 'crypto',//
 	'tcp_wrap', 'udp_wrap', 'tty_wrap', 'timer_wrap', 'pipe_wrap', 'cares_wrap',//
@@ -51,7 +51,7 @@ try {
 		var n = bridge_list[i];
 		var text = fs.readFileSync(BRIDGE_SCRIPT_DIR + n + '.js').toString();
 		text = "(function(){" + text + "})();";
-		Global_evaluateProgram(undefined, [ text, 'bridge/' + n + '.js' ]);
+		IOManager_evaluate(text, 'bridge/' + n + '.js');
 	}
 
 	var _process = Global_eval(undefined, [ "process" ]);
@@ -121,7 +121,9 @@ try {
 	}
 
 	var text = fs.readFileSync(NODE_INIT_SCRIPT_DIR + 'node.js').toString();
-	consensus_evaluate(text, 'node.js');
+	Journal_init();
+	IOManager_online();
+	IOManager_evaluate(text, 'node.js');
 
 } catch (e) {
 	if (isInternalError(e)) {
@@ -135,5 +137,4 @@ try {
 			console.error("FATAL: " + ToString(e));
 		}
 	}
-	process.reallyExit(1);
 }

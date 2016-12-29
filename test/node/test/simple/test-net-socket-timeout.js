@@ -61,7 +61,7 @@ server.listen(common.PORT, function() {
   });
   var timer = setTimeout(function() {
     process.exit(1);
-  }, 400);
+  }, 200);
 });
 
 process.on('exit', function() {

@@ -46,6 +46,9 @@ function SnapshotOutputStream(ostream, allObjs) {
 		writeBuffer : function(x) {
 			ostream.writeBuffer(x);
 		},
+		writeAny : function(x) {
+			ostream.writeAny(x);
+		},
 		writeValue : function(x) {
 			switch (typeof x) {
 			case "undefined":
@@ -83,6 +86,9 @@ function SnapshotInputStream(istream, allObjs) {
 		},
 		readBuffer : function() {
 			return istream.readBuffer();
+		},
+		readAny : function() {
+			return istream.readAny();
 		},
 		readValue : function() {
 			var ID = istream.readInt();
@@ -122,16 +128,6 @@ var systemProperties = {
 	INSPECT_MAX_BYTES : undefined,
 };
 
-function isSnapshotObject(x) {
-	if (typeof x !== "object") {
-		return false;
-	}
-	if (x === null) {
-		return false;
-	}
-	return true;
-}
-
 function writeSnapshot(l_ostream) {
 	var allObjs = [];
 	allObjs.length = OBJID_BASE;
@@ -152,12 +148,12 @@ function writeSnapshot(l_ostream) {
 	for ( var name in systemProperties) {
 		mark(eval(name));
 	}
-	for ( var txid in IOP_asyncCallbacks) {
-		var callback = IOP_asyncCallbacks[txid];
+	for ( var txid in IOManager_asyncCallbacks) {
+		var callback = IOManager_asyncCallbacks[txid];
 		mark(callback);
 	}
-	for ( var txid in IOP_openPorts) {
-		var port = IOP_openPorts[txid];
+	for ( var txid in IOManager_openPorts) {
+		var port = IOManager_openPorts[txid];
 		mark(port);
 		mark(port.callback);
 	}
@@ -200,15 +196,15 @@ function writeSnapshot(l_ostream) {
 	ostream.writeString("");
 
 	ostream.writeString("IO");
-	ostream.writeInt(IOP_uniqueID);
-	for ( var txid in IOP_asyncCallbacks) {
-		var callback = IOP_asyncCallbacks[txid];
+	ostream.writeInt(IOManager_uniqueID);
+	for ( var txid in IOManager_asyncCallbacks) {
+		var callback = IOManager_asyncCallbacks[txid];
 		ostream.writeInt(ToNumber(txid));
 		ostream.writeValue(callback);
 	}
 	ostream.writeInt(0);
-	for ( var txid in IOP_openPorts) {
-		var port = IOP_openPorts[txid];
+	for ( var txid in IOManager_openPorts) {
+		var port = IOManager_openPorts[txid];
 		assert(ToNumber(txid) === port.txid);
 		ostream.writeInt(ToNumber(txid));
 		ostream.writeValue(port);
@@ -219,6 +215,7 @@ function writeSnapshot(l_ostream) {
 	ostream.writeString("FINISH");
 
 	//cleanup
+	l_ostream.flush();
 	for (var i = OBJID_BASE; i < allObjs.length; i++) {
 		var obj = allObjs[i];
 		obj.ID = 0;
@@ -293,17 +290,17 @@ function readSnapshot(l_istream) {
 	}
 
 	istream.assert(istream.readString() === "IO");
-	IOP_uniqueID = istream.readInt();
-	IOP_asyncCallbacks = {};
-	IOP_openPorts = {};
+	IOManager_uniqueID = istream.readInt();
+	IOManager_asyncCallbacks = {};
+	IOManager_openPorts = {};
 	while (true) {
 		var txid = istream.readInt();
 		if (txid === 0) {
 			break;
 		}
 		var callback = istream.readValue();
-		IOP_asyncCallbacks[txid] = callback;
-		istream.assert(txid <= IOP_uniqueID);
+		IOManager_asyncCallbacks[txid] = callback;
+		istream.assert(txid <= IOManager_uniqueID);
 		istream.assert(IsCallable(callback));
 	}
 	while (true) {
@@ -313,17 +310,16 @@ function readSnapshot(l_istream) {
 		}
 		var port = istream.readValue();
 		var callback = istream.readValue();
-		IOP_openPorts[txid] = port;
+		IOManager_openPorts[txid] = port;
 		port.txid = txid;
 		port.callback = callback;
-		istream.assert(txid <= IOP_uniqueID);
+		istream.assert(txid <= IOManager_uniqueID);
 		istream.assert(port.ClassID == CLASSID_IOPort);
 		istream.assert(IsCallable(callback));
 	}
 
 	istream.assert(istream.readString() === "FINISH");
 	istream.assert(checkVM());
-	vm0 = vm;
 
 	//cleanup
 	for (var i = OBJID_BASE; i < allObjs.length; i++) {

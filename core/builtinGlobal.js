@@ -445,7 +445,7 @@ function Global_getSystemProperty(thisValue, argumentsList) {
 
 function Global_createVM(thisValue, argumentsList) {
 	var callingVM = vm;
-	var newVM = initializeVM(true);
+	var newVM = initializeVM();
 	vm = callingVM;
 	return newVM;
 }

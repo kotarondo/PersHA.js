@@ -57,7 +57,7 @@ check_unref = setInterval(function() {
 
 // Should not assert on args.Holder()->InternalFieldCount() > 0. See #4261.
 (function() {
-  var t = setInterval(function() {}, 10);
+  var t = setInterval(function() {}, 1);
   process.nextTick(t.unref.bind({}));
   process.nextTick(t.unref.bind(t));
 })();
