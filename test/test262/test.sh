@@ -1,7 +1,5 @@
 #!/bin/sh
 
-make download
-
 persha -init test262.js
 EXITCODE=$?
 

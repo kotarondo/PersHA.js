@@ -109,7 +109,7 @@ function nextTestSuite() {
 
 var tests;
 var currentTestIndex;
-var nextSuspend = Date.now() + 3000;
+var nextSuspend = Date.now() + 30000;
 
 function nextTest() {
 	for (;; skipCount++) {
@@ -128,7 +128,7 @@ function nextTest() {
 	}
 	else if (begin > nextSuspend) {
 		process.suspendExit(123);
-		nextSuspend = begin + 3000;
+		nextSuspend = begin + 30000;
 		sandboxes = [];
 	}
 	var ok = doTest(test);

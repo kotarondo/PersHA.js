@@ -31,5 +31,5 @@ setTimeout(function() {
 
 
 process.on('exit', function() {
-  assert.ok(diff < 100);
+  assert.ok(diff < 200);
 });

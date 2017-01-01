@@ -64,6 +64,7 @@ function UDP() {
 }
 
 UDP.prototype.close = function() {
+	this._port.close();
 	return this._port.syncIO('close', []);
 };
 

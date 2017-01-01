@@ -1,11 +1,10 @@
 *.swp
 *.log
+node_modules
 bin/*.js
 main/enable*
 test/*/results
-test/test262/*.json
-test/test262/sta.js
 test/test262/stopIfFailed
 test/test262/skipHeavyTests
+test/test262/noRestartTest
 test/node/test/tmp
-test/v8bench/*.js

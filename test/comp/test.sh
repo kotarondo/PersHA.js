@@ -22,6 +22,7 @@ wait $pid
 
 rm -rf results
 mkdir -p results
+echo >results/failed
 failed=0
 
 for i in *.js

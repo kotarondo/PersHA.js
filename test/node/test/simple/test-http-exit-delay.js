@@ -56,6 +56,6 @@ process.on('exit', function() {
   var end = new Date();
   console.log(end.toISOString());
   assert.equal(start.getSeconds(), end.getSeconds());
-  assert(end.getMilliseconds() < 900);
+  assert(end.getMilliseconds() < 999);
   console.log('ok');
 });

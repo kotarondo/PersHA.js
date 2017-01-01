@@ -1,6 +1,6 @@
 #!/bin/sh
 
-TIMEOUT=300
+TIMEOUT=200
 HEAD=$1
 
 killer(){
@@ -23,6 +23,7 @@ wait $pid
 
 rm -rf results
 mkdir -p results
+echo >results/failed
 failed=0
 
 for i in test/simple/${HEAD}*.js
@@ -30,6 +31,7 @@ do
 f=${i##*/}
 j=${f%%.js}
 echo $j
+rm -rf test/fixtures/weird*
 rm -rf test/tmp
 mkdir -p test/tmp
 if [ "$j" = "test-stdout-close-unref" ]; then
@@ -40,6 +42,8 @@ fi
 EXITCODE=$?
 [ $EXITCODE -ne 0 ] && echo EXITCODE=$EXITCODE >>results/$j && cat results/$j
 [ $EXITCODE -ne 0 ] && failed=1 && echo FAILED: $j >>results/failed && continue
+
+[ -e noRestartTest ] && continue
 
 timeout persha -restart $i >>results/$j 2>&1
 EXITCODE=$?

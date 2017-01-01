@@ -1,7 +1,5 @@
 #!/bin/sh
 
-make download
-
 cat >test.js <<EOF
 var fs = require('fs');
 var vm = require('vm');

@@ -33,6 +33,12 @@
 
 'use strict'
 
+if (process.version.indexOf("v0.12.")!==0){
+	console.log("ERROR: invalid node version: " + process.version);
+	console.log("       PersHA.js requires node version v0.12.x");
+	process.exit(1);
+}
+
 global.require = require;
 global.PERSHA_HOME = undefined;
 global.PERSHA_DATA = undefined;
@@ -45,8 +51,8 @@ function print_usage() {
 	console.log("Usage:");
 	console.log("    persha -init [main module]");
 	console.log("    persha -restart");
-	console
-			.log("  where data directory can be specified by the environment variable PERSHA_DATA which defaults to $HOME/.persha");
+	console.log("  where data directory can be specified by the environment");
+	console.log("  variable PERSHA_DATA which defaults to $HOME/.persha");
 }
 
 PERSHA_HOME = path.dirname(path.dirname(process.argv[1]));
