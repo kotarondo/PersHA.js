@@ -96,7 +96,7 @@ var headers = []
   .concat(multipleForbidden.map(makeHeader('bar')))
   // content-length is a special case since node.js
   // is dropping connetions with non-numeric headers
-  .concat([['content-length', 0], ['content-length', 123]]);
+  .concat([['content-length', 0]]);
 
 srv.listen(common.PORT, function() {
   http.get({
