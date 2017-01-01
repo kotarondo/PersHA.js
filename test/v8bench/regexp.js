@@ -38,7 +38,7 @@
 
 
 var RegExpSuite = new BenchmarkSuite('RegExp', [910985], [
-  new Benchmark("RegExp", true, false, 50,
+  new Benchmark("RegExp", true, false, 10,
     RegExpRun, RegExpSetup, RegExpTearDown, null, 16)
 ]);
 
