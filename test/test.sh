@@ -1,6 +1,6 @@
 #!/bin/sh
 
-TESTS="node comp v8bench test262"
+TESTS="v8bench node comp test262"
 
 cd $(dirname $0)
 WORKINGDIR=$(pwd -P)
