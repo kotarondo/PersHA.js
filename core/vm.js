@@ -59,6 +59,7 @@ function defineFunction(obj, name, length, func) {
 	F.Extensible = true;
 	defineCall(F, func);
 	defineFinal(F, "length", length);
+	defineFinal(F, "name", name);
 	define(obj, name, F);
 	return F;
 }
@@ -70,6 +71,7 @@ function defineAccessor(obj, name, get, set) {
 		Get.Extensible = true;
 		defineCall(Get, get);
 		defineFinal(Get, "length", 0);
+		defineFinal(Get, "name", "get " + name);
 	}
 	if (set !== undefined) {
 		var Set = VMObject(CLASSID_BuiltinFunction);
@@ -77,6 +79,7 @@ function defineAccessor(obj, name, get, set) {
 		Set.Extensible = true;
 		defineCall(Set, set);
 		defineFinal(Set, "length", 1);
+		defineFinal(Set, "name", "set " + name);
 	}
 	intrinsic_createAccessor(obj, name, Get, Set, false, true);
 }
@@ -704,6 +707,25 @@ function initializeVM() {
 	define(vm.IOPortError_prototype, "constructor", vm.IOPortError);
 	define(vm.IOPortError_prototype, "name", "IOPortError");
 	define(vm.IOPortError_prototype, "message", "");
+
+	defineFinal(vm.Object, "name", "Object");
+	defineFinal(vm.Function, "name", "Function");
+	defineFinal(vm.Array, "name", "Array");
+	defineFinal(vm.String, "name", "String");
+	defineFinal(vm.Boolean, "name", "Boolean");
+	defineFinal(vm.Number, "name", "Number");
+	defineFinal(vm.Date, "name", "Date");
+	defineFinal(vm.RegExp, "name", "RegExp");
+	defineFinal(vm.Error, "name", "Error");
+	defineFinal(vm.EvalError, "name", "EvalError");
+	defineFinal(vm.RangeError, "name", "RangeError");
+	defineFinal(vm.ReferenceError, "name", "ReferenceError");
+	defineFinal(vm.SyntaxError, "name", "SyntaxError");
+	defineFinal(vm.TypeError, "name", "TypeError");
+	defineFinal(vm.URIError, "name", "URIError");
+	defineFinal(vm.Buffer, "name", "Buffer");
+	defineFinal(vm.IOPort, "name", "IOPort");
+	defineFinal(vm.IOPortError, "name", "IOPortError");
 
 	assert(checkVM());
 	return vm;

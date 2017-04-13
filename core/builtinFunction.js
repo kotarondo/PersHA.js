@@ -77,20 +77,19 @@ function Function_Construct(argumentsList) {
 function Function_prototype_toString(thisValue, argumentsList) {
 	var func = thisValue;
 	if (IsCallable(func) === false) throw VMTypeError();
-	var name = get_Function_prototype_name(thisValue, argumentsList);
+	var name = func.Get("name") || "anonymous";
 	while (func.TargetFunction) {
 		func = func.TargetFunction;
 	}
 	if (func.Code) {
 		var param = func.Code.parameters;
-		var name = func.Code.functionName || "anonymous";
 		var startPos = func.Code.startPos;
 		var endPos = func.Code.endPos;
 		var source = func.Code.sourceObject.source;
 		var codeText = source.substring(startPos, endPos);
 		return "function " + name + "(" + param + "){" + codeText + "}";
 	}
-	return "function " + getIntrinsicFunctionName(func._Call) + "{ native }";
+	return "function " + name + "(){ native }";
 }
 
 function get_Function_prototype_name(thisValue, argumentsList) {
@@ -100,10 +99,7 @@ function get_Function_prototype_name(thisValue, argumentsList) {
 		func = func.TargetFunction;
 	}
 	if (func.Code) {
-		var name = func.Code.functionName || "";
-	}
-	else {
-		var name = getIntrinsicFunctionName(func._Call);
+		var name = func.Code.functionName;
 	}
 	if (!name) {
 		return "";
