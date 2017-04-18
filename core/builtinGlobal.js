@@ -89,11 +89,17 @@ function Global_evaluateProgram(thisValue, argumentsList) {
 			throw e;
 		}
 	}
+	var savedLexicalEnvironment = LexicalEnvironment;
+	var savedVariableEnvironment = VariableEnvironment;
+	var savedThisBinding = ThisBinding;
 	enterExecutionContextForGlobalCode(prog);
 	try {
 		var result = prog.evaluate();
 	} finally {
 		exitExecutionContext();
+		LexicalEnvironment = savedLexicalEnvironment;
+		VariableEnvironment = savedVariableEnvironment;
+		ThisBinding = savedThisBinding;
 	}
 	if (result.type === "normal" && result.value === empty) return undefined;
 	if (result.type === "normal") return result.value;
